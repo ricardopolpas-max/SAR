@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import sqlite3
 import os
-from rotinas.db_genericas import DB_PATH, db_selecionar
+from rotinas.genericas import DB_PATH, db_selecionar
 
 app = FastAPI(title="SAR - Sistema de Automação de Recolocação")
 
