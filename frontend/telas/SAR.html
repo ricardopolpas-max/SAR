@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SAR - Sistema de Automação de Recolocação</title>
+  <link rel="stylesheet" href="../estilos/base.css">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #0f1117;
+      color: #e2e8f0;
+      min-height: 100vh;
+    }
+
+    header {
+      background: #1a1d27;
+      border-bottom: 1px solid #2d3748;
+      padding: 1rem 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    header h1 { font-size: 1.25rem; font-weight: 600; letter-spacing: 0.05em; color: #63b3ed; }
+    header span { font-size: 0.75rem; color: #718096; }
+
+    #status-bar {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.8rem;
+    }
+
+    #status-indicador {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #718096;
+    }
+
+    #status-indicador.online  { background: #48bb78; }
+    #status-indicador.offline { background: #fc8181; }
+
+    main { padding: 2rem; max-width: 1100px; margin: 0 auto; }
+
+    .secao-titulo {
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #718096;
+      margin-bottom: 1rem;
+    }
+
+    #lista-vagas { display: flex; flex-direction: column; gap: 0.75rem; }
+
+    .card-vaga {
+      background: #1a1d27;
+      border: 1px solid #2d3748;
+      border-radius: 8px;
+      padding: 1rem 1.25rem;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 0.25rem 1rem;
+      align-items: start;
+    }
+
+    .card-vaga:hover { border-color: #4a5568; }
+
+    .vaga-titulo { font-size: 0.95rem; font-weight: 600; color: #e2e8f0; }
+    .vaga-empresa { font-size: 0.8rem; color: #a0aec0; }
+
+    .vaga-status {
+      font-size: 0.7rem;
+      font-weight: 600;
+      padding: 0.2rem 0.6rem;
+      border-radius: 99px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      white-space: nowrap;
+    }
+
+    .status-PENDENTE   { background: #2d3748; color: #a0aec0; }
+    .status-APROVADA   { background: #1c4532; color: #68d391; }
+    .status-REPROVADA  { background: #3b1515; color: #fc8181; }
+
+    .vaga-score {
+      font-size: 0.75rem;
+      color: #63b3ed;
+      grid-column: 1;
+    }
+
+    .vaga-link {
+      font-size: 0.75rem;
+      color: #63b3ed;
+      text-decoration: none;
+      grid-column: 1;
+    }
+
+    .vaga-link:hover { text-decoration: underline; }
+
+    #msg-vazia {
+      color: #4a5568;
+      font-size: 0.875rem;
+      padding: 2rem 0;
+      text-align: center;
+      display: none;
+    }
+
+    #msg-erro {
+      color: #fc8181;
+      font-size: 0.875rem;
+      padding: 2rem 0;
+      text-align: center;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>SAR</h1>
+    <div id="status-bar">
+      <div id="status-indicador"></div>
+      <span id="status-texto">verificando backend...</span>
+    </div>
+  </header>
+
+  <main>
+    <p class="secao-titulo">Vagas</p>
+    <div id="lista-vagas"></div>
+    <p id="msg-vazia">Nenhuma vaga cadastrada ainda.</p>
+    <p id="msg-erro">Não foi possível conectar ao backend.</p>
+  </main>
+
+  <script src="../scripts/api.js"></script>
+  <script>
+    const API = window.SarAPI || { base: "http://127.0.0.1:8000" };
+
+    async function verificarBackend() {
+      try {
+        const res = await fetch(`${API.base}/`);
+        if (!res.ok) throw new Error();
+        document.getElementById("status-indicador").className = "online";
+        document.getElementById("status-texto").textContent = "backend online";
+      } catch {
+        document.getElementById("status-indicador").className = "offline";
+        document.getElementById("status-texto").textContent = "backend offline";
+      }
+    }
+
+    async function carregarVagas() {
+      const lista   = document.getElementById("lista-vagas");
+      const msgVazia = document.getElementById("msg-vazia");
+      const msgErro  = document.getElementById("msg-erro");
+
+      try {
+        const res   = await fetch(`${API.base}/vagas`);
+        const vagas = await res.json();
+
+        if (!vagas.length) {
+          msgVazia.style.display = "block";
+          return;
+        }
+
+        lista.innerHTML = vagas.map(v => `
+          <div class="card-vaga">
+            <span class="vaga-titulo">${v.titulo}</span>
+            <span class="vaga-status status-${v.status}">${v.status}</span>
+            <span class="vaga-empresa">${v.empresa || "Empresa não informada"}</span>
+            ${v.score ? `<span class="vaga-score">Score: ${v.score.toFixed(1)}</span>` : ""}
+            ${v.link  ? `<a class="vaga-link" href="${v.link}" target="_blank" rel="noopener">ver vaga</a>` : ""}
+          </div>
+        `).join("");
+
+      } catch {
+        msgErro.style.display = "block";
+        document.getElementById("status-indicador").className = "offline";
+        document.getElementById("status-texto").textContent = "backend offline";
+      }
+    }
+
+    verificarBackend();
+    carregarVagas();
+  </script>
+
+</body>
+</html>

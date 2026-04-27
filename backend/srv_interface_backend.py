@@ -69,5 +69,4 @@ async def listar_vagas():
     Rota para retornar todas as vagas cadastradas.
     Consome a rotina genérica de banco de dados.
     """
-    vagas = await db_selecionar("vagas", ordem="data_extracao DESC")
-    return vagas
+    return db_selecionar("vagas", ordem="data_extracao DESC")
