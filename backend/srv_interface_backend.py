@@ -1,0 +1,73 @@
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+import sqlite3
+import os
+from rotinas.db_genericas import DB_PATH, db_selecionar
+
+app = FastAPI(title="SAR - Sistema de Automação de Recolocação")
+
+# Configuração de CORS para garantir conectividade segura entre interface e backend
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+@app.on_event("startup")
+def setup_db():
+    """
+    Inicializa o banco de dados e as tabelas core seguindo a governança de 'Verdade Absoluta'.
+    """
+    os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
+    
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.execute("PRAGMA foreign_keys = ON;")
+        cursor = conn.cursor()
+        
+        # Tabela de Configurações: Parâmetros agnósticos do sistema
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS configuracoes (
+                chave TEXT PRIMARY KEY,
+                valor TEXT,
+                tipo TEXT DEFAULT 'string',
+                descricao TEXT
+            )
+        """)
+        
+        # Tabela de Vagas: Repositório central de oportunidades (Core do SAR)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS vagas (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                titulo TEXT NOT NULL,
+                empresa TEXT,
+                link TEXT UNIQUE,
+                data_extracao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                score REAL DEFAULT 0.0,
+                status TEXT DEFAULT 'PENDENTE'
+            )
+        """)
+        
+        # Tabela de Logs: Rastreabilidade total
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS logs_sistema (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                momento TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                acao TEXT NOT NULL,
+                detalhes TEXT
+            )
+        """)
+        conn.commit()
+
+@app.get("/")
+async def root():
+    return {"projeto": "SAR", "status": "operacional", "mensagem": "Interface Backend pronta para processamento"}
+
+@app.get("/vagas")
+async def listar_vagas():
+    """
+    Rota para retornar todas as vagas cadastradas.
+    Consome a rotina genérica de banco de dados.
+    """
+    vagas = await db_selecionar("vagas", ordem="data_extracao DESC")
+    return vagas

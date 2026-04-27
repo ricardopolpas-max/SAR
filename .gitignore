@@ -1,0 +1,26 @@
+# Banco de dados
+*.db
+*.sqlite
+armazenamento_dados/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+.env
+venv/
+env/
+.venv/
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
