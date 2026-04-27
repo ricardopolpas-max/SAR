@@ -1,0 +1,582 @@
+/* ============================================================
+   SAR — sistema.css
+   Folha de estilos global do sistema.
+   Design tokens, reset, layout e componentes.
+   ============================================================ */
+
+/* ------------------------------------------------------------
+   1. TOKENS DE DESIGN
+   Todas as decisões visuais vivem aqui.
+   ------------------------------------------------------------ */
+:root {
+  /* Superfícies — escala de profundidade */
+  --s-base:       #080b12;
+  --s-raised:     #0e1320;
+  --s-overlay:    #141928;
+  --s-border:     #1e2538;
+  --s-border-hi:  #2e3a52;
+
+  /* Paleta primária — azul safira frio */
+  --p-50:  #e8f0ff;
+  --p-200: #93b4f5;
+  --p-400: #4c82ef;
+  --p-500: #2d65e0;
+  --p-600: #1e4fc0;
+  --p-900: #0a1a50;
+
+  /* Acento — âmbar para ações e destaques */
+  --a-300: #fcd47a;
+  --a-400: #f5b730;
+  --a-600: #c47c0a;
+
+  /* Semânticas */
+  --c-sucesso:    #34c47a;
+  --c-atencao:    #f5b730;
+  --c-perigo:     #f05050;
+  --c-info:       #4c82ef;
+
+  --c-sucesso-bg: #071f14;
+  --c-atencao-bg: #1e1505;
+  --c-perigo-bg:  #1f0707;
+  --c-info-bg:    #071530;
+
+  /* Texto */
+  --t-principal:  #dde4f0;
+  --t-secundario: #7e8fa8;
+  --t-desabilitado: #3e4a60;
+  --t-link:       var(--p-400);
+
+  /* Tipografia */
+  --font-base: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+
+  --text-xs:   0.6875rem;  /* 11px */
+  --text-sm:   0.8125rem;  /* 13px */
+  --text-md:   0.9375rem;  /* 15px */
+  --text-lg:   1.125rem;   /* 18px */
+  --text-xl:   1.375rem;   /* 22px */
+  --text-2xl:  1.75rem;    /* 28px */
+
+  --weight-regular: 400;
+  --weight-medium:  500;
+  --weight-semibold: 600;
+  --weight-bold:    700;
+
+  --leading-tight:  1.25;
+  --leading-normal: 1.5;
+  --leading-loose:  1.75;
+
+  /* Espaçamento — base 4px */
+  --sp-1:  0.25rem;
+  --sp-2:  0.5rem;
+  --sp-3:  0.75rem;
+  --sp-4:  1rem;
+  --sp-5:  1.25rem;
+  --sp-6:  1.5rem;
+  --sp-8:  2rem;
+  --sp-10: 2.5rem;
+  --sp-12: 3rem;
+  --sp-16: 4rem;
+
+  /* Raios de borda */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-full: 9999px;
+
+  /* Sombras */
+  --shadow-sm: 0 1px 3px rgba(0,0,0,.4), 0 1px 2px rgba(0,0,0,.3);
+  --shadow-md: 0 4px 12px rgba(0,0,0,.5), 0 2px 4px rgba(0,0,0,.3);
+  --shadow-lg: 0 12px 32px rgba(0,0,0,.6), 0 4px 8px rgba(0,0,0,.3);
+  --shadow-glow: 0 0 0 3px rgba(76,130,239,.25);
+
+  /* Transições */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in:  cubic-bezier(0.64, 0, 0.78, 0);
+  --dur-fast: 120ms;
+  --dur-base: 200ms;
+  --dur-slow: 350ms;
+
+  /* Layout */
+  --header-h:    56px;
+  --sidebar-w:   220px;
+  --content-max: 1080px;
+}
+
+/* ------------------------------------------------------------
+   2. RESET MODERNO
+   ------------------------------------------------------------ */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-base);
+  font-size: var(--text-md);
+  font-weight: var(--weight-regular);
+  line-height: var(--leading-normal);
+  color: var(--t-principal);
+  background-color: var(--s-base);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+img, video, svg { display: block; max-width: 100%; }
+input, button, textarea, select { font: inherit; }
+p, h1, h2, h3, h4, h5, h6 { overflow-wrap: break-word; }
+a { color: var(--t-link); text-decoration: none; }
+a:hover { text-decoration: underline; }
+ul, ol { list-style: none; }
+
+/* ------------------------------------------------------------
+   3. FOCO ACESSÍVEL
+   ------------------------------------------------------------ */
+:focus-visible {
+  outline: 2px solid var(--p-400);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* ------------------------------------------------------------
+   4. TIPOGRAFIA
+   ------------------------------------------------------------ */
+.text-xs       { font-size: var(--text-xs); }
+.text-sm       { font-size: var(--text-sm); }
+.text-md       { font-size: var(--text-md); }
+.text-lg       { font-size: var(--text-lg); }
+.text-xl       { font-size: var(--text-xl); }
+.text-2xl      { font-size: var(--text-2xl); }
+
+.text-principal    { color: var(--t-principal); }
+.text-secundario   { color: var(--t-secundario); }
+.text-desabilitado { color: var(--t-desabilitado); }
+
+.font-medium   { font-weight: var(--weight-medium); }
+.font-semibold { font-weight: var(--weight-semibold); }
+.font-bold     { font-weight: var(--weight-bold); }
+.font-mono     { font-family: var(--font-mono); }
+
+.uppercase { text-transform: uppercase; letter-spacing: 0.08em; }
+.truncate  { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Rótulo de seção — padrão do sistema */
+.secao-label {
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--t-secundario);
+  margin-bottom: var(--sp-4);
+}
+
+/* ------------------------------------------------------------
+   5. LAYOUT
+   ------------------------------------------------------------ */
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* Header principal */
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  height: var(--header-h);
+  background: var(--s-raised);
+  border-bottom: 1px solid var(--s-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--sp-8);
+  gap: var(--sp-4);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.app-logo {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-bold);
+  color: var(--p-200);
+  letter-spacing: -0.02em;
+  user-select: none;
+}
+
+.app-logo span {
+  color: var(--t-secundario);
+  font-weight: var(--weight-regular);
+  font-size: var(--text-sm);
+  margin-left: var(--sp-2);
+}
+
+/* Conteúdo principal */
+.app-main {
+  flex: 1;
+  padding: var(--sp-8);
+  max-width: calc(var(--content-max) + var(--sp-16));
+  width: 100%;
+  margin: 0 auto;
+}
+
+/* ------------------------------------------------------------
+   6. INDICADOR DE STATUS (backend / conexão)
+   ------------------------------------------------------------ */
+.status-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: var(--text-xs);
+  color: var(--t-secundario);
+  user-select: none;
+}
+
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: var(--radius-full);
+  background: var(--t-desabilitado);
+  transition: background var(--dur-base) var(--ease-out),
+              box-shadow var(--dur-base) var(--ease-out);
+  flex-shrink: 0;
+}
+
+.status-dot.online {
+  background: var(--c-sucesso);
+  box-shadow: 0 0 6px var(--c-sucesso);
+}
+
+.status-dot.offline {
+  background: var(--c-perigo);
+  box-shadow: 0 0 6px var(--c-perigo);
+}
+
+/* ------------------------------------------------------------
+   7. CARD
+   ------------------------------------------------------------ */
+.card {
+  background: var(--s-raised);
+  border: 1px solid var(--s-border);
+  border-radius: var(--radius-lg);
+  padding: var(--sp-5) var(--sp-6);
+  transition: border-color var(--dur-fast) var(--ease-out),
+              box-shadow  var(--dur-fast) var(--ease-out);
+}
+
+.card:hover {
+  border-color: var(--s-border-hi);
+  box-shadow: var(--shadow-sm);
+}
+
+.card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--sp-4);
+  margin-bottom: var(--sp-3);
+}
+
+.card-titulo {
+  font-size: var(--text-md);
+  font-weight: var(--weight-semibold);
+  color: var(--t-principal);
+  line-height: var(--leading-tight);
+}
+
+.card-subtitulo {
+  font-size: var(--text-sm);
+  color: var(--t-secundario);
+  margin-top: var(--sp-1);
+}
+
+.card-footer {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  margin-top: var(--sp-4);
+  padding-top: var(--sp-4);
+  border-top: 1px solid var(--s-border);
+}
+
+/* ------------------------------------------------------------
+   8. BADGE DE STATUS
+   ------------------------------------------------------------ */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  padding: 2px var(--sp-3);
+  border-radius: var(--radius-full);
+  white-space: nowrap;
+  line-height: 1.6;
+}
+
+.badge-pendente  { background: var(--s-overlay);     color: var(--t-secundario); border: 1px solid var(--s-border-hi); }
+.badge-aprovada  { background: var(--c-sucesso-bg);  color: var(--c-sucesso);    border: 1px solid #0d3a22; }
+.badge-reprovada { background: var(--c-perigo-bg);   color: var(--c-perigo);     border: 1px solid #3a0d0d; }
+.badge-em-curso  { background: var(--c-info-bg);     color: var(--c-info);       border: 1px solid #0d1f50; }
+.badge-atencao   { background: var(--c-atencao-bg);  color: var(--c-atencao);    border: 1px solid #3a2a05; }
+
+/* Score numérico */
+.score-chip {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  color: var(--p-200);
+  background: var(--p-900);
+  border: 1px solid var(--p-600);
+  padding: 2px var(--sp-3);
+  border-radius: var(--radius-full);
+}
+
+/* ------------------------------------------------------------
+   9. BOTÕES
+   ------------------------------------------------------------ */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  line-height: 1;
+  padding: var(--sp-2) var(--sp-5);
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-out),
+              border-color var(--dur-fast) var(--ease-out),
+              box-shadow var(--dur-fast) var(--ease-out),
+              opacity var(--dur-fast) var(--ease-out);
+  user-select: none;
+  white-space: nowrap;
+}
+
+.btn:disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
+
+/* Primário */
+.btn-primary {
+  background: var(--p-500);
+  border-color: var(--p-600);
+  color: #fff;
+}
+.btn-primary:hover  { background: var(--p-400); box-shadow: var(--shadow-glow); }
+.btn-primary:active { background: var(--p-600); }
+
+/* Secundário (ghost) */
+.btn-ghost {
+  background: transparent;
+  border-color: var(--s-border-hi);
+  color: var(--t-principal);
+}
+.btn-ghost:hover  { background: var(--s-overlay); border-color: var(--s-border-hi); }
+.btn-ghost:active { background: var(--s-border); }
+
+/* Perigo */
+.btn-danger {
+  background: var(--c-perigo-bg);
+  border-color: #3a0d0d;
+  color: var(--c-perigo);
+}
+.btn-danger:hover { background: #2a0808; }
+
+/* Tamanhos */
+.btn-sm { font-size: var(--text-xs); padding: var(--sp-1) var(--sp-3); }
+.btn-lg { font-size: var(--text-md); padding: var(--sp-3) var(--sp-6); }
+
+/* ------------------------------------------------------------
+   10. INPUTS E FORMULÁRIOS
+   ------------------------------------------------------------ */
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.form-label {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--t-secundario);
+}
+
+.form-input,
+.form-select,
+.form-textarea {
+  background: var(--s-overlay);
+  border: 1px solid var(--s-border-hi);
+  border-radius: var(--radius-md);
+  color: var(--t-principal);
+  font-size: var(--text-sm);
+  padding: var(--sp-2) var(--sp-4);
+  width: 100%;
+  transition: border-color var(--dur-fast) var(--ease-out),
+              box-shadow   var(--dur-fast) var(--ease-out);
+  outline: none;
+}
+
+.form-input::placeholder { color: var(--t-desabilitado); }
+
+.form-input:focus,
+.form-select:focus,
+.form-textarea:focus {
+  border-color: var(--p-500);
+  box-shadow: var(--shadow-glow);
+}
+
+.form-textarea { resize: vertical; min-height: 80px; line-height: var(--leading-loose); }
+
+/* ------------------------------------------------------------
+   11. TABELA
+   ------------------------------------------------------------ */
+.tabela-wrapper { overflow-x: auto; border-radius: var(--radius-lg); border: 1px solid var(--s-border); }
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+
+thead tr {
+  background: var(--s-overlay);
+  border-bottom: 1px solid var(--s-border);
+}
+
+thead th {
+  text-align: left;
+  padding: var(--sp-3) var(--sp-5);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--t-secundario);
+  white-space: nowrap;
+}
+
+tbody tr {
+  border-bottom: 1px solid var(--s-border);
+  transition: background var(--dur-fast) var(--ease-out);
+}
+
+tbody tr:last-child { border-bottom: none; }
+tbody tr:hover { background: var(--s-overlay); }
+
+tbody td {
+  padding: var(--sp-4) var(--sp-5);
+  color: var(--t-principal);
+  vertical-align: middle;
+}
+
+/* ------------------------------------------------------------
+   12. LISTA DE ITENS (feed / vagas)
+   ------------------------------------------------------------ */
+.lista { display: flex; flex-direction: column; gap: var(--sp-3); }
+
+/* Card de vaga — especialização do .card */
+.card-vaga {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-rows: auto auto;
+  column-gap: var(--sp-4);
+  row-gap: var(--sp-2);
+  align-items: start;
+}
+
+.card-vaga .vaga-titulo   { grid-column: 1; grid-row: 1; }
+.card-vaga .vaga-badge    { grid-column: 2; grid-row: 1; align-self: center; }
+.card-vaga .vaga-meta     { grid-column: 1 / -1; grid-row: 2; display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap; }
+
+.vaga-empresa { font-size: var(--text-sm); color: var(--t-secundario); }
+
+/* ------------------------------------------------------------
+   13. ESTADO VAZIO E ERRO
+   ------------------------------------------------------------ */
+.estado-vazio,
+.estado-erro {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--sp-16) var(--sp-8);
+  gap: var(--sp-3);
+  text-align: center;
+}
+
+.estado-vazio-icone,
+.estado-erro-icone {
+  font-size: 2rem;
+  opacity: 0.3;
+}
+
+.estado-vazio p { color: var(--t-secundario); font-size: var(--text-sm); }
+.estado-erro  p { color: var(--c-perigo);      font-size: var(--text-sm); }
+
+/* ------------------------------------------------------------
+   14. DIVISOR
+   ------------------------------------------------------------ */
+.divisor {
+  height: 1px;
+  background: var(--s-border);
+  margin: var(--sp-6) 0;
+  border: none;
+}
+
+/* ------------------------------------------------------------
+   15. UTILITÁRIOS DE LAYOUT
+   ------------------------------------------------------------ */
+.flex          { display: flex; }
+.flex-col      { display: flex; flex-direction: column; }
+.items-center  { align-items: center; }
+.justify-between { justify-content: space-between; }
+.gap-2 { gap: var(--sp-2); }
+.gap-3 { gap: var(--sp-3); }
+.gap-4 { gap: var(--sp-4); }
+
+.mt-4  { margin-top: var(--sp-4); }
+.mt-6  { margin-top: var(--sp-6); }
+.mt-8  { margin-top: var(--sp-8); }
+.mb-4  { margin-bottom: var(--sp-4); }
+.mb-6  { margin-bottom: var(--sp-6); }
+
+.w-full  { width: 100%; }
+.hidden  { display: none !important; }
+
+/* ------------------------------------------------------------
+   16. RESPONSIVIDADE
+   ------------------------------------------------------------ */
+@media (max-width: 768px) {
+  .app-header { padding: 0 var(--sp-4); }
+  .app-main   { padding: var(--sp-4); }
+
+  .card-vaga {
+    grid-template-columns: 1fr;
+  }
+
+  .card-vaga .vaga-badge { grid-column: 1; grid-row: 2; justify-self: start; }
+  .card-vaga .vaga-meta  { grid-row: 3; }
+}
+
+/* ------------------------------------------------------------
+   17. SCROLLBAR PERSONALIZADA (Chromium / WebKit)
+   ------------------------------------------------------------ */
+::-webkit-scrollbar       { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--s-base); }
+::-webkit-scrollbar-thumb { background: var(--s-border-hi); border-radius: var(--radius-full); }
+::-webkit-scrollbar-thumb:hover { background: #3e4f6a; }
+
+/* ============================================================
+   Fim — sistema.css
+   ============================================================ */
