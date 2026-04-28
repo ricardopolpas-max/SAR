@@ -20,7 +20,7 @@ Este documento é a única fonte de verdade para a estrutura, nomenclatura e evo
 | `dependencias.txt` | raiz | dependências Python do projeto |
 | `SAR.html` | `/frontend/telas` | tela principal do sistema |
 | `visual.css` | `/frontend/estilos` | identidade visual global |
-| `api.js` | `/frontend/scripts` | comunicação com o backend |
+| `api.js` | `/integracao/rotas` | comunicação com o backend |
 | `vagas.js` | `/frontend/scripts` | lógica da tela de vagas |
 
 ## 2. Hierarquia e Divisão de Competências
@@ -53,6 +53,7 @@ Cada pasta tem responsabilidade única e exclusiva. Nenhum arquivo deve residir 
 ├── apoio/                       → testes, logs, scripts de suporte, mocks
 │
 ├── .env                         → variáveis de ambiente (NUNCA no git)
+├── sar.pid                      → PID do processo ativo (NUNCA no git — gerado em runtime)
 ├── .gitignore
 └── dependencias.txt             → dependências Python do projeto
 ```
@@ -77,7 +78,7 @@ Cada pasta tem responsabilidade única e exclusiva. Nenhum arquivo deve residir 
 ### 4.1 Proibições — Regras Invioláveis
 - **É terminantemente proibido** iniciar o servidor sem certificado SSL ativo.
 - **É terminantemente proibido** expor qualquer rota da API em protocolo `http://` em qualquer ambiente.
-- **É terminantemente proibido** commitar a chave privada (`sar.key`) ou o arquivo `.env` no repositório.
+- **É terminantemente proibido** commitar a chave privada (`sar.key`), o arquivo `.env` ou o arquivo `sar.pid` no repositório.
 - **É terminantemente proibido** compartilhar ou transmitir a chave privada por qualquer meio (e-mail, chat, repositório, nuvem).
 - **É terminantemente proibido** iniciar o servidor diretamente pelo Uvicorn — o ponto de entrada obrigatório é sempre o `servidor.py`.
 

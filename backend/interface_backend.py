@@ -51,11 +51,36 @@ def setup_db():
                 titulo TEXT NOT NULL,
                 empresa TEXT,
                 link TEXT UNIQUE,
+                localizacao TEXT,
+                modalidade TEXT,
+                tipo_contrato TEXT,
+                salario_inicial INTEGER,
+                descricao TEXT,
+                id_externo TEXT UNIQUE,
+                fonte TEXT DEFAULT 'peixe30',
                 data_extracao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                ultima_sincronizacao TIMESTAMP,
                 score REAL DEFAULT 0.0,
                 status TEXT DEFAULT 'PENDENTE'
             )
         """)
+
+        # Migração: adiciona colunas ausentes em bancos já existentes
+        cursor.execute("PRAGMA table_info(vagas)")
+        colunas_existentes = {row[1] for row in cursor.fetchall()}
+        novas_colunas = [
+            ("localizacao",          "TEXT"),
+            ("modalidade",           "TEXT"),
+            ("tipo_contrato",        "TEXT"),
+            ("salario_inicial",      "INTEGER"),
+            ("descricao",            "TEXT"),
+            ("id_externo",           "TEXT"),
+            ("fonte",                "TEXT DEFAULT 'peixe30'"),
+            ("ultima_sincronizacao", "TIMESTAMP"),
+        ]
+        for coluna, tipo in novas_colunas:
+            if coluna not in colunas_existentes:
+                cursor.execute(f"ALTER TABLE vagas ADD COLUMN {coluna} {tipo}")
         
         # Tabela de Logs: Rastreabilidade total
         cursor.execute("""

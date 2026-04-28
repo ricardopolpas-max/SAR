@@ -96,16 +96,64 @@ Garante rastreabilidade, legado e prevenção de recorrência de erros.
 
 ---
 
+## 2026-04-27 — Entregas Técnicas da Fase 1
+
+**Ações concluídas:**
+- Renomeado `srv_interface_backend.py` → `interface_backend.py` (prefixo abolido)
+- Renomeado `cfg_dependencias_python.txt` → `dependencias.txt` (prefixo abolido)
+- Movido `api.js` de `frontend/scripts/` → `integracao/rotas/api.js` (camada correta)
+- Criado `servidor.py` como orquestrador central (ponto de entrada único)
+- Adicionado mounts `StaticFiles` em `interface_backend.py` (`/frontend` e `/integracao`)
+- Adicionada rota `GET /sar` servindo `SAR.html` via `FileResponse`
+- Adicionada rota `GET /favicon.ico` retornando SVG inline (elimina 404)
+- Atualizado `SAR.html` com caminhos absolutos compatíveis com FastAPI
+- Governança Seções 2–5 corrigidas e atualizadas
+- `.devcontainer/devcontainer.json` atualizado para usar `dependencias.txt`
+
+**Bugs corrigidos:**
+- `reload=True` no `uvicorn.run()` → removido (incompatível com SSL no Windows, SSL não era aplicado)
+- `atexit.register(liberar_porta)` + `subprocess/taskkill` → removidos (causavam deadlock no shutdown do Windows — processo tentava matar a si mesmo enquanto uvicorn encerrava)
+- Favicon 404 após migração para FastAPI → corrigido com rota dedicada
+
+**Decisões registradas:**
+- `PORTA_DEFAULT` = âncora imutável no `.env`; `PORTA_ATUAL` = verdade operacional gravada em runtime
+- `servidor.py` atualiza `BASE_URL` em `api.js` via regex antes de subir — frontend sempre recebe a porta correta
+- Porta livre encontrada por varredura sequencial a partir da `PORTA_DEFAULT`
+- SSL validado antes de subir — servidor bloqueado sem certificado válido
+- OS libera porta automaticamente no encerramento normal — `liberar_porta` era redundante e perigosa
+
+---
+
+## 2026-04-28 — Gerenciamento de PID
+
+**Problema identificado:**
+Encerramento anormal do processo (terminal fechado, crash, kill externo) deixava instâncias fantasmas ocupando porta, causando erros na próxima inicialização. Solução anterior (`atexit` + `taskkill`) causava deadlock no Windows.
+
+**Solução implementada — arquivo PID:**
+- `servidor.py` checa `sar.pid` na inicialização e encerra processo anterior se existir
+- PID atual gravado em `sar.pid` após validação dos certificados
+- `try/finally` em torno de `uvicorn.run()` garante remoção do `sar.pid` em qualquer cenário de encerramento (normal ou exceção)
+- `sar.pid` adicionado ao `.gitignore` (arquivo operacional, gerado em runtime)
+- Hierarquia e proibições de commit atualizadas na governança
+
+**Por que `try/finally` e não `atexit`:**
+- `atexit` executa *durante* o shutdown do uvicorn → condição de corrida → deadlock no Windows
+- `try/finally` executa *após* `uvicorn.run()` retornar → uvicorn já encerrou → sem conflito
+
+**Arquivos alterados:**
+- `backend/servidor.py` — funções `encerrar_instancia_anterior`, `gravar_pid`, `remover_pid`
+- `.gitignore` — entrada `sar.pid`
+- `documentacao/governanca.md` — `sar.pid` na árvore e nas proibições de commit
+
+---
+
 ## Pendências Abertas
 
 | # | Pendência | Prioridade |
 |---|---|---|
-| 1 | Concluir correções da governança (Seções 2–5) | Alta |
-| 2 | Renomear arquivos com prefixo abolido | Alta |
-| 3 | Mover `api.js` para `integracao/rotas/` | Alta |
-| 4 | Criar `servidor.py` como orquestrador com SSL | Alta |
-| 5 | Teste real do frontend pelo usuário | Alta |
-| 6 | Certificar Fase 1 como concluída | Média |
+| 1 | Teste real do sistema completo pelo usuário (servidor + `/sar` + Ctrl+C limpo) | Alta |
+| 2 | Certificar Fase 1 como concluída após validação | Média |
+| 3 | Atualizar `fluxograma.md` e `plano_de_desenvolvimento.md` para refletir estado atual | Média |
 
 ---
 

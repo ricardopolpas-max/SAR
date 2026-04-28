@@ -6,6 +6,7 @@
 import os
 import re
 import sys
+import signal
 import socket
 import uvicorn
 from dotenv import load_dotenv, set_key
@@ -16,6 +17,7 @@ from dotenv import load_dotenv, set_key
 RAIZ        = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 ENV_PATH    = os.path.join(RAIZ, ".env")
 API_JS_PATH = os.path.join(RAIZ, "integracao", "rotas", "api.js")
+PID_PATH    = os.path.join(RAIZ, "sar.pid")
 
 load_dotenv(ENV_PATH)
 
@@ -68,7 +70,33 @@ def atualizar_api_js(porta: int):
     print(f"[SAR] BASE_URL atualizada em api.js → https://{HOST}:{porta}")
 
 # ------------------------------------------------------------
-# 4. VALIDAÇÃO DE CERTIFICADOS SSL
+# 4. GERENCIAMENTO DE PID — previne instâncias fantasmas
+# ------------------------------------------------------------
+def encerrar_instancia_anterior():
+    if not os.path.isfile(PID_PATH):
+        return
+    try:
+        with open(PID_PATH, "r") as f:
+            pid_anterior = int(f.read().strip())
+        os.kill(pid_anterior, signal.SIGTERM)
+        print(f"[SAR] Instância anterior (PID {pid_anterior}) encerrada.")
+    except (ProcessLookupError, PermissionError, ValueError):
+        pass
+    finally:
+        os.remove(PID_PATH)
+
+def gravar_pid():
+    with open(PID_PATH, "w") as f:
+        f.write(str(os.getpid()))
+    print(f"[SAR] PID {os.getpid()} gravado.")
+
+def remover_pid():
+    if os.path.isfile(PID_PATH):
+        os.remove(PID_PATH)
+        print("[SAR] PID removido.")
+
+# ------------------------------------------------------------
+# 5. VALIDAÇÃO DE CERTIFICADOS SSL
 # ------------------------------------------------------------
 def validar_certificados():
     erros = []
@@ -85,23 +113,28 @@ def validar_certificados():
         sys.exit(1)
 
 # ------------------------------------------------------------
-# 5. INICIALIZAÇÃO
+# 6. INICIALIZAÇÃO
 # ------------------------------------------------------------
 if __name__ == "__main__":
 
+    encerrar_instancia_anterior()
     porta_atual = encontrar_porta()
     gravar_porta_atual(porta_atual)
     atualizar_api_js(porta_atual)
     validar_certificados()
+    gravar_pid()
 
     print(f"[SAR] Servidor seguro em https://{HOST}:{porta_atual}")
     print(f"[SAR] Certificado: {SSL_CERTFILE}")
     print(f"[SAR] Pressione Ctrl+C para encerrar.\n")
 
-    uvicorn.run(
-        "interface_backend:app",
-        host=HOST,
-        port=porta_atual,
-        ssl_certfile=SSL_CERTFILE,
-        ssl_keyfile=SSL_KEYFILE,
-    )
+    try:
+        uvicorn.run(
+            "interface_backend:app",
+            host=HOST,
+            port=porta_atual,
+            ssl_certfile=SSL_CERTFILE,
+            ssl_keyfile=SSL_KEYFILE,
+        )
+    finally:
+        remover_pid()
