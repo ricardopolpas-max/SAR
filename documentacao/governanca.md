@@ -3,13 +3,25 @@
 Este documento é a única fonte de verdade para a estrutura, nomenclatura e evolução do projeto. Nenhuma linha de código deve ser escrita sem atender a estes critérios.
 
 ## 1. Nomenclatura de Arquivos
-Os nomes de arquivos devem ser funcionais e utilizar prefixos para identificar sua natureza técnica:
-- **Orquestrador/Servidor:** Prefixo `srv_` | Principal: `servidor.py`
-- **Persistência de Dados:** Prefixo `db_` (Ex: `db_manipulacao_sqlite.py`)
-- **Automação/Scraping:** Prefixo `bot_` (Ex: `bot_extracao_vagas.py`)
-- **Configurações:** Prefixo `cfg_` (Ex: `cfg_dependencias_sistema.txt`)
-- **Processamento de Dados:** Prefixo `prc_` (Ex: `prc_calculo_compatibilidade.py`)
-- **Interface de Usuário:** Prefixo `gui_` | Principal: `SAR.html`
+
+**Decisão vigente:** prefixos abolidos. Nenhum arquivo do projeto usa prefixo técnico (`srv_`, `db_`, `bot_`, `cfg_`, `prc_`, `gui_` ou similares).
+
+### Regra
+- O **nome do arquivo** comunica sua função de forma descritiva e legível.
+- A **localização na pasta** comunica sua natureza técnica.
+- Nomes em português, sem abreviações obscuras, sem underscores de prefixo.
+
+### Exemplos vigentes
+| Arquivo | Pasta | O que comunica |
+|---|---|---|
+| `servidor.py` | `/backend` | ponto de entrada e orquestrador do sistema |
+| `interface_backend.py` | `/backend` | definição das rotas e configuração da API |
+| `genericas.py` | `/backend/rotinas` | rotinas genéricas de persistência |
+| `dependencias.txt` | raiz | dependências Python do projeto |
+| `SAR.html` | `/frontend/telas` | tela principal do sistema |
+| `visual.css` | `/frontend/estilos` | identidade visual global |
+| `api.js` | `/frontend/scripts` | comunicação com o backend |
+| `vagas.js` | `/frontend/scripts` | lógica da tela de vagas |
 
 ## 2. Hierarquia e Divisão de Competências (Ambiente Puro Python/Web)
 - `/documentacao`: Contratos de governança, planos e documentação técnica.
