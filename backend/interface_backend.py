@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import Response
 import sqlite3
 import os
 from rotinas.genericas import DB_PATH, db_selecionar
@@ -58,6 +59,18 @@ def setup_db():
             )
         """)
         conn.commit()
+
+_FAVICON_SVG = (
+    "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'>"
+    "<rect width='32' height='32' rx='8' fill='#2d65e0'/>"
+    "<text x='50%' y='54%' dominant-baseline='middle' text-anchor='middle' "
+    "font-family='system-ui,sans-serif' font-weight='700' font-size='14' fill='#e8f0ff'>SAR</text>"
+    "</svg>"
+)
+
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon():
+    return Response(content=_FAVICON_SVG, media_type="image/svg+xml")
 
 @app.get("/")
 async def root():
