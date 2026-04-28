@@ -65,9 +65,12 @@ Cada pasta tem responsabilidade única e exclusiva. Nenhum arquivo deve residir 
 - **`apoio/`** — nenhum arquivo de apoio entra em produção. É zona de laboratório.
 
 ## 3. Regras de Implementação
-- **Unicidade:** É proibida a criação de múltiplos arquivos em um único turno de trabalho.
-- **Verdade Absoluta:** O banco de dados SQLite é a única fonte confiável de dados do sistema.
-- **Dependências:** Gerenciadas exclusivamente no arquivo `cfg_dependencias_python.txt`.
+
+- **Unicidade:** É proibida a criação ou edição de múltiplos arquivos em um único turno de trabalho. Um arquivo por turno, sem exceção.
+- **Autorização explícita:** Nenhuma linha de código é escrita sem estar prevista na governança, alinhada ao protocolo de qualidade e expressamente autorizada pelo usuário.
+- **Verdade Absoluta:** O banco de dados SQLite é a única fonte confiável de dados do sistema. Nenhum dado é mantido em memória, cache ou variável de sessão.
+- **Dependências:** Gerenciadas exclusivamente no arquivo `dependencias.txt` na raiz do projeto.
+- **Documentação obrigatória:** Ao final de cada tarefa concluída, atualizar obrigatoriamente: `diario_de_bordo.md`, `fluxograma.md` e `plano_de_desenvolvimento.md`.
 
 ## 4. Segurança e Certificação SSL
 
