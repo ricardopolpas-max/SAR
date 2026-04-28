@@ -6,7 +6,7 @@
       "version": "3.12"
     }
   },
-  "postCreateCommand": "pip install -r cfg_dependencias_python.txt",
+  "postCreateCommand": "pip install -r dependencias.txt",
   "customizations": {
     "vscode": {
       "extensions": [
