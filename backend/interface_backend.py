@@ -1,19 +1,27 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import Response
+from fastapi.responses import Response, FileResponse
+from fastapi.staticfiles import StaticFiles
 import sqlite3
 import os
 from rotinas.genericas import DB_PATH, db_selecionar
 
+RAIZ = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+FRONTEND_DIR  = os.path.join(RAIZ, "frontend")
+INTEGRACAO_DIR = os.path.join(RAIZ, "integracao")
+SAR_HTML = os.path.join(FRONTEND_DIR, "telas", "SAR.html")
+
 app = FastAPI(title="SAR - Sistema de Automação de Recolocação")
 
-# Configuração de CORS para garantir conectividade segura entre interface e backend
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.mount("/frontend",   StaticFiles(directory=FRONTEND_DIR),   name="frontend")
+app.mount("/integracao", StaticFiles(directory=INTEGRACAO_DIR), name="integracao")
 
 @app.on_event("startup")
 def setup_db():
@@ -67,6 +75,10 @@ _FAVICON_SVG = (
     "font-family='system-ui,sans-serif' font-weight='700' font-size='14' fill='#e8f0ff'>SAR</text>"
     "</svg>"
 )
+
+@app.get("/sar", include_in_schema=False)
+async def interface_sar():
+    return FileResponse(SAR_HTML)
 
 @app.get("/favicon.ico", include_in_schema=False)
 async def favicon():
