@@ -80,7 +80,7 @@ def encerrar_instancia_anterior():
             pid_anterior = int(f.read().strip())
         os.kill(pid_anterior, signal.SIGTERM)
         print(f"[SAR] Instância anterior (PID {pid_anterior}) encerrada.")
-    except (ProcessLookupError, PermissionError, ValueError):
+    except (ProcessLookupError, PermissionError, ValueError, OSError):
         pass
     finally:
         os.remove(PID_PATH)
