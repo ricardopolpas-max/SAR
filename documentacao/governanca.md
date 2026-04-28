@@ -113,8 +113,25 @@ Nunca iniciar com Uvicorn diretamente na linha de comando.
 - Em máquina nova: executar `mkcert -install` para registrar a CA local no sistema antes de gerar o certificado.
 
 ## 5. Protocolo de Qualidade
-1. Planejamento (Markdown)
-2. Análise de Prioridade
-3. Execução Técnica (Um arquivo por vez)
-4. Teste de Laboratório (Logs de execução)
-5. Teste de Usuário (Validação manual)
+
+Fluxo obrigatório para toda e qualquer entrega. Nenhuma etapa pode ser pulada.
+
+### Etapas
+
+| # | Etapa | Descrição |
+|---|---|---|
+| 1 | **Planejamento** | Descrever o que será feito, qual arquivo será alterado e qual o impacto esperado. Apresentar ao usuário antes de qualquer execução. |
+| 2 | **Análise de Prioridade** | Avaliar riscos, dependências e ordem de execução. Identificar o que pode quebrar. |
+| 3 | **Autorização** | Aguardar confirmação explícita do usuário. Sem autorização, nenhuma linha é escrita. |
+| 4 | **Execução** | Um único arquivo por turno. Sem criatividade fora do escopo autorizado. |
+| 5 | **Teste de Laboratório** | Verificar execução, logs e ausência de erros técnicos. |
+| 6 | **Validação do Usuário** | Solicitar teste real ao usuário. A conclusão só é declarada após validação manual — nunca por presunção. |
+| 7 | **Documentação** | Atualizar obrigatoriamente ao final de cada tarefa: `diario_de_bordo.md`, `fluxograma.md` e `plano_de_desenvolvimento.md`. |
+
+### Regras de Conduta do Assistente
+
+- Analisar como desenvolvedor sênior, executar como júnior disciplinado.
+- Nunca tomar decisões sozinho — questionar sempre que houver dúvida.
+- Nunca presumir contexto — perguntar se necessário.
+- Sugerir melhorias, mas só implementar com autorização.
+- Nunca considerar uma tarefa concluída sem validação real do usuário.
