@@ -1,14 +1,12 @@
 # backend/servidor.py
 # Orquestrador central do SAR.
 # Ponto de entrada único — nunca iniciar pelo Uvicorn diretamente.
-# Fluxo: porta → .env → api.js → SSL → servidor → shutdown limpo
+# Fluxo: porta → .env → api.js → SSL → servidor
 
 import os
 import re
 import sys
 import socket
-import atexit
-import subprocess
 import uvicorn
 from dotenv import load_dotenv, set_key
 
@@ -87,25 +85,7 @@ def validar_certificados():
         sys.exit(1)
 
 # ------------------------------------------------------------
-# 5. SHUTDOWN LIMPO — LIBERA PORTA NO WINDOWS
-# ------------------------------------------------------------
-def liberar_porta(porta: int):
-    try:
-        resultado = subprocess.run(
-            ["netstat", "-ano"],
-            capture_output=True, text=True
-        )
-        for linha in resultado.stdout.split("\n"):
-            partes = linha.split()
-            if len(partes) >= 5 and f":{porta}" in partes[1] and "LISTENING" in linha:
-                pid = partes[-1]
-                subprocess.run(["taskkill", "/F", "/PID", pid], capture_output=True)
-        print(f"[SAR] Porta {porta} liberada.")
-    except Exception as e:
-        print(f"[AVISO] Liberação de porta: {e}")
-
-# ------------------------------------------------------------
-# INICIALIZAÇÃO
+# 5. INICIALIZAÇÃO
 # ------------------------------------------------------------
 if __name__ == "__main__":
 
@@ -113,8 +93,6 @@ if __name__ == "__main__":
     gravar_porta_atual(porta_atual)
     atualizar_api_js(porta_atual)
     validar_certificados()
-
-    atexit.register(liberar_porta, porta_atual)
 
     print(f"[SAR] Servidor seguro em https://{HOST}:{porta_atual}")
     print(f"[SAR] Certificado: {SSL_CERTFILE}")
