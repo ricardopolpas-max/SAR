@@ -42,5 +42,4 @@ if __name__ == "__main__":
         port=PORT,
         ssl_certfile=SSL_CERTFILE,
         ssl_keyfile=SSL_KEYFILE,
-        reload=True,
     )
