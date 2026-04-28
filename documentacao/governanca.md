@@ -23,12 +23,46 @@ Este documento é a única fonte de verdade para a estrutura, nomenclatura e evo
 | `api.js` | `/frontend/scripts` | comunicação com o backend |
 | `vagas.js` | `/frontend/scripts` | lógica da tela de vagas |
 
-## 2. Hierarquia e Divisão de Competências (Ambiente Puro Python/Web)
-- `/documentacao`: Contratos de governança, planos e documentação técnica.
-- `/backend`: Orquestrador (`servidor.py`), processamento (`prc_`), banco de dados (`db_`) e subpasta `/rotinas`.
-- `/frontend`: Interface de usuário (`SAR.html`) e recursos de apresentação.
-- `/integracao`: Módulos de comunicação externa e subpasta `/rotas` para APIs de comunicação.
-- `/apoio`: Arquivos de teste, logs, ferramentas de suporte e arquivos não vinculados à regra de negócio.
+## 2. Hierarquia e Divisão de Competências
+
+Cada pasta tem responsabilidade única e exclusiva. Nenhum arquivo deve residir fora da pasta que representa sua natureza.
+
+```
+/
+├── backend/
+│   ├── servidor.py              → orquestrador central: carrega .env, SSL e sobe o servidor
+│   ├── interface_backend.py     → definição das rotas FastAPI e inicialização do banco
+│   └── rotinas/
+│       └── genericas.py         → CRUD agnóstico SQLite (funções reutilizáveis)
+│
+├── frontend/
+│   ├── telas/                   → arquivos HTML (uma tela por arquivo)
+│   ├── estilos/
+│   │   └── visual.css           → design system global — único CSS do sistema
+│   └── scripts/                 → EXCLUSIVO para lógica de negócio (JS por tela/domínio)
+│
+├── integracao/
+│   └── rotas/                   → camada de transporte e abstração de comunicação
+│                                   (api.js e futuros conectores externos)
+│
+├── certificado/
+│   ├── publico/                 → certificado SSL público (versionado no git)
+│   └── privado/                 → chave privada (NUNCA no git)
+│
+├── documentacao/                → governança, plano, fluxograma, diário de bordo
+├── apoio/                       → testes, logs, scripts de suporte, mocks
+│
+├── .env                         → variáveis de ambiente (NUNCA no git)
+├── .gitignore
+└── dependencias.txt             → dependências Python do projeto
+```
+
+### Regras de Divisão
+
+- **`backend/`** — todo código Python que processa, persiste ou serve dados.
+- **`frontend/scripts/`** — apenas lógica de negócio JavaScript. Nunca comunicação HTTP.
+- **`integracao/rotas/`** — única camada que sabe como os dados trafegam. Frontend e backend nunca se comunicam diretamente — sempre passam por aqui.
+- **`apoio/`** — nenhum arquivo de apoio entra em produção. É zona de laboratório.
 
 ## 3. Regras de Implementação
 - **Unicidade:** É proibida a criação de múltiplos arquivos em um único turno de trabalho.
