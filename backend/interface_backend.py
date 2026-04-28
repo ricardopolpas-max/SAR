@@ -1,10 +1,12 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response, FileResponse
 from fastapi.staticfiles import StaticFiles
 import sqlite3
+import threading
 import os
 from rotinas.genericas import DB_PATH, db_selecionar
+from rotinas.sincronizacao import sincronizar
 
 RAIZ = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 FRONTEND_DIR  = os.path.join(RAIZ, "frontend")
@@ -93,6 +95,21 @@ def setup_db():
         """)
         conn.commit()
 
+@app.on_event("startup")
+def sync_inicial():
+    """Dispara sincronização com o Peixe 30 em background para não bloquear o startup."""
+    t = threading.Thread(target=_executar_sync, daemon=True)
+    t.start()
+
+def _executar_sync():
+    resultado = sincronizar()
+    if resultado["ok"]:
+        print(f"[SAR] Sync Peixe 30 concluído — "
+              f"{resultado['processadas']} vagas, "
+              f"{resultado['removidas']} removidas.")
+    else:
+        print(f"[SAR] Sync Peixe 30 falhou — {resultado['erro']}")
+
 _FAVICON_SVG = (
     "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'>"
     "<rect width='32' height='32' rx='8' fill='#2d65e0'/>"
@@ -115,8 +132,10 @@ async def root():
 
 @app.get("/vagas")
 async def listar_vagas():
-    """
-    Rota para retornar todas as vagas cadastradas.
-    Consome a rotina genérica de banco de dados.
-    """
-    return db_selecionar("vagas", ordem="data_extracao DESC")
+    return db_selecionar("vagas", ordem="ultima_sincronizacao DESC")
+
+@app.post("/vagas/sincronizar")
+async def sincronizar_vagas(background: BackgroundTasks):
+    """Dispara sincronização manual com o Peixe 30 em background."""
+    background.add_task(_executar_sync)
+    return {"mensagem": "Sincronização iniciada."}

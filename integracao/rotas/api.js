@@ -93,6 +93,11 @@ const SarAPI = (() => {
     async remover(id) {
       return _requisitar("DELETE", `/vagas/${id}`);
     },
+
+    /** Dispara sincronização manual com o Peixe 30. */
+    async sincronizar() {
+      return _requisitar("POST", "/vagas/sincronizar");
+    },
   };
 
   /* ----------------------------------------------------------

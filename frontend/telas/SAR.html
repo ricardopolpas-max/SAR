@@ -7,36 +7,290 @@
   <link rel="stylesheet" href="/frontend/estilos/visual.css">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%232d65e0'/><text x='50%25' y='54%25' dominant-baseline='middle' text-anchor='middle' font-family='system-ui,sans-serif' font-weight='700' font-size='14' fill='%23e8f0ff'>SAR</text></svg>">
 </head>
-<body class="app-shell">
+<body>
+<div class="app-layout">
 
-  <header class="app-header">
-    <span class="app-logo">SAR <span>recolocação</span></span>
-    <div class="status-bar">
-      <div id="status-dot" class="status-dot"></div>
-      <span id="status-texto">verificando...</span>
-    </div>
-  </header>
-
-  <main class="app-main">
-
-    <p class="secao-label">Vagas</p>
-
-    <div id="lista-vagas" class="lista"></div>
-
-    <div id="estado-vazio" class="estado-vazio hidden">
-      <span class="estado-vazio-icone">📭</span>
-      <p>Nenhuma vaga cadastrada ainda.</p>
+  <!-- ============================================================
+       SIDEBAR
+  ============================================================ -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-principal">SAR</div>
+      <div class="logo-sub">recolocação profissional</div>
     </div>
 
-    <div id="estado-erro" class="estado-erro hidden">
-      <span class="estado-erro-icone">⚠️</span>
-      <p id="estado-erro-msg">Não foi possível conectar ao backend.</p>
+    <nav class="sidebar-nav">
+      <div class="nav-item ativo" data-secao="vagas">
+        <span class="nav-icone">💼</span>
+        <span>Vagas</span>
+      </div>
+      <div class="nav-item" data-secao="candidatos">
+        <span class="nav-icone">👤</span>
+        <span>Candidatos</span>
+      </div>
+      <div class="nav-item" data-secao="curriculos">
+        <span class="nav-icone">📄</span>
+        <span>Currículos</span>
+      </div>
+      <div class="nav-item" data-secao="sobre">
+        <span class="nav-icone">ℹ️</span>
+        <span>Sobre</span>
+      </div>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="status-conexao">
+        <div id="status-ponto" class="status-ponto"></div>
+        <span id="status-texto">verificando...</span>
+      </div>
     </div>
+  </aside>
+
+  <!-- ============================================================
+       CONTEÚDO PRINCIPAL
+  ============================================================ -->
+  <main class="main-content">
+
+    <!-- ----------------------------------------------------------
+         SEÇÃO: VAGAS
+    ---------------------------------------------------------- -->
+    <section id="secao-vagas" class="secao">
+      <div class="page-header">
+        <div>
+          <span class="page-titulo">Vagas</span>
+          <span id="vagas-contagem" class="page-contagem"></span>
+        </div>
+        <div class="page-acoes">
+          <span id="sync-status" class="sync-status"></span>
+          <button id="btn-sync" class="btn btn-secundario btn-sync">
+            <span class="icone-sync">↻</span>
+            Atualizar
+          </button>
+        </div>
+      </div>
+
+      <div class="filtros-bar">
+        <span class="filtro-label">Filtrar:</span>
+        <div class="filtro-chip" data-filtro="tipo_contrato" data-valor="clt">CLT</div>
+        <div class="filtro-chip" data-filtro="tipo_contrato" data-valor="pj">PJ</div>
+        <div class="filtro-chip" data-filtro="tipo_contrato" data-valor="estagio">Estágio</div>
+        <div class="filtro-chip" data-filtro="modalidade" data-valor="remoto">Remoto</div>
+        <div class="filtro-chip" data-filtro="modalidade" data-valor="presencial">Presencial</div>
+        <div class="filtro-chip" data-filtro="modalidade" data-valor="hibrido">Híbrido</div>
+        <span id="filtro-limpar" class="filtro-limpar hidden">✕ Limpar filtros</span>
+      </div>
+
+      <div class="content-scroll">
+        <div id="vagas-grid" class="vagas-grid"></div>
+      </div>
+    </section>
+
+    <!-- ----------------------------------------------------------
+         SEÇÃO: CANDIDATOS (Fase 3)
+    ---------------------------------------------------------- -->
+    <section id="secao-candidatos" class="secao hidden">
+      <div class="page-header">
+        <span class="page-titulo">Candidatos</span>
+      </div>
+      <div class="content-scroll">
+        <div class="estado-container">
+          <div class="estado-icone">🚧</div>
+          <div class="estado-titulo">Em desenvolvimento</div>
+          <p class="estado-descricao">
+            O módulo de candidatos chega na Fase 3.<br>
+            Importe seu currículo em qualquer formato e deixe a IA
+            estruturar automaticamente seu perfil profissional.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ----------------------------------------------------------
+         SEÇÃO: CURRÍCULOS (Fase 4)
+    ---------------------------------------------------------- -->
+    <section id="secao-curriculos" class="secao hidden">
+      <div class="page-header">
+        <span class="page-titulo">Currículos</span>
+      </div>
+      <div class="content-scroll">
+        <div class="estado-container">
+          <div class="estado-icone">🚧</div>
+          <div class="estado-titulo">Em desenvolvimento</div>
+          <p class="estado-descricao">
+            O módulo de geração de currículos chega na Fase 4.<br>
+            A IA criará um currículo sob medida para cada vaga,
+            otimizado para sistemas ATS de recrutamento.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ----------------------------------------------------------
+         SEÇÃO: SOBRE
+    ---------------------------------------------------------- -->
+    <section id="secao-sobre" class="secao hidden">
+      <div class="page-header">
+        <span class="page-titulo">Sobre o SAR</span>
+      </div>
+      <div class="content-scroll">
+
+        <!-- Hero -->
+        <div class="sobre-hero">
+          <div class="sobre-logo">SAR</div>
+          <h1 class="sobre-titulo">Sistema de Automação de Recolocação</h1>
+          <p class="sobre-tagline">
+            Automatizando a jornada de recolocação profissional para operadores do Direito
+          </p>
+        </div>
+
+        <!-- Como surgiu -->
+        <div class="sobre-secao">
+          <h2 class="sobre-secao-titulo">Como surgiu</h2>
+          <p class="sobre-texto">
+            O mercado jurídico brasileiro é altamente competitivo. Bacharéis e advogados em fase
+            de colocação ou recolocação profissional enfrentam um conjunto de desafios que
+            dificultam sua inserção: vagas espalhadas em múltiplas plataformas com atualização
+            constante, currículos genéricos que não passam pelos filtros automáticos dos grandes
+            escritórios, e horas diárias consumidas em tarefas operacionais de candidatura.
+          </p>
+          <p class="sobre-texto">
+            O SAR nasceu dentro da disciplina de <strong>Desenvolvimento Pessoal e
+            Trabalhabilidade</strong> como resposta prática a esse problema — uma plataforma que
+            automatiza o operacional da candidatura para que o profissional possa focar no que
+            nenhuma inteligência artificial substitui: o raciocínio jurídico, a capacidade
+            argumentativa e o desenvolvimento das relações profissionais.
+          </p>
+        </div>
+
+        <!-- Informações acadêmicas -->
+        <div class="sobre-secao">
+          <h2 class="sobre-secao-titulo">Trabalho Acadêmico</h2>
+          <div class="sobre-academico">
+            <div class="academico-item">
+              <span class="academico-label">Disciplina</span>
+              <span class="academico-valor">Desenvolvimento Pessoal e Trabalhabilidade</span>
+            </div>
+            <div class="academico-item">
+              <span class="academico-label">Área</span>
+              <span class="academico-valor">Direito</span>
+            </div>
+            <div class="academico-item">
+              <span class="academico-label">Professora da Disciplina</span>
+              <span class="academico-valor academico-placeholder">A confirmar</span>
+            </div>
+            <div class="academico-item">
+              <span class="academico-label">Coordenadora do Curso</span>
+              <span class="academico-valor academico-placeholder">A confirmar</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Equipe -->
+        <div class="sobre-secao">
+          <h2 class="sobre-secao-titulo">Equipe do Projeto</h2>
+          <div class="equipe-grid">
+            <div class="equipe-card">
+              <div class="equipe-avatar">01</div>
+              <div class="equipe-nome">Integrante 01</div>
+              <div class="equipe-funcao">Estudante de Direito</div>
+            </div>
+            <div class="equipe-card">
+              <div class="equipe-avatar">02</div>
+              <div class="equipe-nome">Integrante 02</div>
+              <div class="equipe-funcao">Estudante de Direito</div>
+            </div>
+            <div class="equipe-card">
+              <div class="equipe-avatar">03</div>
+              <div class="equipe-nome">Integrante 03</div>
+              <div class="equipe-funcao">Estudante de Direito</div>
+            </div>
+            <div class="equipe-card">
+              <div class="equipe-avatar">04</div>
+              <div class="equipe-nome">Integrante 04</div>
+              <div class="equipe-funcao">Estudante de Direito</div>
+            </div>
+            <div class="equipe-card">
+              <div class="equipe-avatar">05</div>
+              <div class="equipe-nome">Integrante 05</div>
+              <div class="equipe-funcao">Estudante de Direito</div>
+            </div>
+            <div class="equipe-card">
+              <div class="equipe-avatar">06</div>
+              <div class="equipe-nome">Integrante 06</div>
+              <div class="equipe-funcao">Estudante de Direito</div>
+            </div>
+            <div class="equipe-card">
+              <div class="equipe-avatar">07</div>
+              <div class="equipe-nome">Integrante 07</div>
+              <div class="equipe-funcao">Estudante de Direito</div>
+            </div>
+            <div class="equipe-card">
+              <div class="equipe-avatar">08</div>
+              <div class="equipe-nome">Integrante 08</div>
+              <div class="equipe-funcao">Estudante de Direito</div>
+            </div>
+            <div class="equipe-card">
+              <div class="equipe-avatar">09</div>
+              <div class="equipe-nome">Integrante 09</div>
+              <div class="equipe-funcao">Estudante de Direito</div>
+            </div>
+            <div class="equipe-card">
+              <div class="equipe-avatar">10</div>
+              <div class="equipe-nome">Integrante 10</div>
+              <div class="equipe-funcao">Estudante de Direito</div>
+            </div>
+            <div class="equipe-card">
+              <div class="equipe-avatar">11</div>
+              <div class="equipe-nome">Integrante 11</div>
+              <div class="equipe-funcao">Estudante de Direito</div>
+            </div>
+            <div class="equipe-card">
+              <div class="equipe-avatar">12</div>
+              <div class="equipe-nome">Integrante 12</div>
+              <div class="equipe-funcao">Estudante de Direito</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card do Desenvolvedor -->
+        <div class="dev-footer">
+          <div class="dev-card">
+            <div class="dev-avatar">RP</div>
+            <div class="dev-info">
+              <div class="dev-nome">Ricardo Polpas</div>
+              <div class="dev-cargo">Desenvolvedor Full-Stack</div>
+              <p class="dev-descricao">
+                Especialista em sistemas web, automação e integração de inteligência artificial.
+                Disponível para novos projetos e oportunidades de colaboração.
+              </p>
+              <div class="dev-links">
+                <a href="#" target="_blank" class="dev-link">💼 LinkedIn</a>
+                <a href="#" target="_blank" class="dev-link">💻 GitHub</a>
+                <a href="mailto:ricardopolpas@gmail.com" class="dev-link">✉️ E-mail</a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
 
   </main>
+</div>
 
-  <script src="/integracao/rotas/api.js"></script>
-  <script src="/frontend/scripts/vagas.js"></script>
-
+<script src="/integracao/rotas/api.js"></script>
+<script src="/frontend/scripts/vagas.js"></script>
+<script>
+  /* Navegação SPA — alterna seções sem recarregar a página */
+  document.querySelectorAll('.nav-item').forEach(function(item) {
+    item.addEventListener('click', function() {
+      var alvo = item.dataset.secao;
+      document.querySelectorAll('.nav-item').forEach(function(n) { n.classList.remove('ativo'); });
+      document.querySelectorAll('.secao').forEach(function(s) { s.classList.add('hidden'); });
+      item.classList.add('ativo');
+      document.getElementById('secao-' + alvo).classList.remove('hidden');
+    });
+  });
+</script>
 </body>
 </html>
