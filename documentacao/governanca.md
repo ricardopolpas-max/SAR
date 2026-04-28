@@ -75,39 +75,42 @@ Cada pasta tem responsabilidade única e exclusiva. Nenhum arquivo deve residir 
 ## 4. Segurança e Certificação SSL
 
 ### 4.1 Proibições — Regras Invioláveis
-- **É terminantemente proibido** iniciar o servidor (`srv_interface_backend.py`) sem certificado SSL ativo.
-- **É terminantemente proibido** expor qualquer rota da API em protocolo `http://` em ambiente de desenvolvimento ou produção.
-- **É terminantemente proibido** commitar a chave privada (`sar.key`) ou o arquivo `.env` no repositório. Esses arquivos estão protegidos no `.gitignore` e devem permanecer assim.
-- **É terminantemente proibido** compartilhar, copiar ou transmitir a chave privada por qualquer meio (e-mail, chat, repositório, nuvem).
+- **É terminantemente proibido** iniciar o servidor sem certificado SSL ativo.
+- **É terminantemente proibido** expor qualquer rota da API em protocolo `http://` em qualquer ambiente.
+- **É terminantemente proibido** commitar a chave privada (`sar.key`) ou o arquivo `.env` no repositório.
+- **É terminantemente proibido** compartilhar ou transmitir a chave privada por qualquer meio (e-mail, chat, repositório, nuvem).
+- **É terminantemente proibido** iniciar o servidor diretamente pelo Uvicorn — o ponto de entrada obrigatório é sempre o `servidor.py`.
 
 ### 4.2 Localização dos Certificados
 ```
 certificado/
   publico/
-    sar.crt       → Certificado público (pode ser versionado no git)
+    sar.crt       → certificado público (versionado no git)
   privado/
-    sar.key       → Chave privada (NUNCA vai ao git — .gitignore ativo)
+    sar.key       → chave privada (NUNCA vai ao git — protegida no .gitignore)
 ```
 
 ### 4.3 Variáveis de Ambiente
-Os caminhos dos certificados são referenciados exclusivamente via `.env` na raiz do projeto:
+Caminhos referenciados exclusivamente via `.env` na raiz do projeto:
 ```
 SSL_CERTFILE=certificado/publico/sar.crt
 SSL_KEYFILE=certificado/privado/sar.key
+HOST=127.0.0.1
+PORT=8000
 ```
 
-### 4.4 Comando Obrigatório de Inicialização do Servidor
+### 4.4 Inicialização Obrigatória do Servidor
+O servidor é sempre iniciado pelo orquestrador `servidor.py`, que lê o `.env` e configura SSL automaticamente:
 ```bash
-uvicorn srv_interface_backend:app \
-  --ssl-certfile=../certificado/publico/sar.crt \
-  --ssl-keyfile=../certificado/privado/sar.key \
-  --reload
+cd backend
+python servidor.py
 ```
+Nunca iniciar com Uvicorn diretamente na linha de comando.
 
-### 4.5 Renovação
-- O certificado local gerado via `mkcert` expira em **27/07/2028**.
-- Ao renovar: gerar novos arquivos nas mesmas pastas e reiniciar o servidor.
-- A CA local (`mkcert -install`) deve ser reinstalada em toda máquina nova de desenvolvimento.
+### 4.5 Renovação do Certificado
+- Certificado atual expira em **27/07/2028**.
+- Ao renovar: executar `mkcert` nas mesmas pastas e reiniciar o servidor.
+- Em máquina nova: executar `mkcert -install` para registrar a CA local no sistema antes de gerar o certificado.
 
 ## 5. Protocolo de Qualidade
 1. Planejamento (Markdown)
