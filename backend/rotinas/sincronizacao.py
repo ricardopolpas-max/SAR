@@ -34,6 +34,7 @@ def _mapear(item: dict, sync_time: str) -> dict:
         "descricao":            item.get("requisites", ""),
         "id_externo":           item.get("_id", ""),
         "fonte":                _FONTE,
+        "data_extracao":        item.get("createdAt", sync_time),
         "ultima_sincronizacao": sync_time,
     }
 
@@ -73,11 +74,11 @@ def sincronizar() -> dict:
                         INSERT INTO vagas
                             (titulo, empresa, link, localizacao, modalidade,
                              tipo_contrato, salario_inicial, descricao,
-                             id_externo, fonte, ultima_sincronizacao)
+                             id_externo, fonte, data_extracao, ultima_sincronizacao)
                         VALUES
                             (:titulo, :empresa, :link, :localizacao, :modalidade,
                              :tipo_contrato, :salario_inicial, :descricao,
-                             :id_externo, :fonte, :ultima_sincronizacao)
+                             :id_externo, :fonte, :data_extracao, :ultima_sincronizacao)
                         ON CONFLICT(id_externo) DO UPDATE SET
                             titulo               = excluded.titulo,
                             empresa              = excluded.empresa,
@@ -93,10 +94,15 @@ def sincronizar() -> dict:
             except Exception:
                 continue
 
-        cursor.execute(
-            "DELETE FROM vagas WHERE fonte = ? AND ultima_sincronizacao < ?",
-            (_FONTE, sync_time)
-        )
+        # Remove apenas vagas PENDENTES que sumiram do Peixe 30.
+        # Vagas com qualquer outro status (EM_PREPARO, CANDIDATADO, etc.)
+        # são preservadas mesmo que a plataforma as tenha removido.
+        cursor.execute("""
+            DELETE FROM vagas
+            WHERE fonte = ?
+              AND ultima_sincronizacao < ?
+              AND (status IS NULL OR status = 'PENDENTE')
+        """, (_FONTE, sync_time))
         removidas = cursor.rowcount
         conn.commit()
 

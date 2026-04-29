@@ -3,9 +3,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response, FileResponse
 from fastapi.staticfiles import StaticFiles
 import sqlite3
-import threading
 import os
-from rotinas.genericas import DB_PATH, db_selecionar
+from rotinas.genericas import DB_PATH, db_selecionar, db_inserir, db_atualizar, db_excluir
 from rotinas.sincronizacao import sincronizar
 
 RAIZ = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -83,7 +82,17 @@ def setup_db():
         for coluna, tipo in novas_colunas:
             if coluna not in colunas_existentes:
                 cursor.execute(f"ALTER TABLE vagas ADD COLUMN {coluna} {tipo}")
-        
+
+        # Garante índice único em id_externo (ALTER TABLE não cria constraints)
+        # WHERE id_externo IS NOT NULL permite múltiplas linhas sem id_externo
+        try:
+            cursor.execute("""
+                CREATE UNIQUE INDEX IF NOT EXISTS idx_vagas_id_externo
+                ON vagas(id_externo) WHERE id_externo IS NOT NULL
+            """)
+        except Exception:
+            pass
+
         # Tabela de Logs: Rastreabilidade total
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS logs_sistema (
@@ -95,11 +104,6 @@ def setup_db():
         """)
         conn.commit()
 
-@app.on_event("startup")
-def sync_inicial():
-    """Dispara sincronização com o Peixe 30 em background para não bloquear o startup."""
-    t = threading.Thread(target=_executar_sync, daemon=True)
-    t.start()
 
 def _executar_sync():
     resultado = sincronizar()
@@ -136,6 +140,77 @@ async def listar_vagas():
 
 @app.post("/vagas/sincronizar")
 async def sincronizar_vagas(background: BackgroundTasks):
-    """Dispara sincronização manual com o Peixe 30 em background."""
     background.add_task(_executar_sync)
     return {"mensagem": "Sincronização iniciada."}
+
+@app.get("/vagas/{id}")
+async def buscar_vaga(id: int):
+    vaga = db_selecionar("vagas", condicao={"id": id}, unico=True)
+    if not vaga:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="Vaga não encontrada.")
+    return vaga
+
+@app.post("/vagas")
+async def criar_vaga(dados: dict):
+    resultado = db_inserir("vagas", dados)
+    if resultado["status"] == "erro":
+        from fastapi import HTTPException
+        raise HTTPException(status_code=400, detail=resultado["mensagem"])
+    return resultado
+
+@app.put("/vagas/{id}")
+async def atualizar_vaga(id: int, dados: dict):
+    resultado = db_atualizar("vagas", dados, {"id": id})
+    if resultado["status"] == "erro":
+        from fastapi import HTTPException
+        raise HTTPException(status_code=400, detail=resultado["mensagem"])
+    return resultado
+
+@app.delete("/vagas/{id}")
+async def remover_vaga(id: int):
+    resultado = db_excluir("vagas", {"id": id})
+    if resultado["status"] == "erro":
+        from fastapi import HTTPException
+        raise HTTPException(status_code=400, detail=resultado["mensagem"])
+    return resultado
+
+# ------------------------------------------------------------
+# CONFIGURAÇÕES
+# ------------------------------------------------------------
+@app.get("/configuracoes")
+async def listar_configuracoes():
+    return db_selecionar("configuracoes")
+
+@app.get("/configuracoes/{chave}")
+async def buscar_configuracao(chave: str):
+    cfg = db_selecionar("configuracoes", condicao={"chave": chave}, unico=True)
+    if not cfg:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="Configuração não encontrada.")
+    return cfg
+
+@app.post("/configuracoes")
+async def salvar_configuracao(dados: dict):
+    chave = dados.get("chave")
+    valor = dados.get("valor")
+    if not chave:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=400, detail="Campo 'chave' obrigatório.")
+    existente = db_selecionar("configuracoes", condicao={"chave": chave}, unico=True)
+    if existente:
+        return db_atualizar("configuracoes", {"valor": valor}, {"chave": chave})
+    return db_inserir("configuracoes", {"chave": chave, "valor": valor})
+
+# ------------------------------------------------------------
+# LOGS
+# ------------------------------------------------------------
+@app.get("/logs")
+async def listar_logs(limite: int = 50):
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT * FROM logs_sistema ORDER BY momento DESC LIMIT ?", (limite,)
+        )
+        return [dict(row) for row in cursor.fetchall()]

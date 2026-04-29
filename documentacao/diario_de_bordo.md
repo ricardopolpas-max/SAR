@@ -147,13 +147,78 @@ Encerramento anormal do processo (terminal fechado, crash, kill externo) deixava
 
 ---
 
+## 2026-04-28 — Motor 1: Correções Técnicas e Proteção de Dados
+
+**Ações:**
+- `iniciar_servidor.bat` atualizado para abrir browser automaticamente em `https://127.0.0.1:8000/sar` após 4 segundos
+- `interface_backend.py`: endpoints CRUD completos para `/vagas`, `/configuracoes` e `/logs` implementados
+- `interface_backend.py`: sync automático no startup **removido** — sync somente via botão "Atualizar"
+- `interface_backend.py`: índice UNIQUE em `id_externo` criado via migration segura (suporta banco existente)
+- `sincronizacao.py`: campo `createdAt` da API mapeado para `data_extracao` (data real da vaga, não data do sync)
+- `sincronizacao.py`: DELETE protegido — remove apenas vagas com `status = PENDENTE OR NULL` que sumiram da plataforma
+- `rotinas/__init__.py` criado — pacote Python declarado corretamente
+- `import threading` removido de `interface_backend.py` após remoção do sync no startup
+
+**Decisão crítica registrada:**
+Sync no startup foi removido por risco de regressão: sobrescreveria dados do candidato (status, notas, score) e poderia deletar vagas que o mesmo está ativamente preparando candidatura. O sync é ação do usuário, não do sistema.
+
+**API Peixe 30 confirmada:**
+- Endpoint público — sem autenticação
+- 841 vagas / 281 páginas (perPage=3) ou ~17 páginas (perPage=50)
+- Campos confirmados: `_id`, `name`, `requisites`, `location`, `companyName`, `publicUrl`, `contractType`, `modality`, `startingSalaryInCents`, `createdAt`
+
+---
+
+## 2026-04-28 — Sessão de Análise: Arquitetura Completa dos 4 Motores
+
+**Contexto:** Sessão dedicada exclusivamente a análise e design — zero código. Filosofia: Analisar → Projetar → Executar → Testar.
+
+**Motor 1 — Captura de Vagas (fechado):**
+- Peixe 30 único por enquanto — sem abstração prematura de conector
+- Expansão futura: tabelas por plataforma + VIEW `vagas_todas` (DA-01 documentado)
+- Sync manual, UPSERT seguro, DELETE protegido — decisões já implementadas
+
+**Motor 2 — Identidade e Acesso (fechado):**
+- Modelo ERP: tela de login é porta de entrada obrigatória — nenhum dado exposto sem autenticação
+- Sem cookie — token UUID4 no `localStorage`, enviado no header `Authorization: Bearer`
+- Sessão auditável na tabela `sessoes` — revogável, sem estado escondido no browser
+- Modelo mestre-detalhe: `candidatos` (credencial) + `perfis` + tabelas filhas (dados profissionais)
+- Status de vagas migra de `vagas` para `candidaturas` — dado pertence ao candidato, não à vaga
+
+**Motor 3 — Perfil do Candidato (fechado):**
+- Duas entradas: importação de documento (IA extrai) OU formulário manual
+- Salvamento parcial permitido — mínimo validado só na geração
+- Mínimo inclusivo: nome + contato + 1 habilidade + (1 experiência OU formação OU certificação)
+- Inclusivo por design: atende jovem aprendiz e primeiro emprego
+- Tabelas filhas por grupo: experiências, formações, habilidades, idiomas, certificações, documentos
+- Proficiência de habilidades: Básico / Intermediário / Avançado / Especialista
+- Proficiência de idiomas: Básico / Intermediário / Avançado / Fluente / Nativo
+- Contêiner de documentos separado do currículo: certificados, diplomas, portfólio, carta de apresentação
+- Carta de apresentação: upload próprio ou gerada pela IA sob demanda no empacotamento
+
+**Motor 4 — Geração de Currículo Premium (fechado):**
+- Geração em 3 etapas: extrai requisitos da vaga → score de aderência → gera currículo cirúrgico
+- Score exibido antes da geração — candidato decide conscientemente
+- Tom adaptativo por perfil (jovem aprendiz ≠ sênior — IA ajusta linguagem)
+- Edição em texto livre (`contenteditable`) — candidato tem autonomia, sistema não impõe resultado
+- PDF via `weasyprint` (HTML → PDF) — WYSIWYG entre tela e arquivo
+- ZIP salvo no Desktop do usuário (`~/Desktop`) — sem problemas de permissão ou BitLocker Windows
+- Pacote: currículo PDF + carta + documentos selecionados pelo candidato
+- Sistema é facilitador: sem rastreamento externo de candidatura após envio do ZIP
+- Histórico de currículos gerados preservado no banco
+
+**Próxima sessão:** implementação completa do Motor 2 (Identidade e Acesso) — fase extensa, sem interrupção no meio para preservar lógica.
+
+---
+
 ## Pendências Abertas
 
 | # | Pendência | Prioridade |
 |---|---|---|
-| 1 | Teste real do sistema completo pelo usuário (servidor + `/sar` + Ctrl+C limpo) | Alta |
-| 2 | Certificar Fase 1 como concluída após validação | Média |
-| 3 | Atualizar `fluxograma.md` e `plano_de_desenvolvimento.md` para refletir estado atual | Média |
+| 1 | Teste real do Motor 1: servidor + sync Peixe 30 + vagas na tela | Alta |
+| 2 | Implementação completa do Motor 2 (Identidade e Acesso) — próxima sessão | Alta |
+| 3 | Certificar Fase 2 como concluída após validação do Motor 1 | Média |
+| 4 | Atualizar `fluxograma.md` para refletir arquitetura dos 4 motores | Baixa |
 
 ---
 
