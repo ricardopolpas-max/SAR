@@ -1,27 +1,31 @@
 /* ============================================================
    SAR — vagas.js
-   Lógica da tela de vagas: listagem, filtros e sincronização.
+   Lógica da tela de vagas: listagem, busca, filtros e sincronização.
    ============================================================ */
 
 /* ----------------------------------------------------------
    ELEMENTOS DO DOM
 ---------------------------------------------------------- */
 const el = {
-  statusPonto:   document.getElementById("status-ponto"),
-  statusTexto:   document.getElementById("status-texto"),
-  vagasGrid:     document.getElementById("vagas-grid"),
-  vagasContagem: document.getElementById("vagas-contagem"),
-  btnSync:       document.getElementById("btn-sync"),
-  syncStatus:    document.getElementById("sync-status"),
-  filtroLimpar:  document.getElementById("filtro-limpar"),
-  filtroChips:   document.querySelectorAll(".filtro-chip"),
+  statusPonto:    document.getElementById("status-ponto"),
+  statusTexto:    document.getElementById("status-texto"),
+  vagasLista:     document.getElementById("vagas-lista"),
+  vagasContagem:  document.getElementById("vagas-contagem"),
+  btnSync:        document.getElementById("btn-sync"),
+  syncStatus:     document.getElementById("sync-status"),
+  filtroLimpar:   document.getElementById("filtro-limpar"),
+  filtroChips:    document.querySelectorAll(".filtro-chip"),
+  buscaInput:     document.getElementById("busca-input"),
+  selectOrdenacao: document.getElementById("select-ordenacao"),
 };
 
 /* ----------------------------------------------------------
    ESTADO LOCAL
 ---------------------------------------------------------- */
-let _todasVagas  = [];
+let _todasVagas    = [];
 let _filtrosAtivos = {};
+let _termoBusca    = "";
+let _ordenacao     = "recentes";
 
 /* ----------------------------------------------------------
    STATUS DO BACKEND
@@ -78,55 +82,54 @@ function _dataRelativa(iso) {
     const diff = Math.floor((Date.now() - new Date(iso)) / 86400000);
     if (diff === 0) return "Hoje";
     if (diff === 1) return "Ontem";
-    if (diff < 7)  return `${diff} dias atrás`;
-    if (diff < 30) return `${Math.floor(diff / 7)} sem. atrás`;
-    return `${Math.floor(diff / 30)} meses atrás`;
+    if (diff < 7)  return `${diff}d atrás`;
+    if (diff < 30) return `${Math.floor(diff / 7)}sem. atrás`;
+    return `${Math.floor(diff / 30)}m atrás`;
   } catch { return ""; }
 }
 
 /* ----------------------------------------------------------
-   RENDERIZAÇÃO DO CARD
+   RENDERIZAÇÃO — ITEM DE LISTA
 ---------------------------------------------------------- */
-function _renderizarCard(v) {
-  const salario    = _formatarSalario(v.salario_inicial);
+function _renderizarItem(v) {
+  const salario     = _formatarSalario(v.salario_inicial);
   const salarioHtml = salario
-    ? `<div class="card-salario">${salario}</div>`
-    : `<div class="card-salario a-combinar">A combinar</div>`;
+    ? `<div class="item-salario">${salario}</div>`
+    : `<div class="item-salario a-combinar">A combinar</div>`;
 
   const linkHtml = v.link
     ? `<a href="${v.link}" target="_blank" rel="noopener noreferrer"
-          class="btn btn-primario" style="font-size:0.75rem;padding:6px 12px;">
-         Ver vaga ↗
-       </a>`
+          class="btn btn-secundario btn-item-acao">Ver ↗</a>`
+    : `<span class="btn btn-secundario btn-item-acao" style="opacity:.3;cursor:default">Sem link</span>`;
+
+  const empresa = v.empresa || "Empresa não informada";
+  const local   = v.localizacao ? ` · 📍 ${v.localizacao}` : "";
+
+  const classeItem = v.disponivel_plataforma
+    ? "vaga-item"
+    : "vaga-item vaga-removida";
+
+  const removidaBadge = !v.disponivel_plataforma
+    ? `<span class="badge" style="background:rgba(245,158,11,.12);color:var(--aviso)">⚠ Removida</span>`
     : "";
 
   return `
-    <div class="vaga-card">
-      <div class="card-topo">
-        <div class="card-avatar">${_inicialEmpresa(v.empresa)}</div>
-        <div class="card-empresa-wrap">
-          <div class="card-empresa">${v.empresa || "Empresa não informada"}</div>
-          <div class="card-titulo">${v.titulo}</div>
-        </div>
+    <div class="${classeItem}">
+      <div class="item-avatar">${_inicialEmpresa(v.empresa)}</div>
+      <div class="item-info">
+        <div class="item-titulo">${v.titulo}</div>
+        <div class="item-empresa">${empresa}${local}</div>
       </div>
-
-      ${v.localizacao ? `
-      <div class="card-local">
-        <span>📍</span>
-        <span>${v.localizacao}</span>
-      </div>` : ""}
-
-      <div class="card-badges">
-        ${v.tipo_contrato ? _badgeRegime(v.tipo_contrato) : ""}
+      <div class="item-badges">
+        ${removidaBadge}
+        ${v.tipo_contrato ? _badgeRegime(v.tipo_contrato)    : ""}
         ${v.modalidade    ? _badgeModalidade(v.modalidade) : ""}
       </div>
-
-      ${salarioHtml}
-
-      <div class="card-rodape">
-        <span class="card-data">${_dataRelativa(v.data_extracao || v.ultima_sincronizacao)}</span>
-        ${linkHtml}
+      <div class="item-meta">
+        ${salarioHtml}
+        <div class="item-data">${_dataRelativa(v.data_extracao || v.ultima_sincronizacao)}</div>
       </div>
+      ${linkHtml}
     </div>
   `;
 }
@@ -135,25 +138,22 @@ function _renderizarCard(v) {
    SKELETON LOADER
 ---------------------------------------------------------- */
 function _mostrarSkeleton(qtd) {
-  el.vagasGrid.innerHTML = Array.from({ length: qtd }, () => `
-    <div class="vaga-card carregando">
-      <div class="card-topo">
-        <div class="card-avatar skeleton"></div>
-        <div class="card-empresa-wrap" style="gap:6px;display:flex;flex-direction:column;">
-          <div class="card-empresa skeleton" style="height:12px;width:55%;"></div>
-          <div class="card-titulo skeleton" style="height:18px;width:85%;"></div>
-        </div>
+  el.vagasLista.innerHTML = Array.from({ length: qtd }, () => `
+    <div class="vaga-item">
+      <div class="item-avatar skeleton"></div>
+      <div class="item-info">
+        <div class="skeleton" style="height:14px;width:55%;border-radius:4px;"></div>
+        <div class="skeleton" style="height:11px;width:35%;border-radius:4px;margin-top:5px;"></div>
       </div>
-      <div class="card-local skeleton" style="height:12px;width:60%;"></div>
-      <div class="card-badges" style="gap:4px;">
-        <div class="skeleton" style="height:20px;width:42px;border-radius:999px;"></div>
+      <div class="item-badges" style="gap:4px;">
+        <div class="skeleton" style="height:20px;width:40px;border-radius:999px;"></div>
         <div class="skeleton" style="height:20px;width:72px;border-radius:999px;"></div>
       </div>
-      <div class="skeleton" style="height:16px;width:45%;"></div>
-      <div class="card-rodape" style="border-top:none;">
-        <div class="skeleton" style="height:12px;width:30%;"></div>
-        <div class="skeleton" style="height:30px;width:80px;border-radius:10px;"></div>
+      <div class="item-meta">
+        <div class="skeleton" style="height:13px;width:70px;border-radius:4px;"></div>
+        <div class="skeleton" style="height:10px;width:50px;border-radius:4px;margin-top:4px;"></div>
       </div>
+      <div class="skeleton" style="height:32px;width:68px;border-radius:8px;flex-shrink:0;"></div>
     </div>
   `).join("");
 }
@@ -162,19 +162,19 @@ function _mostrarSkeleton(qtd) {
    ESTADOS DE FEEDBACK
 ---------------------------------------------------------- */
 function _mostrarVazio() {
-  el.vagasGrid.innerHTML = `
+  el.vagasLista.innerHTML = `
     <div class="estado-container">
       <div class="estado-icone">📭</div>
       <div class="estado-titulo">Nenhuma vaga encontrada</div>
       <p class="estado-descricao">
-        Clique em <strong>Atualizar</strong> para sincronizar com o Peixe 30,
-        ou ajuste os filtros aplicados.
+        Tente outros termos de busca, ajuste os filtros
+        ou clique em <strong>Atualizar</strong> para sincronizar com o Peixe 30.
       </p>
     </div>`;
 }
 
 function _mostrarErro(msg) {
-  el.vagasGrid.innerHTML = `
+  el.vagasLista.innerHTML = `
     <div class="estado-container">
       <div class="estado-icone">⚠️</div>
       <div class="estado-titulo">Não foi possível carregar</div>
@@ -183,29 +183,61 @@ function _mostrarErro(msg) {
 }
 
 /* ----------------------------------------------------------
-   FILTROS
+   BUSCA
+---------------------------------------------------------- */
+function _filtrarBusca(vagas) {
+  if (!_termoBusca) return vagas;
+  const t = _termoBusca.toLowerCase();
+  return vagas.filter(v =>
+    (v.titulo      || "").toLowerCase().includes(t) ||
+    (v.empresa     || "").toLowerCase().includes(t) ||
+    (v.localizacao || "").toLowerCase().includes(t)
+  );
+}
+
+/* ----------------------------------------------------------
+   ORDENAÇÃO
+---------------------------------------------------------- */
+function _ordenar(vagas) {
+  const c = [...vagas];
+  switch (_ordenacao) {
+    case "salario":
+      return c.sort((a, b) => (b.salario_inicial || 0) - (a.salario_inicial || 0));
+    case "empresa":
+      return c.sort((a, b) => (a.empresa || "").localeCompare(b.empresa || "", "pt-BR"));
+    case "titulo":
+      return c.sort((a, b) => (a.titulo || "").localeCompare(b.titulo || "", "pt-BR"));
+    default:
+      return c.sort((a, b) =>
+        (b.ultima_sincronizacao || "") > (a.ultima_sincronizacao || "") ? 1 : -1
+      );
+  }
+}
+
+/* ----------------------------------------------------------
+   FILTROS — aplicação e contagem
 ---------------------------------------------------------- */
 function _aplicarFiltros(vagas) {
   return vagas.filter(v => {
     for (const [campo, valor] of Object.entries(_filtrosAtivos)) {
-      const campoVaga = (v[campo] || "").toLowerCase();
-      if (campoVaga !== valor.toLowerCase()) return false;
+      if ((v[campo] || "").toLowerCase() !== valor) return false;
     }
     return true;
   });
 }
 
-function _renderizarVagas(vagas) {
-  const filtradas = _aplicarFiltros(vagas);
-  const total     = _todasVagas.length;
-  const visiveis  = filtradas.length;
-
-  el.vagasContagem.textContent = total > 0
-    ? `${visiveis} de ${total}`
-    : "";
-
-  if (!filtradas.length) { _mostrarVazio(); return; }
-  el.vagasGrid.innerHTML = filtradas.map(_renderizarCard).join("");
+function _atualizarContagensFiltros(vagas) {
+  el.filtroChips.forEach(chip => {
+    const campo = chip.dataset.filtro;
+    const valor = chip.dataset.valor;
+    if (!chip.dataset.label) {
+      chip.dataset.label = chip.textContent.trim();
+    }
+    const count = vagas.filter(v => (v[campo] || "").toLowerCase() === valor).length;
+    chip.textContent = `${chip.dataset.label} (${count})`;
+    chip.style.opacity = count === 0 ? "0.35" : "1";
+    chip.style.pointerEvents = count === 0 ? "none" : "";
+  });
 }
 
 function _inicializarFiltros() {
@@ -239,19 +271,54 @@ function _inicializarFiltros() {
 }
 
 /* ----------------------------------------------------------
+   BUSCA E ORDENAÇÃO — inicialização
+---------------------------------------------------------- */
+function _inicializarBusca() {
+  let _timer;
+  el.buscaInput.addEventListener("input", () => {
+    clearTimeout(_timer);
+    _timer = setTimeout(() => {
+      _termoBusca = el.buscaInput.value.trim();
+      _renderizarVagas(_todasVagas);
+    }, 250);
+  });
+}
+
+function _inicializarOrdenacao() {
+  el.selectOrdenacao.addEventListener("change", () => {
+    _ordenacao = el.selectOrdenacao.value;
+    _renderizarVagas(_todasVagas);
+  });
+}
+
+/* ----------------------------------------------------------
+   RENDERIZAÇÃO PRINCIPAL
+---------------------------------------------------------- */
+function _renderizarVagas(vagas) {
+  let resultado = _aplicarFiltros(vagas);
+  resultado = _filtrarBusca(resultado);
+  resultado = _ordenar(resultado);
+
+  const visiveis = resultado.length;
+  const total    = vagas.length;
+  el.vagasContagem.textContent = total > 0 ? `${visiveis} de ${total}` : "";
+
+  if (!resultado.length) { _mostrarVazio(); return; }
+  el.vagasLista.innerHTML = resultado.map(_renderizarItem).join("");
+}
+
+/* ----------------------------------------------------------
    CARREGAMENTO DE VAGAS
 ---------------------------------------------------------- */
 async function carregarVagas() {
-  _mostrarSkeleton(9);
+  _mostrarSkeleton(12);
 
   const { ok, dados, erro } = await SarAPI.vagas.listar();
 
-  if (!ok) {
-    _mostrarErro(erro);
-    return;
-  }
+  if (!ok) { _mostrarErro(erro); return; }
 
   _todasVagas = dados || [];
+  _atualizarContagensFiltros(_todasVagas);
   _renderizarVagas(_todasVagas);
 }
 
@@ -264,21 +331,21 @@ function _inicializarSync() {
 
     el.btnSync.disabled = true;
     el.btnSync.classList.add("sincronizando");
-    el.syncStatus.textContent = "Sincronizando...";
+    el.syncStatus.textContent = "Sincronizando…";
 
     const { ok, dados } = await SarAPI.vagas.sincronizar();
 
+    el.btnSync.disabled = false;
+    el.btnSync.classList.remove("sincronizando");
+
     if (ok) {
-      el.syncStatus.textContent = "Sincronizado ✓";
-      setTimeout(() => { el.syncStatus.textContent = ""; }, 4000);
+      el.syncStatus.textContent = `Sincronizado ✓ — ${dados.processadas} vagas`;
+      setTimeout(() => { el.syncStatus.textContent = ""; }, 5000);
       await carregarVagas();
     } else {
       el.syncStatus.textContent = "Falha na sincronização";
       setTimeout(() => { el.syncStatus.textContent = ""; }, 5000);
     }
-
-    el.btnSync.disabled = false;
-    el.btnSync.classList.remove("sincronizando");
   });
 }
 
@@ -288,6 +355,8 @@ function _inicializarSync() {
 (async () => {
   await verificarBackend();
   _inicializarFiltros();
+  _inicializarBusca();
+  _inicializarOrdenacao();
   _inicializarSync();
   await carregarVagas();
 })();

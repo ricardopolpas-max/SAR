@@ -44,7 +44,9 @@ def db_selecionar(
             cursor = conn.cursor()
             cursor.execute(sql, params)
             linhas = [dict(row) for row in cursor.fetchall()]
-            return linhas[0] if unico else linhas
+            if unico:
+                return linhas[0] if linhas else None
+            return linhas
     except Exception as e:
         print(f"[ERRO db_selecionar] Tabela {tabela}: {e}")
         return None if unico else []

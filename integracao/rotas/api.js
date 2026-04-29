@@ -11,18 +11,43 @@ const SarAPI = (() => {
   ---------------------------------------------------------- */
   const BASE_URL = "https://127.0.0.1:8000";
 
-  const HEADERS = {
-    "Content-Type": "application/json",
-    "Accept":       "application/json",
-  };
+  /* ----------------------------------------------------------
+     SESSÃO LOCAL — token armazenado no localStorage
+  ---------------------------------------------------------- */
+  const _CHAVE_TOKEN = "sar_token";
+  const _CHAVE_NOME  = "sar_nome";
+
+  function _obterToken() {
+    return localStorage.getItem(_CHAVE_TOKEN);
+  }
+
+  function _salvarSessao(token, nome) {
+    localStorage.setItem(_CHAVE_TOKEN, token);
+    localStorage.setItem(_CHAVE_NOME,  nome);
+  }
+
+  function _limparSessao() {
+    localStorage.removeItem(_CHAVE_TOKEN);
+    localStorage.removeItem(_CHAVE_NOME);
+  }
 
   /* ----------------------------------------------------------
      NÚCLEO — fetch centralizado com tratamento de erros
   ---------------------------------------------------------- */
   async function _requisitar(metodo, rota, corpo = null) {
+    const cabecalhos = {
+      "Content-Type": "application/json",
+      "Accept":       "application/json",
+    };
+
+    const token = _obterToken();
+    if (token) {
+      cabecalhos["Authorization"] = `Bearer ${token}`;
+    }
+
     const opcoes = {
       method:  metodo,
-      headers: HEADERS,
+      headers: cabecalhos,
     };
 
     if (corpo !== null) {
@@ -54,6 +79,56 @@ const SarAPI = (() => {
       };
     }
   }
+
+  /* ----------------------------------------------------------
+     AUTENTICAÇÃO
+  ---------------------------------------------------------- */
+  const autenticacao = {
+    /** Cadastra novo candidato e abre sessão automaticamente. */
+    async cadastrar(nome, email, senha) {
+      const resultado = await _requisitar("POST", "/auth/cadastrar", { nome, email, senha });
+      if (resultado.ok) {
+        _salvarSessao(resultado.dados.token, resultado.dados.nome);
+      }
+      return resultado;
+    },
+
+    /** Autentica candidato existente e abre sessão. */
+    async entrar(email, senha) {
+      const resultado = await _requisitar("POST", "/auth/login", { email, senha });
+      if (resultado.ok) {
+        _salvarSessao(resultado.dados.token, resultado.dados.nome);
+      }
+      return resultado;
+    },
+
+    /** Encerra sessão no backend e limpa localStorage. */
+    async encerrar() {
+      const resultado = await _requisitar("POST", "/auth/logout");
+      _limparSessao();
+      return resultado;
+    },
+
+    /** Retorna true se há token válido no localStorage. */
+    estaAutenticado() {
+      return !!_obterToken();
+    },
+
+    /** Retorna o nome do candidato logado (ou string vazia). */
+    obterNome() {
+      return localStorage.getItem(_CHAVE_NOME) || "";
+    },
+  };
+
+  /* ----------------------------------------------------------
+     CANDIDATO AUTENTICADO
+  ---------------------------------------------------------- */
+  const candidato = {
+    /** Retorna nome e e-mail do candidato logado. */
+    async meuPerfil() {
+      return _requisitar("GET", "/candidatos/meu-perfil");
+    },
+  };
 
   /* ----------------------------------------------------------
      SISTEMA
@@ -94,9 +169,14 @@ const SarAPI = (() => {
       return _requisitar("DELETE", `/vagas/${id}`);
     },
 
-    /** Dispara sincronização manual com o Peixe 30. */
+    /** Dispara sincronização manual com o Peixe 30 (background). */
     async sincronizar() {
       return _requisitar("POST", "/vagas/sincronizar");
+    },
+
+    /** Retorna o resultado da última sincronização gravado em configuracoes. */
+    async ultimaSync() {
+      return _requisitar("GET", "/configuracoes/ultima_sincronizacao");
     },
   };
 
@@ -135,6 +215,8 @@ const SarAPI = (() => {
   ---------------------------------------------------------- */
   return {
     base: BASE_URL,
+    autenticacao,
+    candidato,
     sistema,
     vagas,
     configuracoes,

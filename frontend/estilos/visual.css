@@ -758,6 +758,325 @@ button { cursor: pointer; font-family: var(--fonte); border: none; background: n
 ::-webkit-scrollbar-thumb:hover  { background: var(--texto-des); }
 
 /* ------------------------------------------------------------
+   17. BARRA DE BUSCA
+------------------------------------------------------------ */
+.busca-bar {
+  padding: var(--esp-md) var(--esp-xl);
+  border-bottom: 1px solid var(--borda);
+  flex-shrink: 0;
+}
+
+.busca-input {
+  width: 100%;
+  padding: 9px var(--esp-md);
+  background: var(--card);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-md);
+  font-family: var(--fonte);
+  font-size: var(--fonte-md);
+  color: var(--texto);
+  outline: none;
+  transition: border-color var(--transicao), box-shadow var(--transicao);
+}
+
+.busca-input:focus {
+  border-color: var(--primaria);
+  box-shadow: 0 0 0 3px var(--primaria-suave);
+}
+
+.busca-input::placeholder { color: var(--texto-des); }
+
+/* ------------------------------------------------------------
+   18. SELETOR DE ORDENAÇÃO
+------------------------------------------------------------ */
+.select-ordenacao {
+  padding: var(--esp-sm) var(--esp-md);
+  background: var(--card);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-md);
+  font-family: var(--fonte);
+  font-size: var(--fonte-md);
+  color: var(--texto);
+  cursor: pointer;
+  outline: none;
+  transition: border-color var(--transicao);
+}
+
+.select-ordenacao:focus { border-color: var(--primaria); }
+
+/* ------------------------------------------------------------
+   19. LISTA DE VAGAS
+------------------------------------------------------------ */
+.vagas-lista {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-sm);
+}
+
+.vaga-item {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-md);
+  padding: var(--esp-md) var(--esp-lg);
+  background: var(--card);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-md);
+  transition: border-color var(--transicao), box-shadow var(--transicao);
+}
+
+.vaga-item:hover {
+  border-color: var(--primaria);
+  box-shadow: var(--sombra-sm);
+}
+
+.item-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: var(--raio-md);
+  background: var(--primaria-suave);
+  border: 1px solid var(--borda);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--fonte-md);
+  font-weight: 700;
+  color: var(--primaria);
+  flex-shrink: 0;
+}
+
+.item-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.item-titulo {
+  font-size: var(--fonte-md);
+  font-weight: 600;
+  color: var(--texto);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.item-empresa {
+  font-size: var(--fonte-sm);
+  color: var(--texto-sec);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.item-badges {
+  display: flex;
+  gap: var(--esp-xs);
+  flex-shrink: 0;
+}
+
+.item-meta {
+  flex-shrink: 0;
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 100px;
+}
+
+.item-salario {
+  font-size: var(--fonte-sm);
+  font-weight: 600;
+  color: var(--sucesso);
+}
+
+.item-salario.a-combinar {
+  color: var(--texto-des);
+  font-weight: 400;
+  font-style: italic;
+}
+
+.item-data {
+  font-size: var(--fonte-xs);
+  color: var(--texto-des);
+}
+
+.btn-item-acao {
+  flex-shrink: 0;
+  font-size: var(--fonte-sm);
+  padding: 6px var(--esp-md);
+}
+
+/* ------------------------------------------------------------
+   20. VAGA REMOVIDA DA PLATAFORMA
+------------------------------------------------------------ */
+.vaga-removida {
+  opacity: 0.65;
+  border-color: var(--aviso) !important;
+}
+
+.vaga-removida:hover {
+  border-color: var(--aviso) !important;
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.15);
+  transform: none;
+}
+
+.card-removida {
+  font-size: var(--fonte-xs);
+  font-weight: 600;
+  color: var(--aviso);
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: var(--raio-sm);
+  padding: 3px var(--esp-sm);
+  letter-spacing: 0.2px;
+}
+
+/* ------------------------------------------------------------
+   18. TELAS DE AUTENTICAÇÃO
+------------------------------------------------------------ */
+.auth-pagina {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--fundo);
+  padding: var(--esp-xl) var(--esp-md);
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 400px;
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-lg);
+  padding: var(--esp-2xl) var(--esp-xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-lg);
+  box-shadow: var(--sombra-md);
+}
+
+.auth-marca {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--esp-sm);
+  text-align: center;
+}
+
+.auth-logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: var(--raio-lg);
+  background: var(--primaria);
+  font-size: var(--fonte-xl);
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -1px;
+}
+
+.auth-titulo {
+  font-size: var(--fonte-xl);
+  font-weight: 700;
+  color: var(--texto);
+}
+
+.auth-subtitulo {
+  font-size: var(--fonte-sm);
+  color: var(--texto-sec);
+}
+
+.auth-formulario {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-md);
+}
+
+.form-grupo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-xs);
+}
+
+.form-label {
+  font-size: var(--fonte-sm);
+  font-weight: 500;
+  color: var(--texto-sec);
+}
+
+.form-input {
+  width: 100%;
+  padding: 10px var(--esp-md);
+  background: var(--card);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-md);
+  font-family: var(--fonte);
+  font-size: var(--fonte-md);
+  color: var(--texto);
+  outline: none;
+  transition: border-color var(--transicao), box-shadow var(--transicao);
+}
+
+.form-input:focus {
+  border-color: var(--primaria);
+  box-shadow: 0 0 0 3px var(--primaria-suave);
+}
+
+.form-input::placeholder { color: var(--texto-des); }
+
+.form-grupo.com-erro .form-input {
+  border-color: var(--erro);
+  box-shadow: 0 0 0 3px var(--erro-suave);
+}
+
+.form-mensagem-erro {
+  font-size: var(--fonte-sm);
+  color: var(--erro);
+  display: none;
+}
+
+.form-grupo.com-erro .form-mensagem-erro { display: block; }
+
+.auth-aviso {
+  font-size: var(--fonte-sm);
+  color: var(--erro);
+  background: var(--erro-suave);
+  border: 1px solid var(--erro);
+  border-radius: var(--raio-md);
+  padding: var(--esp-sm) var(--esp-md);
+  text-align: center;
+  display: none;
+}
+
+.auth-aviso.visivel { display: block; }
+
+.btn-auth {
+  width: 100%;
+  justify-content: center;
+  padding: 11px var(--esp-md);
+  font-size: var(--fonte-base);
+  font-weight: 600;
+}
+
+.auth-rodape {
+  text-align: center;
+  font-size: var(--fonte-sm);
+  color: var(--texto-sec);
+}
+
+.auth-rodape a {
+  color: var(--primaria);
+  font-weight: 500;
+  transition: color var(--transicao);
+}
+
+.auth-rodape a:hover { color: var(--primaria-hover); }
+
+/* ------------------------------------------------------------
    16. RESPONSIVO
 ------------------------------------------------------------ */
 @media (max-width: 768px) {

@@ -211,14 +211,182 @@ Sync no startup foi removido por risco de regressão: sobrescreveria dados do ca
 
 ---
 
+## 2026-04-29 — Motor 2: Identidade e Acesso (implementação completa)
+
+**Contexto:** Implementação do sistema ERP-style de autenticação. Modelo de sessão com token UUID4 no `localStorage`, sem cookies.
+
+**Arquivos entregues (11 turnos):**
+
+| Turno | Arquivo | Ação |
+|---|---|---|
+| 1 | `backend/rotinas/autenticacao.py` | Criado — bcrypt, criar/validar/revogar token |
+| 2 | `backend/aplicacao.py` | Criado — substitui `interface_backend.py`; tabelas `candidatos` e `sessoes`; endpoints auth; todas as rotas protegidas por `Depends(autenticar)` |
+| 3 | `backend/servidor.py` | Atualizado — `"interface_backend:app"` → `"aplicacao:app"` |
+| 3 | `backend/interface_backend.py` | Removido — código morto após renomeação |
+| 4 | `integracao/rotas/api.js` | Atualizado — módulo `autenticacao` (`entrar`, `cadastrar`, `encerrar`, `estaAutenticado`, `obterNome`); `_requisitar()` injeta `Authorization: Bearer` automaticamente |
+| 5 | `frontend/estilos/visual.css` | Atualizado — seção 17: layout de autenticação, card, campos, estados de erro |
+| 6 | `frontend/telas/login.html` | Criado — tela de acesso |
+| 7 | `frontend/telas/cadastro.html` | Criado — tela de criação de conta |
+| 8 | `frontend/scripts/login.js` | Criado — validação, chamada API, redirecionamento |
+| 9 | `frontend/scripts/cadastro.js` | Criado — validação (mín. 6 chars senha, e-mail único), chamada API |
+| 10 | `frontend/telas/SAR.html` | Atualizado — guard de autenticação, nome do candidato na sidebar, botão logout |
+| 11 | `iniciar_servidor.bat` | Atualizado — browser abre em `/login` em vez de `/sar` |
+
+**Decisões registradas:**
+- `interface_backend.py` renomeado para `aplicacao.py` — "interface" não é vocabulário português
+- Token armazenado no `localStorage` com chaves `sar_token` e `sar_nome` — sem cookies por decisão arquitetural explícita do usuário
+- Guard de autenticação executa antes de `vagas.js` — evita chamadas autenticadas sem token
+- Logout revoga sessão no backend (tabela `sessoes`) e limpa `localStorage`
+- `novalidate` nos formulários — validação controlada pelo JS, não pelo browser nativo
+
+**Dependência nova:**
+- `passlib[bcrypt]==1.7.4` adicionada em `dependencias.txt`
+- Instalar antes do primeiro teste: `pip install passlib[bcrypt]`
+
+**Bugs corrigidos durante o desenvolvimento:**
+- Múltiplas violações de nomenclatura identificadas e corrigidas iterativamente: `auth.py` → `autenticacao.py`, `setup_db` → `inicializar_banco`, `login/logout` → `entrar/encerrar_sessao`, `_executar_sync` → `_executar_sincronizacao`, `FRONTEND_DIR` → `PASTA_FRONTEND`, `LOGIN_HTML` → `TELA_ACESSO_HTML`, `_FAVICON_SVG` → `_ICONE_SVG`
+
+---
+
+---
+
+## 2026-04-29 — Motor 2: Bugs Pós-Implantação e Correções
+
+**Contexto:** Primeiro teste real do Motor 2 após implantação. Três bugs críticos encontrados e corrigidos na sessão.
+
+### Bug 1 — `passlib` incompatível com `bcrypt 5.0.0`
+
+**Sintoma:** Erro `ValueError: password cannot be longer than 72 bytes` ao tentar fazer cadastro. Internamente, passlib tentava acessar `bcrypt.__about__.__version__` — atributo removido no bcrypt 4.x+.
+
+**Causa raiz:** `passlib[bcrypt]==1.7.4` usa introspection interna do bcrypt que foi quebrada nas versões 4.x e 5.x da biblioteca.
+
+**Solução:** Removida a dependência de passlib inteiramente. `autenticacao.py` passou a usar `bcrypt` diretamente:
+```python
+import bcrypt
+def hash_senha(senha: str) -> str:
+    return bcrypt.hashpw(senha.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+def verificar_senha(senha: str, hash_salvo: str) -> bool:
+    return bcrypt.checkpw(senha.encode("utf-8"), hash_salvo.encode("utf-8"))
+```
+
+**`dependencias.txt`:** `passlib[bcrypt]==1.7.4` → `bcrypt==5.0.0`
+
+---
+
+### Bug 2 — `db_selecionar` lançava `IndexError` em tabela vazia
+
+**Sintoma:** Erro 500 ao carregar vagas com banco recém-criado.
+
+**Causa raiz:** `db_selecionar()` retornava `linhas[0]` incondicionalmente quando `unico=True`, sem checar se havia resultado.
+
+**Solução em `rotinas/genericas.py`:**
+```python
+if unico:
+    return linhas[0] if linhas else None
+return linhas
+```
+
+---
+
+### Ajuste de produto — seção "Candidatos" removida da sidebar
+
+**Contexto:** A seção "Candidatos" (administração de usuários) aparecia no menu lateral de todos os usuários. Módulo de administração não faz parte do escopo desta fase e não deve ser acessado por candidatos comuns.
+
+**Ação:** Seção removida da sidebar. Substituída por **"Meu Perfil"** — exibe nome e e-mail do candidato autenticado (dados vindos de `GET /candidatos/meu-perfil`). Seção de perfil profissional marcada como "Em desenvolvimento — Motor 3".
+
+**Backend:** Endpoint `GET /candidatos/meu-perfil` adicionado em `aplicacao.py`, protegido por `Depends(autenticar)`, retorna `{nome, email}` do candidato da sessão ativa.
+
+---
+
+## 2026-04-29 — Motor 1: Redesign do Mecanismo de Sincronização
+
+**Contexto:** Primeiro sync com autenticação ativa. O mecanismo original usava `BackgroundTasks` + polling de `configuracoes` para simular progresso. Não funcionou — o frontend ficava rodando indefinidamente sem receber confirmação de conclusão.
+
+### Problema 1 — Bug silencioso: `ON CONFLICT` com índice parcial
+
+**Causa raiz:** O UPSERT original usava `INSERT OR REPLACE ON CONFLICT(id_externo)`. O índice único em `id_externo` é **parcial** (`WHERE id_externo IS NOT NULL`), e o SQLite não honra `ON CONFLICT` com índices parciais. Todas as tentativas de INSERT falhavam silenciosamente (capturadas pelo `except: continue`). Resultado: `processadas = 0` mesmo após sync completo.
+
+**Solução:** Substituído por padrão explícito UPDATE → INSERT:
+```python
+cursor.execute("UPDATE vagas SET titulo=:titulo, ... WHERE id_externo=:id_externo", vaga)
+if cursor.rowcount == 0:
+    cursor.execute("INSERT INTO vagas (...) VALUES (...)", vaga)
+processadas += 1
+```
+
+### Problema 2 — Sync assíncrono com polling era arquitetura frágil
+
+**Contexto:** O endpoint `POST /vagas/sincronizar` disparava `BackgroundTasks` e o frontend fazia polling em `GET /configuracoes/ultima_sync_status` até receber `"ok"`. Funcionava na teoria; na prática o polling retornava 200 OK mas a variável de estado nunca chegava ao frontend corretamente.
+
+**Decisão:** Sync convertido para síncrono. O endpoint aguarda `sincronizar()` retornar, depois responde com o resultado. Frontend simplesmente aguarda a resposta HTTP.
+
+**Impacto:** Sync de ~846 vagas em ~17 páginas completa em segundos. Não justifica complexidade assíncrona. `BackgroundTasks` e polling removidos.
+
+---
+
+## 2026-04-29 — Motor 1: Bug de Filtros e Normalização de Dados
+
+**Contexto:** Após primeiro sync bem-sucedido (846 vagas importadas), apenas o filtro "Presencial" funcionava. Os demais chips não retornavam resultado.
+
+**Diagnóstico:** Consulta direta ao banco revelou os valores reais gravados:
+- `modality` da API Peixe 30: `"remota"`, `"ambos"`, `"presencial"` → banco gravava `"remota"` e `"ambos"` literalmente
+- `contractType` da API Peixe 30: `"pessoajuridica"`, `"clt"`, `"estagio"` → banco gravava `"pessoajuridica"` literalmente
+- Frontend usava `data-valor="remoto"`, `data-valor="hibrido"`, `data-valor="pj"` — nunca havia correspondência
+
+**Solução em `sincronizacao.py`:** Mapas de normalização aplicados no `_mapear()`:
+```python
+_MAPA_MODALIDADE = { "remota": "remoto", "ambos": "hibrido" }
+_MAPA_CONTRATO   = { "pessoajuridica": "pj" }
+```
+
+**Migração de dados existentes em `aplicacao.py` (startup):**
+```python
+cursor.execute("UPDATE vagas SET modalidade    = 'remoto'  WHERE modalidade    = 'remota'")
+cursor.execute("UPDATE vagas SET modalidade    = 'hibrido' WHERE modalidade    = 'ambos'")
+cursor.execute("UPDATE vagas SET tipo_contrato = 'pj'      WHERE tipo_contrato = 'pessoajuridica'")
+```
+
+**Resultado:** Filtros funcionando para todas as modalidades e tipos de contrato.
+
+---
+
+## 2026-04-29 — Motor 1: Redesign da Tela de Vagas
+
+**Contexto:** Após sync funcionando, usuário identificou que a apresentação era inadequada: cards sem organização, sem busca, sem ambiente amigável. Redesign completo da tela de vagas.
+
+**Arquivos alterados:**
+
+| Arquivo | Mudança |
+|---|---|
+| `frontend/estilos/visual.css` | Seções 17–19 adicionadas: busca, ordenação, lista horizontal, item de lista, badge removida |
+| `frontend/telas/SAR.html` | Campo de busca, select de ordenação, chips adicionais (jovemaprendiz, autonomo, temporario), `vagas-grid` → `vagas-lista` |
+| `frontend/scripts/vagas.js` | Reescrita completa: `_renderizarItem`, busca em tempo real, ordenação, contagem nos chips |
+
+**Funcionalidades entregues:**
+
+- **Lista horizontal** (substituiu grid de cards): avatar + título/empresa + badges + salário/data + botão Ver
+- **Busca em tempo real** com debounce de 250ms — filtra por título, empresa e localização
+- **Ordenação dinâmica**: Mais recentes / Maior salário / Empresa A–Z / Título A–Z
+- **Contagem nos filtros**: chips exibem `CLT (142)`, `Remoto (87)` etc., baseado nos dados carregados
+- **Chips desabilitados** automaticamente quando a categoria tem 0 vagas (opacity 0.35 + pointer-events none)
+- **Badge "Removida"** em vagas com `disponivel_plataforma = 0` que ainda aparecem por terem status ativo
+- **Skeleton loader** adaptado para o novo layout de lista
+
+**Novos chips de contrato adicionados:**
+- `jovemaprendiz` — Jovem Aprendiz
+- `autonomo` — Autônomo
+- `contratacaotemporaria` — Temporário
+
+---
+
 ## Pendências Abertas
 
 | # | Pendência | Prioridade |
 |---|---|---|
-| 1 | Teste real do Motor 1: servidor + sync Peixe 30 + vagas na tela | Alta |
-| 2 | Implementação completa do Motor 2 (Identidade e Acesso) — próxima sessão | Alta |
-| 3 | Certificar Fase 2 como concluída após validação do Motor 1 | Média |
-| 4 | Atualizar `fluxograma.md` para refletir arquitetura dos 4 motores | Baixa |
+| 1 | Atualizar `fluxograma.md` para refletir arquitetura dos 4 motores | Baixa |
+| 2 | Motor 3 — Perfil do Candidato: tabelas filhas, importação via IA, formulário manual | Alta |
+| 3 | Quando Motor 3 criar tabela `candidaturas`: adicionar `AND id NOT IN (SELECT id_vaga FROM candidaturas)` na query de soft-mark do `sincronizacao.py` | Média |
+| 4 | Motor 4 — Geração de Currículo Premium | Alta |
 
 ---
 

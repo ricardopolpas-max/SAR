@@ -5,6 +5,25 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SAR — Sistema de Automação de Recolocação</title>
   <link rel="stylesheet" href="/frontend/estilos/visual.css">
+  <style>
+    .sidebar-candidato {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--esp-sm);
+      margin-bottom: var(--esp-md);
+    }
+    .candidato-nome {
+      font-size: var(--fonte-sm);
+      color: var(--texto-sec);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      flex: 1;
+      min-width: 0;
+    }
+    .btn-sair { font-size: var(--fonte-sm); padding: 4px var(--esp-sm); flex-shrink: 0; }
+  </style>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%232d65e0'/><text x='50%25' y='54%25' dominant-baseline='middle' text-anchor='middle' font-family='system-ui,sans-serif' font-weight='700' font-size='14' fill='%23e8f0ff'>SAR</text></svg>">
 </head>
 <body>
@@ -24,9 +43,9 @@
         <span class="nav-icone">💼</span>
         <span>Vagas</span>
       </div>
-      <div class="nav-item" data-secao="candidatos">
+      <div class="nav-item" data-secao="perfil">
         <span class="nav-icone">👤</span>
-        <span>Candidatos</span>
+        <span>Meu Perfil</span>
       </div>
       <div class="nav-item" data-secao="curriculos">
         <span class="nav-icone">📄</span>
@@ -39,6 +58,10 @@
     </nav>
 
     <div class="sidebar-footer">
+      <div class="sidebar-candidato">
+        <span id="candidato-nome" class="candidato-nome"></span>
+        <button id="btn-sair" class="btn btn-ghost btn-sair" title="Encerrar sessão">↪ Sair</button>
+      </div>
       <div class="status-conexao">
         <div id="status-ponto" class="status-ponto"></div>
         <span id="status-texto">verificando...</span>
@@ -62,6 +85,12 @@
         </div>
         <div class="page-acoes">
           <span id="sync-status" class="sync-status"></span>
+          <select id="select-ordenacao" class="select-ordenacao">
+            <option value="recentes">Mais recentes</option>
+            <option value="salario">Maior salário</option>
+            <option value="empresa">Empresa A–Z</option>
+            <option value="titulo">Título A–Z</option>
+          </select>
           <button id="btn-sync" class="btn btn-secundario btn-sync">
             <span class="icone-sync">↻</span>
             Atualizar
@@ -69,39 +98,71 @@
         </div>
       </div>
 
+      <div class="busca-bar">
+        <input
+          type="text"
+          id="busca-input"
+          class="busca-input"
+          placeholder="🔍  Buscar por título, empresa ou localização…"
+        />
+      </div>
+
       <div class="filtros-bar">
-        <span class="filtro-label">Filtrar:</span>
+        <span class="filtro-label">Contrato:</span>
         <div class="filtro-chip" data-filtro="tipo_contrato" data-valor="clt">CLT</div>
         <div class="filtro-chip" data-filtro="tipo_contrato" data-valor="pj">PJ</div>
         <div class="filtro-chip" data-filtro="tipo_contrato" data-valor="estagio">Estágio</div>
-        <div class="filtro-chip" data-filtro="modalidade" data-valor="remoto">Remoto</div>
+        <div class="filtro-chip" data-filtro="tipo_contrato" data-valor="jovemaprendiz">Jovem Aprendiz</div>
+        <div class="filtro-chip" data-filtro="tipo_contrato" data-valor="autonomo">Autônomo</div>
+        <div class="filtro-chip" data-filtro="tipo_contrato" data-valor="contratacaotemporaria">Temporário</div>
+        <span class="filtro-label" style="margin-left:8px;">Modalidade:</span>
         <div class="filtro-chip" data-filtro="modalidade" data-valor="presencial">Presencial</div>
+        <div class="filtro-chip" data-filtro="modalidade" data-valor="remoto">Remoto</div>
         <div class="filtro-chip" data-filtro="modalidade" data-valor="hibrido">Híbrido</div>
         <span id="filtro-limpar" class="filtro-limpar hidden">✕ Limpar filtros</span>
       </div>
 
       <div class="content-scroll">
-        <div id="vagas-grid" class="vagas-grid"></div>
+        <div id="vagas-lista" class="vagas-lista"></div>
       </div>
     </section>
 
     <!-- ----------------------------------------------------------
-         SEÇÃO: CANDIDATOS (Fase 3)
+         SEÇÃO: MEU PERFIL
     ---------------------------------------------------------- -->
-    <section id="secao-candidatos" class="secao hidden">
+    <section id="secao-perfil" class="secao hidden">
       <div class="page-header">
-        <span class="page-titulo">Candidatos</span>
+        <span class="page-titulo">Meu Perfil</span>
       </div>
       <div class="content-scroll">
-        <div class="estado-container">
-          <div class="estado-icone">🚧</div>
-          <div class="estado-titulo">Em desenvolvimento</div>
-          <p class="estado-descricao">
-            O módulo de candidatos chega na Fase 3.<br>
-            Importe seu currículo em qualquer formato e deixe a IA
-            estruturar automaticamente seu perfil profissional.
-          </p>
+
+        <div class="sobre-secao" style="margin-top: var(--esp-xl);">
+          <h2 class="sobre-secao-titulo">Dados de acesso</h2>
+          <div class="sobre-academico">
+            <div class="academico-item">
+              <span class="academico-label">Nome</span>
+              <span id="perfil-nome" class="academico-valor"></span>
+            </div>
+            <div class="academico-item">
+              <span class="academico-label">E-mail</span>
+              <span id="perfil-email" class="academico-valor academico-placeholder">carregando…</span>
+            </div>
+          </div>
         </div>
+
+        <div class="sobre-secao">
+          <h2 class="sobre-secao-titulo">Perfil profissional</h2>
+          <div class="estado-container">
+            <div class="estado-icone">🚧</div>
+            <div class="estado-titulo">Em desenvolvimento — Motor 3</div>
+            <p class="estado-descricao">
+              Aqui você poderá importar seu currículo, adicionar experiências,
+              formações, habilidades e idiomas. A IA estruturará automaticamente
+              seu perfil profissional para uso na geração de currículos.
+            </p>
+          </div>
+        </div>
+
       </div>
     </section>
 
@@ -279,8 +340,36 @@
 </div>
 
 <script src="/integracao/rotas/api.js"></script>
+<script>
+  /* Guard: redireciona para login se não há sessão ativa */
+  if (!SarAPI.autenticacao.estaAutenticado()) {
+    window.location.replace("/login");
+  }
+</script>
 <script src="/frontend/scripts/vagas.js"></script>
 <script>
+  /* Nome do candidato na sidebar e na seção Meu Perfil */
+  const _nomeCandidato = SarAPI.autenticacao.obterNome();
+  document.getElementById("candidato-nome").textContent = _nomeCandidato;
+  document.getElementById("perfil-nome").textContent    = _nomeCandidato;
+
+  /* E-mail do candidato — carregado do backend */
+  SarAPI.candidato.meuPerfil().then(function (resultado) {
+    const emailEl = document.getElementById("perfil-email");
+    if (resultado.ok) {
+      emailEl.textContent = resultado.dados.email;
+      emailEl.classList.remove("academico-placeholder");
+    } else {
+      emailEl.textContent = "indisponível";
+    }
+  });
+
+  /* Logout */
+  document.getElementById("btn-sair").addEventListener("click", async function () {
+    await SarAPI.autenticacao.encerrar();
+    window.location.replace("/login");
+  });
+
   /* Navegação SPA — alterna seções sem recarregar a página */
   document.querySelectorAll('.nav-item').forEach(function(item) {
     item.addEventListener('click', function() {

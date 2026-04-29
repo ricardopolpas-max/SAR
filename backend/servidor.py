@@ -130,7 +130,7 @@ if __name__ == "__main__":
 
     try:
         uvicorn.run(
-            "interface_backend:app",
+            "aplicacao:app",
             host=HOST,
             port=porta_atual,
             ssl_certfile=SSL_CERTFILE,

@@ -21,21 +21,35 @@ def _get_json(url: str) -> dict:
     with urllib.request.urlopen(req, timeout=15) as resp:
         return json.loads(resp.read().decode())
 
+_MAPA_MODALIDADE = {
+    "remota":   "remoto",
+    "ambos":    "hibrido",
+}
+
+_MAPA_CONTRATO = {
+    "pessoajuridica": "pj",
+}
+
+def _normalizar(valor: str, mapa: dict) -> str:
+    v = (valor or "").strip().lower()
+    return mapa.get(v, v)
+
 def _mapear(item: dict, sync_time: str) -> dict:
     salario = item.get("startingSalaryInCents")
     return {
-        "titulo":               item.get("name", ""),
-        "empresa":              item.get("companyName", ""),
-        "link":                 item.get("publicUrl", ""),
-        "localizacao":          item.get("location", ""),
-        "modalidade":           item.get("modality", ""),
-        "tipo_contrato":        item.get("contractType", ""),
-        "salario_inicial":      salario if isinstance(salario, int) else None,
-        "descricao":            item.get("requisites", ""),
-        "id_externo":           item.get("_id", ""),
-        "fonte":                _FONTE,
-        "data_extracao":        item.get("createdAt", sync_time),
-        "ultima_sincronizacao": sync_time,
+        "titulo":                item.get("name", ""),
+        "empresa":               item.get("companyName", ""),
+        "link":                  item.get("publicUrl", ""),
+        "localizacao":           item.get("location", ""),
+        "modalidade":            _normalizar(item.get("modality",       ""), _MAPA_MODALIDADE),
+        "tipo_contrato":         _normalizar(item.get("contractType",   ""), _MAPA_CONTRATO),
+        "salario_inicial":       salario if isinstance(salario, int) else None,
+        "descricao":             item.get("requisites", ""),
+        "id_externo":            item.get("_id", ""),
+        "fonte":                 _FONTE,
+        "data_extracao":         item.get("createdAt", sync_time),
+        "ultima_sincronizacao":  sync_time,
+        "disponivel_plataforma": 1,
     }
 
 # ------------------------------------------------------------
@@ -69,47 +83,63 @@ def sincronizar() -> dict:
                 pagina = primeira if num == 1 else _get_json(
                     f"{_API_URL}?page={num}&perPage={_PER_PAGE}"
                 )
-                for item in pagina.get("data", []):
-                    cursor.execute("""
-                        INSERT INTO vagas
-                            (titulo, empresa, link, localizacao, modalidade,
-                             tipo_contrato, salario_inicial, descricao,
-                             id_externo, fonte, data_extracao, ultima_sincronizacao)
-                        VALUES
-                            (:titulo, :empresa, :link, :localizacao, :modalidade,
-                             :tipo_contrato, :salario_inicial, :descricao,
-                             :id_externo, :fonte, :data_extracao, :ultima_sincronizacao)
-                        ON CONFLICT(id_externo) DO UPDATE SET
-                            titulo               = excluded.titulo,
-                            empresa              = excluded.empresa,
-                            link                 = excluded.link,
-                            localizacao          = excluded.localizacao,
-                            modalidade           = excluded.modalidade,
-                            tipo_contrato        = excluded.tipo_contrato,
-                            salario_inicial      = excluded.salario_inicial,
-                            descricao            = excluded.descricao,
-                            ultima_sincronizacao = excluded.ultima_sincronizacao
-                    """, _mapear(item, sync_time))
-                    processadas += 1
-            except Exception:
+            except Exception as e:
+                print(f"[SYNC] Erro na página {num}: {e}")
                 continue
 
-        # Remove apenas vagas PENDENTES que sumiram do Peixe 30.
-        # Vagas com qualquer outro status (EM_PREPARO, CANDIDATADO, etc.)
-        # são preservadas mesmo que a plataforma as tenha removido.
+            for item in pagina.get("data", []):
+                vaga = _mapear(item, sync_time)
+                if not vaga["id_externo"]:
+                    continue
+                try:
+                    cursor.execute("""
+                        UPDATE vagas SET
+                            titulo               = :titulo,
+                            empresa              = :empresa,
+                            link                 = :link,
+                            localizacao          = :localizacao,
+                            modalidade           = :modalidade,
+                            tipo_contrato        = :tipo_contrato,
+                            salario_inicial      = :salario_inicial,
+                            descricao            = :descricao,
+                            ultima_sincronizacao = :ultima_sincronizacao,
+                            disponivel_plataforma = 1
+                        WHERE id_externo = :id_externo
+                    """, vaga)
+                    if cursor.rowcount == 0:
+                        cursor.execute("""
+                            INSERT INTO vagas
+                                (titulo, empresa, link, localizacao, modalidade,
+                                 tipo_contrato, salario_inicial, descricao,
+                                 id_externo, fonte, data_extracao,
+                                 ultima_sincronizacao, disponivel_plataforma)
+                            VALUES
+                                (:titulo, :empresa, :link, :localizacao, :modalidade,
+                                 :tipo_contrato, :salario_inicial, :descricao,
+                                 :id_externo, :fonte, :data_extracao,
+                                 :ultima_sincronizacao, :disponivel_plataforma)
+                        """, vaga)
+                    processadas += 1
+                except Exception as e:
+                    print(f"[SYNC] Erro ao salvar vaga {vaga['id_externo']}: {e}")
+
+        # Marca como indisponível vagas que sumiram do Peixe 30.
+        # Nunca deleta — candidato pode ter progresso vinculado.
+        # Vagas com status != PENDENTE continuam visíveis mesmo indisponíveis.
         cursor.execute("""
-            DELETE FROM vagas
+            UPDATE vagas
+            SET disponivel_plataforma = 0
             WHERE fonte = ?
               AND ultima_sincronizacao < ?
               AND (status IS NULL OR status = 'PENDENTE')
         """, (_FONTE, sync_time))
-        removidas = cursor.rowcount
+        indisponiveis = cursor.rowcount
         conn.commit()
 
     return {
-        "ok":          True,
-        "total_api":   total_api,
-        "processadas": processadas,
-        "removidas":   removidas,
-        "sync_time":   sync_time,
+        "ok":           True,
+        "total_api":    total_api,
+        "processadas":  processadas,
+        "indisponiveis": indisponiveis,
+        "sync_time":    sync_time,
     }

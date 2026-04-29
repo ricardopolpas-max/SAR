@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SAR — Entrar</title>
+  <link rel="stylesheet" href="/frontend/estilos/visual.css" />
+</head>
+<body>
+
+  <main class="auth-pagina">
+    <div class="auth-card">
+
+      <div class="auth-marca">
+        <div class="auth-logo">SAR</div>
+        <h1 class="auth-titulo">Entrar</h1>
+        <p class="auth-subtitulo">Sistema de Automação de Recolocação</p>
+      </div>
+
+      <div id="aviso-global" class="auth-aviso" role="alert"></div>
+
+      <form id="form-login" class="auth-formulario" novalidate>
+
+        <div class="form-grupo" id="grupo-email">
+          <label class="form-label" for="email">E-mail</label>
+          <input
+            class="form-input"
+            type="email"
+            id="email"
+            name="email"
+            placeholder="seu@email.com"
+            autocomplete="email"
+            required
+          />
+          <span class="form-mensagem-erro" id="erro-email"></span>
+        </div>
+
+        <div class="form-grupo" id="grupo-senha">
+          <label class="form-label" for="senha">Senha</label>
+          <input
+            class="form-input"
+            type="password"
+            id="senha"
+            name="senha"
+            placeholder="••••••••"
+            autocomplete="current-password"
+            required
+          />
+          <span class="form-mensagem-erro" id="erro-senha"></span>
+        </div>
+
+        <button type="submit" id="btn-entrar" class="btn btn-primario btn-auth">
+          Entrar
+        </button>
+
+      </form>
+
+      <p class="auth-rodape">
+        Não tem conta? <a href="/cadastrar">Criar conta</a>
+      </p>
+
+    </div>
+  </main>
+
+  <script src="/integracao/rotas/api.js"></script>
+  <script src="/frontend/scripts/login.js"></script>
+
+</body>
+</html>
