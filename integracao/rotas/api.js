@@ -12,23 +12,23 @@ const SarAPI = (() => {
   const BASE_URL = "https://127.0.0.1:8000";
 
   /* ----------------------------------------------------------
-     SESSÃO LOCAL — token armazenado no localStorage
+     SESSÃO LOCAL — token armazenado em sessionStorage (morre ao fechar app)
   ---------------------------------------------------------- */
   const _CHAVE_TOKEN = "sar_token";
   const _CHAVE_NOME  = "sar_nome";
 
   function _obterToken() {
-    return localStorage.getItem(_CHAVE_TOKEN);
+    return sessionStorage.getItem(_CHAVE_TOKEN);
   }
 
   function _salvarSessao(token, nome) {
-    localStorage.setItem(_CHAVE_TOKEN, token);
-    localStorage.setItem(_CHAVE_NOME,  nome);
+    sessionStorage.setItem(_CHAVE_TOKEN, token);
+    sessionStorage.setItem(_CHAVE_NOME,  nome);
   }
 
   function _limparSessao() {
-    localStorage.removeItem(_CHAVE_TOKEN);
-    localStorage.removeItem(_CHAVE_NOME);
+    sessionStorage.removeItem(_CHAVE_TOKEN);
+    sessionStorage.removeItem(_CHAVE_NOME);
   }
 
   /* ----------------------------------------------------------

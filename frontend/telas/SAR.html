@@ -578,10 +578,22 @@
 
 <script src="/integracao/rotas/api.js"></script>
 <script>
-  /* Guard: redireciona para login se não há sessão ativa */
-  if (!SarAPI.autenticacao.estaAutenticado()) {
-    window.location.replace("/login");
-  }
+  /* Guard: redireciona para login se não há sessão ativa ou token expirou */
+  (async function() {
+    // Verifica se tem token no sessionStorage
+    if (!SarAPI.autenticacao.estaAutenticado()) {
+      window.location.replace("/login");
+      return;
+    }
+
+    // Valida token com backend (detecta expiração)
+    const { ok } = await SarAPI.sistema.ping();
+    if (!ok) {
+      // Token expirou ou backend não responde
+      SarAPI.autenticacao.encerrar();
+      window.location.replace("/login");
+    }
+  })();
 </script>
 <script src="/frontend/scripts/vagas.js"></script>
 <script src="/frontend/scripts/perfil.js"></script>
