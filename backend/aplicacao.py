@@ -8,7 +8,7 @@ import json
 import os
 import shutil
 
-from rotinas.genericas import DB_PATH, db_selecionar, db_inserir, db_atualizar, db_excluir
+from rotinas.genericas import DB_PATH, _obter_conexao, db_selecionar, db_inserir, db_atualizar, db_excluir
 from rotinas.sincronizacao import sincronizar
 from rotinas.autenticacao import (
     hash_senha, verificar_senha, criar_token, validar_token, revogar_token
@@ -39,10 +39,7 @@ app.mount("/integracao", StaticFiles(directory=PASTA_INTEGRACAO), name="integrac
 # ------------------------------------------------------------
 @app.on_event("startup")
 def inicializar_banco():
-    os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
-
-    with sqlite3.connect(DB_PATH) as conn:
-        conn.execute("PRAGMA foreign_keys = ON;")
+    with _obter_conexao() as conn:
         cursor = conn.cursor()
 
         cursor.execute("""
@@ -739,8 +736,7 @@ async def upload_arquivo(
 # ─────────────────────────────────────────────────────────
 @app.get("/vagas")
 async def listar_vagas(id_candidato: int = Depends(autenticar)):
-    with sqlite3.connect(DB_PATH) as conn:
-        conn.row_factory = sqlite3.Row
+    with _obter_conexao() as conn:
         cursor = conn.cursor()
         cursor.execute("""
             SELECT * FROM vagas
@@ -816,8 +812,7 @@ async def salvar_configuracao(dados: dict, id_candidato: int = Depends(autentica
 # ------------------------------------------------------------
 @app.get("/logs")
 async def listar_registros(limite: int = 50, id_candidato: int = Depends(autenticar)):
-    with sqlite3.connect(DB_PATH) as conn:
-        conn.row_factory = sqlite3.Row
+    with _obter_conexao() as conn:
         cursor = conn.cursor()
         cursor.execute(
             "SELECT * FROM logs_sistema ORDER BY momento DESC LIMIT ?", (limite,)

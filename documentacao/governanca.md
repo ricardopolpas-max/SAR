@@ -73,6 +73,13 @@ Cada pasta tem responsabilidade única e exclusiva. Nenhum arquivo deve residir 
 - **Dependências:** Gerenciadas exclusivamente no arquivo `dependencias.txt` na raiz do projeto.
 - **Documentação obrigatória:** Ao final de cada tarefa concluída, atualizar obrigatoriamente: `diario_de_bordo.md`, `fluxograma.md` e `plano_de_desenvolvimento.md`.
 
+### 3.1 Banco de Dados — Regras Invioláveis
+
+- **Localização obrigatória:** O banco reside exclusivamente em `%APPDATA%\SAR\sar_repositorio.db`. Portável, isolado por usuário Windows, sem dependência de estrutura de pastas do projeto.
+- **Ponto único de acesso:** `_obter_conexao()` em `backend/rotinas/genericas.py` é o único local autorizado a chamar `sqlite3.connect()`. Nenhum outro arquivo do projeto pode chamar `sqlite3.connect()` diretamente.
+- **Paths proibidos:** É terminantemente proibido usar paths relativos para dados críticos (banco, certificados, uploads). Todo path deve ser resolvido via variável de ambiente (`os.environ["APPDATA"]`) ou constante absoluta definida em `genericas.py`.
+- **Sem duplicidade:** O sistema opera com um único arquivo de banco. A existência de múltiplos arquivos `.db` é falha arquitetural grave que compromete integridade dos dados.
+
 ## 4. Segurança e Certificação SSL
 
 ### 4.1 Proibições — Regras Invioláveis

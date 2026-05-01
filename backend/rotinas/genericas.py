@@ -6,8 +6,9 @@ import sqlite3
 import os
 from typing import List, Dict, Any, Optional
 
-# Caminho centralizado para o banco de dados conforme governança
-DB_PATH = "armazenamento_dados/sar_repositorio.db"
+# Caminho centralizado para o banco de dados — AppData do Windows
+# Portável: funciona em qualquer máquina, qualquer instalação, qualquer usuário Windows
+DB_PATH = os.path.join(os.environ["APPDATA"], "SAR", "sar_repositorio.db")
 
 def _obter_conexao():
     """Estabelece conexão com o SQLite e ativa suporte a chaves estrangeiras."""

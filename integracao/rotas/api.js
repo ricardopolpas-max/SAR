@@ -102,21 +102,21 @@ const SarAPI = (() => {
       return resultado;
     },
 
-    /** Encerra sessão no backend e limpa localStorage. */
+    /** Encerra sessão no backend e limpa sessionStorage. */
     async encerrar() {
       const resultado = await _requisitar("POST", "/auth/logout");
       _limparSessao();
       return resultado;
     },
 
-    /** Retorna true se há token válido no localStorage. */
+    /** Retorna true se há token válido na sessão atual. */
     estaAutenticado() {
       return !!_obterToken();
     },
 
     /** Retorna o nome do candidato logado (ou string vazia). */
     obterNome() {
-      return localStorage.getItem(_CHAVE_NOME) || "";
+      return sessionStorage.getItem(_CHAVE_NOME) || "";
     },
   };
 

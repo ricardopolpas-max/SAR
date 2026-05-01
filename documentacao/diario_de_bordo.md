@@ -556,6 +556,36 @@ contatos (1:1)           — telefone, linkedin, github, website
 
 ---
 
+## 2026-05-01 — Correção Arquitetural Crítica: Unicidade e Consistência do Banco
+
+**Contexto:** Teste físico de Motor 3 revelou banco de dados vazio. Investigação identificou dois arquivos de banco em disco (`/armazenamento_dados/` e `/backend/armazenamento_dados/`), criados por `DB_PATH` relativo em `genericas.py` dependente do CWD no momento da inicialização. Candidatos cadastrados em sessões anteriores perdidos por gravação em banco diferente do lido.
+
+**Causa raiz:** `DB_PATH = "armazenamento_dados/sar_repositorio.db"` — path relativo sem âncora absoluta.
+
+**Correções aplicadas (5 arquivos):**
+
+| Arquivo | Correção |
+|---------|----------|
+| `backend/rotinas/genericas.py` | DB_PATH → `%APPDATA%\SAR\sar_repositorio.db` — portável, isolado por usuário Windows |
+| `backend/aplicacao.py` | 3 chamadas diretas `sqlite3.connect()` → `_obter_conexao()` |
+| `backend/rotinas/sincronizacao.py` | `sqlite3.connect()` direto → `_obter_conexao()` + PRAGMA redundante removido |
+| `integracao/rotas/api.js` | `obterNome()` usava `localStorage` — corrigido para `sessionStorage` (legado de antes da migração de segurança) |
+| `documentacao/governanca.md` | Seção 3.1 adicionada: regras invioláveis sobre banco, paths e ponto único de acesso |
+
+**Decisão de produto — AppData:**
+Banco reside em `%APPDATA%\SAR\sar_repositorio.db`. Padrão Windows para dados de aplicação: portável, sem permissão de admin, isolado por usuário, funciona em executável compilado. Elimina dependência de estrutura de pastas do projeto.
+
+**Garantia pós-correção:**
+`sqlite3.connect()` existe apenas em `backend/rotinas/genericas.py`. Verificado via grep. Todo acesso ao banco passa por `_obter_conexao()`.
+
+**Status de teste:** Aguardando teste físico em próxima sessão. Commit e push realizados com ressalva.
+
+**Dívidas encerradas nesta sessão:**
+- ~~Migrar `localStorage` → `sessionStorage` em `obterNome()`~~ — RESOLVIDO
+- ~~DB_PATH relativo causando múltiplos bancos~~ — RESOLVIDO
+
+---
+
 ### Próximos motores
 
 **Motor 4 — Geração de Currículo Premium:**

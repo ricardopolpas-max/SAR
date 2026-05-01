@@ -7,7 +7,7 @@ import sqlite3
 import urllib.request
 from datetime import datetime, timezone
 
-from rotinas.genericas import DB_PATH
+from rotinas.genericas import DB_PATH, _obter_conexao
 
 _API_URL  = "https://api.jobs.peixe30.com/v1/jobs/search/eligible-to-apply-for"
 _PER_PAGE = 50
@@ -74,8 +74,7 @@ def sincronizar() -> dict:
 
     processadas = 0
 
-    with sqlite3.connect(DB_PATH) as conn:
-        conn.execute("PRAGMA foreign_keys = ON;")
+    with _obter_conexao() as conn:
         cursor = conn.cursor()
 
         for num in range(1, ultima_pag + 1):
