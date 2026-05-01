@@ -211,6 +211,179 @@ const SarAPI = (() => {
   };
 
   /* ----------------------------------------------------------
+     PERFIL DO CANDIDATO (Motor 3)
+  ---------------------------------------------------------- */
+  const perfil = {
+    // Perfil principal
+    async carregar() {
+      return _requisitar("GET", "/perfil-candidato");
+    },
+
+    async carregarCompleto() {
+      return _requisitar("GET", "/perfil-candidato/completo");
+    },
+
+    async atualizar(dados) {
+      return _requisitar("PUT", "/perfil-candidato", dados);
+    },
+
+    async novoManual(dados) {
+      return _requisitar("POST", "/perfil-candidato/novo-manual", dados);
+    },
+
+    // Experiências
+    experiencias: {
+      async listar() {
+        return _requisitar("GET", "/perfil-candidato/experiencias");
+      },
+      async criar(dados) {
+        return _requisitar("POST", "/perfil-candidato/experiencias", dados);
+      },
+      async atualizar(id, dados) {
+        return _requisitar("PUT", `/perfil-candidato/experiencias/${id}`, dados);
+      },
+      async remover(id) {
+        return _requisitar("DELETE", `/perfil-candidato/experiencias/${id}`);
+      },
+    },
+
+    // Formações
+    formacoes: {
+      async listar() {
+        return _requisitar("GET", "/perfil-candidato/formacoes");
+      },
+      async criar(dados) {
+        return _requisitar("POST", "/perfil-candidato/formacoes", dados);
+      },
+      async atualizar(id, dados) {
+        return _requisitar("PUT", `/perfil-candidato/formacoes/${id}`, dados);
+      },
+      async remover(id) {
+        return _requisitar("DELETE", `/perfil-candidato/formacoes/${id}`);
+      },
+    },
+
+    // Habilidades
+    habilidades: {
+      async listar() {
+        return _requisitar("GET", "/perfil-candidato/habilidades");
+      },
+      async criar(dados) {
+        return _requisitar("POST", "/perfil-candidato/habilidades", dados);
+      },
+      async atualizar(id, dados) {
+        return _requisitar("PUT", `/perfil-candidato/habilidades/${id}`, dados);
+      },
+      async remover(id) {
+        return _requisitar("DELETE", `/perfil-candidato/habilidades/${id}`);
+      },
+    },
+
+    // Idiomas
+    idiomas: {
+      async listar() {
+        return _requisitar("GET", "/perfil-candidato/idiomas");
+      },
+      async criar(dados) {
+        return _requisitar("POST", "/perfil-candidato/idiomas", dados);
+      },
+      async atualizar(id, dados) {
+        return _requisitar("PUT", `/perfil-candidato/idiomas/${id}`, dados);
+      },
+      async remover(id) {
+        return _requisitar("DELETE", `/perfil-candidato/idiomas/${id}`);
+      },
+    },
+
+    // Certificações
+    certificacoes: {
+      async listar() {
+        return _requisitar("GET", "/perfil-candidato/certificacoes");
+      },
+      async criar(dados) {
+        return _requisitar("POST", "/perfil-candidato/certificacoes", dados);
+      },
+      async atualizar(id, dados) {
+        return _requisitar("PUT", `/perfil-candidato/certificacoes/${id}`, dados);
+      },
+      async remover(id) {
+        return _requisitar("DELETE", `/perfil-candidato/certificacoes/${id}`);
+      },
+    },
+
+    // Documentos
+    documentos: {
+      async listar() {
+        return _requisitar("GET", "/perfil-candidato/documentos");
+      },
+      async criar(dados) {
+        return _requisitar("POST", "/perfil-candidato/documentos", dados);
+      },
+      async atualizar(id, dados) {
+        return _requisitar("PUT", `/perfil-candidato/documentos/${id}`, dados);
+      },
+      async remover(id) {
+        return _requisitar("DELETE", `/perfil-candidato/documentos/${id}`);
+      },
+    },
+
+    // Contatos
+    contatos: {
+      async listar() {
+        return _requisitar("GET", "/perfil-candidato/contatos");
+      },
+      async atualizar(dados) {
+        return _requisitar("PUT", "/perfil-candidato/contatos", dados);
+      },
+    },
+
+    // Upload de arquivo (Motor 4)
+    async uploadArquivo(arquivo) {
+      const formData = new FormData();
+      formData.append("arquivo", arquivo);
+
+      const token = _obterToken();
+      const cabecalhos = { "Accept": "application/json" };
+      if (token) {
+        cabecalhos["Authorization"] = `Bearer ${token}`;
+      }
+
+      try {
+        const resposta = await fetch(`${BASE_URL}/perfil-candidato/upload-arquivo`, {
+          method: "POST",
+          headers: cabecalhos,
+          body: formData,
+        });
+
+        if (!resposta.ok) {
+          const detalhe = await resposta.text();
+          return {
+            ok: false,
+            status: resposta.status,
+            erro: detalhe || `Erro HTTP ${resposta.status}`,
+            dados: null,
+          };
+        }
+
+        const dados = await resposta.json();
+        return { ok: true, status: resposta.status, dados, erro: null };
+      } catch (e) {
+        return {
+          ok: false,
+          status: 0,
+          erro: "Erro ao fazer upload do arquivo.",
+          dados: null,
+        };
+      }
+    },
+
+    // Validação
+    async validar() {
+      return _requisitar("POST", "/perfil-candidato/validar");
+    },
+  };
+
+  /* ----------------------------------------------------------
      API PÚBLICA
   ---------------------------------------------------------- */
   return {
@@ -221,6 +394,7 @@ const SarAPI = (() => {
     vagas,
     configuracoes,
     logs,
+    perfil,
   };
 
 })();

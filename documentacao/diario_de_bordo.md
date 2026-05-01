@@ -390,4 +390,184 @@ cursor.execute("UPDATE vagas SET tipo_contrato = 'pj'      WHERE tipo_contrato =
 
 ---
 
+## 2026-05-01 — Motor 3: Perfil do Candidato (implementação completa)
+
+**Contexto:** Implementação de Motor 3 em 8 turnos no mesmo dia. Estrutura: 8 tabelas filhas, 30 endpoints, 7 abas frontend, upload de arquivo preparado para Motor 4.
+
+**Arquivos entregues (8 turnos):**
+
+| Turno | Arquivo | Ação |
+|---|---|---|
+| 1 | `backend/aplicacao.py` | 8 tabelas criadas (perfil_candidato, experiencias, formacoes, habilidades, idiomas, certificacoes, documentos, contatos) |
+| 2 | `integracao/rotas/api.js` | Namespace `SarAPI.perfil` com 8 sub-namespaces CRUD + uploadArquivo |
+| 3 | `backend/aplicacao.py` | GET /perfil-candidato (simples) + GET /perfil-candidato/completo (com JOINs) |
+| 4 | `backend/aplicacao.py` | CRUD para 7 entidades filhas (21 endpoints: POST/PUT/DELETE) |
+| 5 | `backend/aplicacao.py` | PUT /perfil-candidato (upsert) + POST /novo-manual + POST /validar |
+| 6 | `frontend/telas/SAR.html` + `frontend/estilos/visual.css` | 7 abas navegáveis + 8 formulários + estilos completos |
+| 7 | `frontend/scripts/perfil.js` | Script completo: carregamento, renderização de listas, CRUD, events |
+| 8 | `backend/aplicacao.py` + `integracao/rotas/api.js` | POST /upload-arquivo (prepara Motor 4) |
+
+---
+
+### Design de Banco de Dados
+
+**8 tabelas filhas de `candidatos.id` com `ON DELETE CASCADE`:**
+
+```sql
+perfil_candidato (1:1)   — dados do perfil (resumo, localização, salário, disponibilidade)
+experiencias (N:1)       — histórico de empregos
+formacoes (N:1)          — educação formal
+habilidades (N:1)        — skills (proficiência: basico/intermediario/avancado/especialista)
+idiomas (N:1)            — idiomas (proficiência: basico/intermediario/avancado/fluente/nativo)
+certificacoes (N:1)      — certificados profissionais
+documentos (N:1)         — arquivos (tipo: certificado/diploma/portfolio/carta/outro)
+contatos (1:1)           — telefone, linkedin, github, website
+```
+
+**Dados públicos vs. sensíveis:**
+- Públicos (vão no PDF Motor 4): nome, contato, habilidades, experiências, salário, disponibilidade
+- Sensíveis (só no banco): CPF, data nascimento, informações bancárias (futuro)
+
+---
+
+### Endpoints Backend (30 total)
+
+**Perfil principal:**
+- `GET /perfil-candidato` — retorna perfil simples
+- `GET /perfil-candidato/completo` — retorna perfil + 7 filhos
+- `PUT /perfil-candidato` — upsert (cria ou atualiza)
+- `POST /perfil-candidato/novo-manual` — cria novo, rejeita se já existe
+
+**CRUD filhos (21 endpoints):**
+- Padrão repetido 7x: `POST /{entidade}`, `PUT /{entidade}/{id}`, `DELETE /{entidade}/{id}`
+- Cada POST valida campos obrigatórios
+- Cada PUT/DELETE verifica LGPD: `condicao={"id": id, "id_candidato": id_candidato}`
+
+**Validação:**
+- `POST /perfil-candidato/validar` — retorna `{ok, valido, erros}`
+- Mínimo: nome + contato + 1 habilidade + (1 exp OR 1 form OR 1 cert)
+
+**Upload (Motor 4 prep):**
+- `POST /perfil-candidato/upload-arquivo` — recebe PDF/DOC/DOCX/TXT, salva em `apoio/uploads/{id_candidato}/`
+
+---
+
+### Frontend (7 abas)
+
+**Estrutura SPA:**
+- Abas de navegação com `.aba-btn` + `.aba-conteudo`
+- Cada aba com formulário + lista de itens existentes
+
+**Abas implementadas:**
+1. **Dados** — resumo profissional, localização, disponibilidade, salário + contatos
+2. **Experiências** — cargo, empresa, datas, descrição
+3. **Formações** — instituição, curso, nível (técnico/graduação/especialização/mestrado/doutorado)
+4. **Habilidades** — nome, proficiência (básico/intermediário/avançado/especialista)
+5. **Idiomas** — nome, proficiência (básico/intermediário/avançado/fluente/nativo)
+6. **Certificações** — nome, emissor, datas, URL
+7. **Documentos** — tipo, nome arquivo, caminho disco
+
+**Script `perfil.js` (260 linhas):**
+- `carregarPerfil()` — busca dados completos, popula formulários
+- `_inicializarAbas()` — navegação entre abas
+- `_renderizarLista()` — templates genéricos + específicos (6)
+- 8 event listeners (1 por formulário)
+- 6 funções globais de remoção (onclick)
+
+---
+
+### Segurança LGPD
+
+**Isolamento por candidato:**
+- ✓ Todos os 30 endpoints protegidos com `Depends(autenticar)`
+- ✓ Cada PUT/DELETE valida: `condicao={"id": id, "id_candidato": id_candidato}`
+- ✓ Candidato A NÃO consegue ver/editar/deletar dados de B
+- ✓ Upload salvo em pasta isolada: `apoio/uploads/{id_candidato}/`
+
+**Permissões de sistema de arquivos (futuro):**
+- Quando compilar executável, usar NTFS permissions para isolar por usuário Windows
+- Dívida crítica já documentada: migrar `localStorage` → `sessionStorage` para evitar compartilhamento de token
+
+---
+
+### Validações implementadas
+
+**Campos obrigatórios:**
+- Experiência: cargo, empresa
+- Formação: instituição, curso, nível
+- Habilidade: nome, proficiência
+- Idioma: nome, proficiência
+- Certificação: nome, emissor
+- Documento: tipo, nome, caminho
+
+**Validação de perfil completo (4 regras):**
+1. Nome do candidato (já em `candidatos.nome`)
+2. Contato: telefone OU linkedin OU github OU website
+3. Mínimo 1 habilidade
+4. Mínimo 1 de: experiência OU formação OU certificação
+
+**Upload:**
+- Tipos permitidos: PDF, DOC, DOCX, TXT
+- Tamanho máximo: 10MB
+- Sanitização de nome de arquivo
+
+---
+
+### Decisões congeladas (não alterar)
+
+1. ✓ Senha com bcrypt direto (passlib removido) — MANTÉM
+2. ✓ Token UUID v4 em localStorage — MANTÉM (com dívida de sessionStorage)
+3. ✓ Dependency injection com `Depends(autenticar)` — MANTÉM
+4. ✓ Padrão {ok, dados, erro} no frontend — MANTÉM
+5. ✓ Sem cookies, sem WebSocket — MANTÉM
+6. ✓ SPA com classes `ativo` e `hidden` — MANTÉM
+7. ✓ Sync manual sem auto-sincronização — MANTÉM
+8. ✓ Soft-delete de vagas (não hard delete) — MANTÉM
+9. ✓ Salvamento parcial de perfil permitido — IMPLEMENTADO
+10. ✓ Validação mínima inclusiva (não excludente) — IMPLEMENTADO
+
+---
+
+### Dívidas técnicas críticas (registradas no MEMORY.md)
+
+| Dívida | Prioridade | Timeline |
+|--------|-----------|----------|
+| Migrar `localStorage` → `sessionStorage` para impedir compartilhamento de token entre usuários | CRÍTICA | Antes de compilar para .exe |
+| Validar token no guard de `/sar` (não só verificar localStorage) | ALTA | Antes de compilar |
+| Adicionar suporte a múltiplos candidatos no computador compartilhado | ALTA | Motor 4 ou após |
+| Integrar IA com Gemini para extração de currículo (upload) | PLANEJADO | Motor 4 |
+| Implementar SaveDialog nativo Windows (Motor 4) | PLANEJADO | Motor 4 |
+
+---
+
+### Teste e validação — Checklist Governança
+
+**Antes de PUSH ao remoto, validar:**
+
+- [ ] **Nomenclatura**: Todos nomes em português? Sem prefixos (srv_, db_, cfg_)? ✓ Confirmado
+- [ ] **LGPD**: Candidato A não consegue ver dados de B? ✓ FK + validação por id_candidato
+- [ ] **Soft-delete**: Vagas com status != PENDENTE ainda visíveis? ✓ Query em aplicacao.py linha 245-248
+- [ ] **Sync intacto**: sincronizacao.py não foi alterada? ✓ Apenas imports adicionados
+- [ ] **Frontend modular**: scripts separados (vagas.js, perfil.js, login.js, cadastro.js)? ✓ Confirmado
+- [ ] **CRUD reutilizável**: genericas.py não alterada? ✓ Confirmado
+- [ ] **Validação**: Mínimo inclusivo (não excludente)? ✓ Confirmado (1 skill, 1 de 3 backgrounds)
+- [ ] **Autenticação**: Sem cookies? ✓ localStorage apenas (dívida: sessionStorage)
+- [ ] **Schema**: Todas as FK com ON DELETE CASCADE? ✓ Confirmado
+
+---
+
+### Próximos motores
+
+**Motor 4 — Geração de Currículo Premium:**
+- Endpoint GET/POST com Gemini IA (extração de currículo do arquivo + scoring de aderência)
+- SaveDialog nativo Windows (usuário escolhe pasta)
+- Geração de PDF com weasyprint
+- Empacotamento ZIP (currículo + documentos selecionados)
+
+**Motor 5 (futuro):**
+- Integração com plataformas de recrutamento
+- Automação de candidatura
+
+---
+
 *Documento mantido pela equipe de desenvolvimento. Atualização obrigatória a cada turno de trabalho concluído.*

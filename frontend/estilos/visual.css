@@ -1079,6 +1079,152 @@ button { cursor: pointer; font-family: var(--fonte); border: none; background: n
 /* ------------------------------------------------------------
    16. RESPONSIVO
 ------------------------------------------------------------ */
+/* ============================================================
+   MOTOR 3 — Perfil do Candidato
+============================================================ */
+.perfil-abas {
+  display: flex;
+  gap: var(--esp-sm);
+  margin-bottom: var(--esp-lg);
+  border-bottom: 1px solid var(--borda);
+  flex-wrap: wrap;
+}
+
+.aba-btn {
+  background: transparent;
+  border: none;
+  color: var(--texto-sec);
+  padding: var(--esp-md) var(--esp-lg);
+  cursor: pointer;
+  font-size: var(--fonte-base);
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.aba-btn:hover {
+  color: var(--texto);
+  background: rgba(45, 101, 224, 0.05);
+}
+
+.aba-btn.aba-ativo {
+  color: var(--primaria);
+  border-bottom-color: var(--primaria);
+}
+
+.aba-conteudo {
+  display: none;
+  animation: fadeIn 0.2s ease;
+}
+
+.aba-conteudo.aba-ativo {
+  display: block;
+}
+
+.perfil-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-lg);
+  margin-bottom: var(--esp-xl);
+}
+
+.form-grupo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-sm);
+}
+
+.form-grupo label {
+  color: var(--texto);
+  font-size: var(--fonte-sm);
+  font-weight: 500;
+}
+
+.form-grupo input,
+.form-grupo textarea,
+.form-grupo select {
+  background: var(--card);
+  border: 1px solid var(--borda);
+  color: var(--texto);
+  padding: var(--esp-sm) var(--esp-md);
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: var(--fonte-base);
+  transition: border-color 0.2s ease;
+}
+
+.form-grupo input:focus,
+.form-grupo textarea:focus,
+.form-grupo select:focus {
+  outline: none;
+  border-color: var(--primaria);
+  background: rgba(45, 101, 224, 0.05);
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--esp-md);
+}
+
+.perfil-lista {
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-md);
+  margin-top: var(--esp-lg);
+}
+
+.item-lista {
+  background: var(--card);
+  border: 1px solid var(--borda);
+  padding: var(--esp-md);
+  border-radius: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.item-lista-info {
+  flex: 1;
+}
+
+.item-lista-titulo {
+  color: var(--texto);
+  font-weight: 500;
+  margin-bottom: var(--esp-xs);
+}
+
+.item-lista-desc {
+  color: var(--texto-sec);
+  font-size: var(--fonte-sm);
+}
+
+.item-lista-acoes {
+  display: flex;
+  gap: var(--esp-sm);
+  flex-shrink: 0;
+}
+
+.item-lista-acoes button {
+  background: transparent;
+  border: 1px solid var(--borda);
+  color: var(--texto-sec);
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: var(--fonte-sm);
+  transition: all 0.2s ease;
+}
+
+.item-lista-acoes button:hover {
+  color: var(--erro);
+  border-color: var(--erro);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
 @media (max-width: 768px) {
   .sidebar {
     width: 60px;
@@ -1098,4 +1244,8 @@ button { cursor: pointer; font-family: var(--fonte); border: none; background: n
   .filtros-bar     { padding: var(--esp-sm) var(--esp-md); }
   .content-scroll  { padding: var(--esp-md); }
   .vagas-grid      { grid-template-columns: 1fr; }
+
+  .perfil-abas     { gap: var(--esp-xs); }
+  .aba-btn         { padding: var(--esp-md) var(--esp-sm); font-size: var(--fonte-sm); }
+  .form-row        { grid-template-columns: 1fr; }
 }
