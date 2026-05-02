@@ -630,7 +630,7 @@ Banco reside em `%APPDATA%\SAR\sar_repositorio.db`. Padrão Windows para dados d
 
 ---
 
-**Status:** Pendências registradas. Correções a implementar na próxima sessão de desenvolvimento.
+**Status:** Teste físico **NÃO CONCLUÍDO** — interrompido após levantamento das 4 pendências. Retomar na próxima sessão antes de qualquer avanço de funcionalidade.
 
 ---
 
