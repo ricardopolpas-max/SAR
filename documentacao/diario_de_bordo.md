@@ -600,4 +600,38 @@ Banco reside em `%APPDATA%\SAR\sar_repositorio.db`. Padrão Windows para dados d
 
 ---
 
+## 2026-05-02 — Teste Físico Motor 3: Pendências Levantadas
+
+**Contexto:** Primeiro teste físico real do Motor 3 após correção arquitetural do banco. Quatro pendências identificadas pelo usuário — nenhum código alterado nesta sessão.
+
+---
+
+### Pendência 1 — Tela de Cadastro: Confirmação de Senha e Visibilidade
+- Falta campo de **confirmação de senha** para evitar erro de digitação silencioso
+- Falta **botão olho** (toggle de visibilidade) nos campos de senha
+- Risco: usuário cadastra senha errada sem perceber e perde acesso à conta
+
+### Pendência 2 — Tela de Vagas: Filtro por Localidade
+- Adicionar combobox (select) no canto superior direito, ao lado dos botões de sincronização e classificação
+- Popular dinamicamente com localidades distintas: `SELECT DISTINCT localizacao FROM vagas`
+- Aplicar `WHERE localizacao = ?` na listagem em conjunto com busca textual
+- Valor padrão: "Todas as localidades"
+- Objetivo: estreitar conjunto por localidade, busca textual refina dentro do conjunto
+
+### Pendência 3 — UX Perfil: Avaliar Página Única vs Abas
+- Usuário tem aversão a troca de páginas desnecessária
+- Avaliar substituição das 7 abas por layout de página única (scroll contínuo ou seções colapsáveis)
+- Manter organização visual sem forçar navegação entre abas
+
+### Pendência 4 — Bug Crítico: Formulários das Abas do Perfil Não Abrem
+- Abas do perfil criadas mas formulários não respondem ao clique
+- Provável desconexão entre `data-aba` nos botões e `.aba-conteudo` no HTML
+- Bloqueia uso completo do Motor 3 — prioridade alta
+
+---
+
+**Status:** Pendências registradas. Correções a implementar na próxima sessão de desenvolvimento.
+
+---
+
 *Documento mantido pela equipe de desenvolvimento. Atualização obrigatória a cada turno de trabalho concluído.*
