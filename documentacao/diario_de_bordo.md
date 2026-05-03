@@ -1,4 +1,4 @@
-# Diário de Bordo — SAR (Sistema de Automação de Recolocação)
+c# Diário de Bordo — SAR (Sistema de Automação de Recolocação)
 
 Registro cronológico de decisões, entregas, curvas e erros do projeto.
 Documento obrigatório — atualizado ao final de cada tarefa concluída.
@@ -666,6 +666,43 @@ Banco reside em `%APPDATA%\SAR\sar_repositorio.db`. Padrão Windows para dados d
 - Memória `feedback_intervencao_incremental.md` criada: intervenções devem ser sempre pontuais e cirúrgicas, nunca reescritas totais.
 
 **Status:** Documentação alinhada com estado real do projeto. Próximo passo: resolver bug crítico (Pendência 4 — formulários das abas do perfil).
+
+---
+
+## 2026-05-03 — Implementações Motor 3 + Decisões Arquiteturais Motor 4
+
+### Implementações realizadas — aguardando teste físico do usuário para atestação
+
+**Regressão de login:** usuário cadastrado com typo no e-mail (`riccg_@hgotmail.com` → `riccg_@hotmail.com`). Banco íntegro (610 KB). Correção cirúrgica via SQL parametrizado — nenhum arquivo de código alterado.
+
+**Bug duplo aninhamento `/perfil-candidato/completo`:** endpoint retornava `{ ok, dados: { perfil, ... } }` causando duplo wrapper com `_requisitar`. Frontend acessava `dados.perfil` mas recebia `undefined`. Corrigido em `aplicacao.py` — flat dict direto.
+
+**Tags orphans `SAR.html`:** `</div></section>` após fechamento correto de `secao-perfil`. Removidos.
+
+**Cadastro — confirmação de senha + eye toggle:** campos e botões adicionados em `cadastro.html`, validação e toggle em `cadastro.js`, estilos `.input-senha-wrapper` e `.btn-olho` em `visual.css`.
+
+**Vagas — filtro de localidade:** select `select-localidade` adicionado em `SAR.html`, lógica `_popularLocalidades` + estado `_localidade` + filtro em `_aplicarFiltros` adicionados em `vagas.js`.
+
+### Decisões arquiteturais registradas
+
+**DA-02 — Currículo como ativo reutilizável (2026-05-03):**
+Motivação: candidato não pode perder trabalho produzido se vaga sumir durante a produção do currículo.
+- Aviso não-bloqueante quando vaga fica indisponível — candidato decide se continua
+- "Salvar como base" desvincula currículo da vaga para reaproveitamento futuro
+- Nova candidatura oferece carregar base salva como ponto de partida
+- Tabela `curriculos_gerados`: `status` = `rascunho` | `base_salva` | `finalizado`; `id_vaga` nullable
+
+**DA-03 — Contenção na plataforma (2026-05-03):**
+Motivação: "Ver ↗" enviava candidato para plataforma externa antes de estar preparado para candidatura.
+- Botão "Ver ↗" removido do card de vagas
+- "Ver descrição" → modal interno com dados do JSON local (zero chamada externa)
+- "Preparar candidatura" → única entrada no Motor 4
+- Link externo (`vagas.link`) liberado somente ao final do Motor 4
+
+**Verificação periódica de disponibilidade (decidida, pendente de implementação):**
+- Endpoint leve `GET /vagas/verificar-disponibilidade` — atualiza só `disponivel_plataforma`
+- Ciclo automático a cada 20 minutos via frontend (`setInterval`)
+- Comportamento: aviso não-bloqueante quando vaga fica indisponível durante uso ativo
 
 ---
 

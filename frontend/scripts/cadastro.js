@@ -11,18 +11,33 @@
     return;
   }
 
-  const formCadastro  = document.getElementById("form-cadastro");
-  const campoNome     = document.getElementById("nome");
-  const campoEmail    = document.getElementById("email");
-  const campoSenha    = document.getElementById("senha");
-  const grupoNome     = document.getElementById("grupo-nome");
-  const grupoEmail    = document.getElementById("grupo-email");
-  const grupoSenha    = document.getElementById("grupo-senha");
-  const erroNome      = document.getElementById("erro-nome");
-  const erroEmail     = document.getElementById("erro-email");
-  const erroSenha     = document.getElementById("erro-senha");
-  const avisoGlobal   = document.getElementById("aviso-global");
-  const btnCadastrar  = document.getElementById("btn-cadastrar");
+  const formCadastro      = document.getElementById("form-cadastro");
+  const campoNome         = document.getElementById("nome");
+  const campoEmail        = document.getElementById("email");
+  const campoSenha        = document.getElementById("senha");
+  const campoConfirmar    = document.getElementById("confirmar-senha");
+  const grupoNome         = document.getElementById("grupo-nome");
+  const grupoEmail        = document.getElementById("grupo-email");
+  const grupoSenha        = document.getElementById("grupo-senha");
+  const grupoConfirmar    = document.getElementById("grupo-confirmar-senha");
+  const erroNome          = document.getElementById("erro-nome");
+  const erroEmail         = document.getElementById("erro-email");
+  const erroSenha         = document.getElementById("erro-senha");
+  const erroConfirmar     = document.getElementById("erro-confirmar-senha");
+  const avisoGlobal       = document.getElementById("aviso-global");
+  const btnCadastrar      = document.getElementById("btn-cadastrar");
+
+  /* Eye toggle */
+  document.getElementById("olho-senha").addEventListener("click", function () {
+    const tipo = campoSenha.type === "password" ? "text" : "password";
+    campoSenha.type = tipo;
+    this.textContent = tipo === "password" ? "👁" : "🙈";
+  });
+  document.getElementById("olho-confirmar").addEventListener("click", function () {
+    const tipo = campoConfirmar.type === "password" ? "text" : "password";
+    campoConfirmar.type = tipo;
+    this.textContent = tipo === "password" ? "👁" : "🙈";
+  });
 
   /* ----------------------------------------------------------
      Utilitários de feedback visual
@@ -31,10 +46,12 @@
     grupoNome.classList.remove("com-erro");
     grupoEmail.classList.remove("com-erro");
     grupoSenha.classList.remove("com-erro");
-    erroNome.textContent  = "";
-    erroEmail.textContent = "";
-    erroSenha.textContent = "";
-    avisoGlobal.textContent = "";
+    grupoConfirmar.classList.remove("com-erro");
+    erroNome.textContent      = "";
+    erroEmail.textContent     = "";
+    erroSenha.textContent     = "";
+    erroConfirmar.textContent = "";
+    avisoGlobal.textContent   = "";
     avisoGlobal.classList.remove("visivel");
   }
 
@@ -56,7 +73,7 @@
   /* ----------------------------------------------------------
      Validação local antes de enviar
   ---------------------------------------------------------- */
-  function validar(nome, email, senha) {
+  function validar(nome, email, senha, confirmar) {
     let valido = true;
 
     if (!nome) {
@@ -77,6 +94,14 @@
       valido = false;
     }
 
+    if (!confirmar) {
+      marcarErro(grupoConfirmar, erroConfirmar, "Confirme a senha.");
+      valido = false;
+    } else if (senha && confirmar !== senha) {
+      marcarErro(grupoConfirmar, erroConfirmar, "As senhas não coincidem.");
+      valido = false;
+    }
+
     return valido;
   }
 
@@ -87,11 +112,12 @@
     evento.preventDefault();
     limparErros();
 
-    const nome  = campoNome.value.trim();
-    const email = campoEmail.value.trim();
-    const senha = campoSenha.value;
+    const nome      = campoNome.value.trim();
+    const email     = campoEmail.value.trim();
+    const senha     = campoSenha.value;
+    const confirmar = campoConfirmar.value;
 
-    if (!validar(nome, email, senha)) return;
+    if (!validar(nome, email, senha, confirmar)) return;
 
     definirCarregando(true);
 

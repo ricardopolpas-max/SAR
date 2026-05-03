@@ -108,6 +108,8 @@ O SAR é composto por quatro motores funcionais independentes e interdependentes
 
 ### Motor 4 — Geração de Currículo Premium
 **Responsabilidade:** gerar currículo personalizado por vaga, empacotar e exportar.
+- Entrada exclusiva via botão "Preparar candidatura" no card da vaga (ver DA-03)
+- Verificação de disponibilidade da vaga ao entrar no Motor 4 — aviso não-bloqueante se indisponível
 - Geração em 3 etapas via Gemini:
   1. Extrai requisitos reais da vaga (palavras-chave, competências, soft skills)
   2. Compara com perfil do candidato → calcula score de aderência (0–100)
@@ -115,11 +117,13 @@ O SAR é composto por quatro motores funcionais independentes e interdependentes
 - Score exibido antes da geração — candidato decide se avança
 - Tom adaptativo: IA ajusta linguagem ao perfil (jovem aprendiz ≠ sênior)
 - Edição em texto livre (`contenteditable`) — candidato tem autonomia total antes do PDF
+- **Salvar como base:** currículo em qualquer estágio pode ser salvo desvinculado da vaga para reaproveitamento futuro (ver DA-02)
+- **Carregar base:** ao iniciar nova candidatura, sistema oferece bases salvas como ponto de partida
 - PDF gerado por `weasyprint` — WYSIWYG, o que o candidato vê é o que sai no arquivo
 - Pacote ZIP salvo no Desktop do usuário (`~/Desktop`) — sem problemas de permissão ou BitLocker
 - ZIP contém: currículo PDF + carta de apresentação + documentos apensos selecionados
-- Envio ao recrutador: responsabilidade do candidato (cada vaga tem seu canal)
-- Histórico de currículos gerados preservado no banco para consulta futura
+- **Link externo liberado somente aqui** — após ciclo completo, candidato acessa a vaga na plataforma para candidatura
+- Histórico de currículos: `status` = `rascunho` | `base_salva` | `finalizado`
 - Rastreamento externo: nenhum — o sistema é facilitador, não integrado aos portais
 
 ---
@@ -154,6 +158,54 @@ CREATE VIEW vagas_todas AS
 **Responsabilidade de expansão:** A integração com cada nova plataforma é de responsabilidade do desenvolvedor, que deve conduzir análise de API, testes de integração e mapeamento de campos antes de qualquer implementação. Não há código especulativo para plataformas não integradas.
 
 **Estado atual:** Apenas Peixe 30 integrado. Tabela `vagas` em uso (a ser renomeada para `vagas_peixe30` quando da primeira expansão de plataforma).
+
+---
+
+### [DA-02] Currículo como Ativo Reutilizável do Candidato
+
+**Contexto:** Durante o Motor 4, o candidato pode estar produzindo um currículo quando a vaga alvo desaparece da plataforma externa. Descartar o trabalho produzido seria uma perda irreparável para o candidato.
+
+**Decisão:** O currículo produzido é um **ativo permanente do candidato**, não um documento descartável vinculado a uma única vaga. Quando uma vaga fica indisponível durante a produção:
+- O sistema emite um **aviso não-bloqueante** — o candidato é informado mas não é impedido de continuar
+- O candidato decide livremente se continua ou interrompe a produção
+- O candidato pode **salvar o trabalho como base** — o currículo é desvinculado da vaga e fica disponível para reaproveitamento
+- Ao iniciar uma nova candidatura, o sistema **oferece carregar a base salva** como ponto de partida, eliminando a necessidade de produção do zero
+
+**Impacto no esquema — tabela `curriculos_gerados`:**
+
+| Campo | Tipo | Descrição |
+|---|---|---|
+| `status` | TEXT | `rascunho` → em produção vinculado à vaga |
+| | | `base_salva` → desvinculado, disponível para reaproveitamento |
+| | | `finalizado` → ciclo completo, candidatura pronta |
+| `id_vaga` | INT nullable | NULL quando `status = base_salva` |
+
+**Princípio:** cada currículo produzido agrega ao patrimônio profissional do candidato. O esforço nunca é perdido.
+
+---
+
+### [DA-03] Fluxo de Candidatura — Contenção na Plataforma
+
+**Contexto:** O botão "Ver ↗" no card de vagas direcionava o candidato diretamente para a plataforma externa antes de estar preparado para a candidatura real, quebrando o fluxo de valor do SAR.
+
+**Decisão:** O candidato **nunca sai da plataforma SAR** antes de concluir o ciclo completo de produção. O link externo da vaga (`vagas.link`) é um dado interno — não é exposto ao candidato até o Motor 4 estar concluído.
+
+**Fluxo definido:**
+```
+Card de vaga
+├── "Ver descrição"      → Modal interno com dados da vaga carregados do JSON local
+│                           (sem nenhuma chamada externa, sem sair da plataforma)
+└── "Preparar candidatura" → Entrada no Motor 4
+                              ↓ (após ciclo completo)
+                           Link externo liberado para candidatura na plataforma
+```
+
+**Impacto no card de vagas:**
+- Botão "Ver ↗" removido
+- "Ver descrição" abre modal interno com: título, empresa, localização, modalidade, contrato, salário e descrição completa
+- "Preparar candidatura" é o único caminho para o link externo — via Motor 4
+
+**Estado atual:** Modal e botão implementados no card. Link externo preservado no banco para uso exclusivo do Motor 4.
 
 ---
 

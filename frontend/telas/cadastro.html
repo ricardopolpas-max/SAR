@@ -51,16 +51,36 @@
 
         <div class="form-grupo" id="grupo-senha">
           <label class="form-label" for="senha">Senha</label>
-          <input
-            class="form-input"
-            type="password"
-            id="senha"
-            name="senha"
-            placeholder="Mínimo 6 caracteres"
-            autocomplete="new-password"
-            required
-          />
+          <div class="input-senha-wrapper">
+            <input
+              class="form-input"
+              type="password"
+              id="senha"
+              name="senha"
+              placeholder="Mínimo 6 caracteres"
+              autocomplete="new-password"
+              required
+            />
+            <button type="button" class="btn-olho" id="olho-senha" aria-label="Mostrar senha">👁</button>
+          </div>
           <span class="form-mensagem-erro" id="erro-senha"></span>
+        </div>
+
+        <div class="form-grupo" id="grupo-confirmar-senha">
+          <label class="form-label" for="confirmar-senha">Confirmar senha</label>
+          <div class="input-senha-wrapper">
+            <input
+              class="form-input"
+              type="password"
+              id="confirmar-senha"
+              name="confirmar-senha"
+              placeholder="Repita a senha"
+              autocomplete="new-password"
+              required
+            />
+            <button type="button" class="btn-olho" id="olho-confirmar" aria-label="Mostrar confirmação">👁</button>
+          </div>
+          <span class="form-mensagem-erro" id="erro-confirmar-senha"></span>
         </div>
 
         <button type="submit" id="btn-cadastrar" class="btn btn-primario btn-auth">

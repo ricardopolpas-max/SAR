@@ -1028,6 +1028,27 @@ button { cursor: pointer; font-family: var(--fonte); border: none; background: n
 
 .form-input::placeholder { color: var(--texto-des); }
 
+.input-senha-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.input-senha-wrapper .form-input {
+  flex: 1;
+  padding-right: 2.5rem;
+}
+.btn-olho {
+  position: absolute;
+  right: var(--esp-sm);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  color: var(--texto-sec);
+  padding: 0;
+  line-height: 1;
+}
+
 .form-grupo.com-erro .form-input {
   border-color: var(--erro);
   box-shadow: 0 0 0 3px var(--erro-suave);

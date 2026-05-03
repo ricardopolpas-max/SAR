@@ -361,17 +361,14 @@ async def carregar_perfil_completo(id_candidato: int = Depends(autenticar)):
     contatos = db_selecionar("contatos", condicao={"id_candidato": id_candidato}, unico=True)
 
     return {
-        "ok": True,
-        "dados": {
-            "perfil": perfil,
-            "experiencias": experiencias,
-            "formacoes": formacoes,
-            "habilidades": habilidades,
-            "idiomas": idiomas,
-            "certificacoes": certificacoes,
-            "documentos": documentos,
-            "contatos": contatos,
-        }
+        "perfil": perfil,
+        "experiencias": experiencias,
+        "formacoes": formacoes,
+        "habilidades": habilidades,
+        "idiomas": idiomas,
+        "certificacoes": certificacoes,
+        "documentos": documentos,
+        "contatos": contatos,
     }
 
 # ─────────────────────────────────────────────────────────

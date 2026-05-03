@@ -36,16 +36,28 @@
 - [x] Motor 3 — Perfil do candidato: 8 tabelas, CRUD completo, upload de arquivo
 - [x] Correção arquitetural: DB único em AppData, `_obter_conexao()` como ponto único
 
-### Pendente — certificação Motor 3 (teste físico não concluído — 2026-05-02)
-- [ ] **Bug crítico:** formulários das abas do perfil não abrem (binding `data-aba` desconectado)
-- [ ] Cadastro: falta confirmação de senha + eye toggle
-- [ ] Vagas: falta filtro de localidade (combobox `SELECT DISTINCT localizacao`)
+### Implementado — aguardando teste físico (2026-05-03)
+- [~] Correção duplo aninhamento `/perfil-candidato/completo` — implementado, não testado
+- [~] Remoção de tags orphans em `SAR.html` — implementado, não testado
+- [~] Cadastro: campo confirmação de senha + eye toggle — implementado, não testado
+- [~] Vagas: select de localidade com filtro dinâmico — implementado, não testado
+- [x] DA-02 registrada: currículo como ativo reutilizável do candidato
+- [x] DA-03 registrada: contenção na plataforma — link externo só no Motor 4
+
+### Pendente — certificação Motor 3 (teste físico necessário)
+- [ ] Teste físico de todas as correções acima pelo usuário
 - [ ] UX perfil: avaliar página única vs abas (preferência do usuário: sem trocas de página)
+- [ ] Card de vagas: modal interno "Ver descrição" + botão "Preparar candidatura" (substituir "Ver ↗")
+- [ ] Endpoint leve `GET /vagas/verificar-disponibilidade` — ciclo automático de 20 min
+- [ ] Validação real pelo usuário (certificação completa do Motor 3)
 
 ### Próximo — Motor 4 (bloqueado até certificação do Motor 3)
+- [ ] Modal "Ver descrição" como pré-visualização da vaga antes de entrar no Motor 4
+- [ ] Entrada via "Preparar candidatura" — score de aderência candidato × vaga
 - [ ] Geração de currículo personalizado por vaga via Gemini
-- [ ] Score de aderência candidato × vaga
+- [ ] Salvar como base / carregar base salva (DA-02)
 - [ ] Exportação PDF + pacote ZIP no Desktop
+- [ ] Link externo liberado somente após ciclo completo (DA-03)
 
 ---
 
@@ -80,14 +92,15 @@
 - CSS global em `visual.css` — local apenas quando necessário
 - WebSocket não utilizado neste projeto (acadêmico)
 - SSL obrigatório — servidor nunca sobe sem certificado
+- **DA-02:** Currículo é ativo reutilizável — nunca descartado, salvo como base para reaproveitamento
+- **DA-03:** Candidato nunca sai da plataforma antes do ciclo completo — link externo só no Motor 4
 
 ---
 
 ## 6. Próximos Passos (ordem de execução)
 
-1. Corrigir bug crítico: formulários das abas do perfil não abrem
-2. Corrigir cadastro: adicionar confirmação de senha + eye toggle
-3. Corrigir vagas: adicionar filtro de localidade
-4. Decidir UX perfil: página única vs abas
-5. Validação real do Motor 3 pelo usuário (certificação)
-6. Iniciar Motor 4 — Geração de Currículo Premium
+1. Implementar modal interno "Ver descrição" + botão "Preparar candidatura" no card de vagas
+2. Decidir e implementar UX perfil: página única vs abas
+3. Implementar endpoint leve de verificação de disponibilidade de vagas (ciclo 20 min)
+4. Validação real pelo usuário — certificação Motor 3
+5. Iniciar Motor 4 — Geração de Currículo Premium (DA-02 + DA-03 aplicadas)

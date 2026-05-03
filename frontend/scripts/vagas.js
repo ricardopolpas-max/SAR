@@ -14,9 +14,10 @@ const el = {
   btnSync:        document.getElementById("btn-sync"),
   syncStatus:     document.getElementById("sync-status"),
   filtroLimpar:   document.getElementById("filtro-limpar"),
-  filtroChips:    document.querySelectorAll(".filtro-chip"),
-  buscaInput:     document.getElementById("busca-input"),
+  filtroChips:     document.querySelectorAll(".filtro-chip"),
+  buscaInput:      document.getElementById("busca-input"),
   selectOrdenacao: document.getElementById("select-ordenacao"),
+  selectLocalidade: document.getElementById("select-localidade"),
 };
 
 /* ----------------------------------------------------------
@@ -26,6 +27,7 @@ let _todasVagas    = [];
 let _filtrosAtivos = {};
 let _termoBusca    = "";
 let _ordenacao     = "recentes";
+let _localidade    = "";
 
 /* ----------------------------------------------------------
    STATUS DO BACKEND
@@ -219,6 +221,7 @@ function _ordenar(vagas) {
 ---------------------------------------------------------- */
 function _aplicarFiltros(vagas) {
   return vagas.filter(v => {
+    if (_localidade && v.localizacao !== _localidade) return false;
     for (const [campo, valor] of Object.entries(_filtrosAtivos)) {
       if ((v[campo] || "").toLowerCase() !== valor) return false;
     }
@@ -271,6 +274,30 @@ function _inicializarFiltros() {
 }
 
 /* ----------------------------------------------------------
+   LOCALIDADE — popular select e filtrar
+---------------------------------------------------------- */
+function _popularLocalidades(vagas) {
+  const atual = el.selectLocalidade.value;
+  const localidades = [...new Set(
+    vagas.map(v => v.localizacao).filter(Boolean)
+  )].sort((a, b) => a.localeCompare(b, "pt-BR"));
+
+  el.selectLocalidade.innerHTML = `<option value="">Todas as localidades</option>` +
+    localidades.map(l => `<option value="${l}">${l}</option>`).join("");
+
+  if (localidades.includes(atual)) {
+    el.selectLocalidade.value = atual;
+  }
+}
+
+function _inicializarLocalidade() {
+  el.selectLocalidade.addEventListener("change", () => {
+    _localidade = el.selectLocalidade.value;
+    _renderizarVagas(_todasVagas);
+  });
+}
+
+/* ----------------------------------------------------------
    BUSCA E ORDENAÇÃO — inicialização
 ---------------------------------------------------------- */
 function _inicializarBusca() {
@@ -318,6 +345,7 @@ async function carregarVagas() {
   if (!ok) { _mostrarErro(erro); return; }
 
   _todasVagas = dados || [];
+  _popularLocalidades(_todasVagas);
   _atualizarContagensFiltros(_todasVagas);
   _renderizarVagas(_todasVagas);
 }
@@ -357,6 +385,7 @@ function _inicializarSync() {
   _inicializarFiltros();
   _inicializarBusca();
   _inicializarOrdenacao();
+  _inicializarLocalidade();
   _inicializarSync();
   await carregarVagas();
 })();
