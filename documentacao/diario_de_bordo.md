@@ -634,4 +634,39 @@ Banco reside em `%APPDATA%\SAR\sar_repositorio.db`. Padrão Windows para dados d
 
 ---
 
+## 2026-05-03 — Alinhamento de Documentação: Correção Cirúrgica
+
+**Contexto:** Início de nova sessão com leitura completa da governança, skill `dev-governado` e todos os arquivos de memória. Identificado que `plano_de_desenvolvimento.md` e `fluxograma.md` estavam severamente desatualizados — Motors 2 e 3 apareciam como não implementados, nomes de tabelas estavam incorretos e referências a arquivos renomeados persistiam.
+
+**Ações:**
+- Leitura de `.instructions.dev-governado.md`, `governanca.md` e todos os 5 arquivos de memória
+- Atualização cirúrgica de `plano_de_desenvolvimento.md` (9 edições pontuais, nenhuma reescrita)
+- Atualização cirúrgica de `fluxograma.md` (5 edições pontuais, nenhuma reescrita)
+
+**Correções aplicadas em `plano_de_desenvolvimento.md`:**
+- Data de atualização: `2026-04-28` → `2026-05-03`
+- `interface_backend.py` → `aplicacao.py` (hierarquia de pastas + tabela Fase 1)
+- `localStorage` → `sessionStorage` (descrição Motor 2)
+- Motor 2: status ⏳ → ✅, todos os itens ❌ → ✅
+- Motor 3: status ⏳ → ✅, itens atualizados com pendências reais identificadas em 2026-05-02
+- Nomes de tabelas corrigidos: `perfis` → `perfil_candidato`, `candidato_*` → nomes reais do banco
+- Tabela `contatos` adicionada ao esquema (existia no banco, ausente na documentação)
+- `candidatos` movida de "Tabelas previstas" para "Tabelas existentes"
+
+**Correções aplicadas em `fluxograma.md`:**
+- Data: `2026-04-27` → `2026-05-03`
+- Roadmap de fases reescrito para refletir arquitetura por Motores (1, 2, 3, 4)
+- Fase ativa atualizada: Fase 1 → Motor 3 (implementado, certificação pendente)
+- Seções Concluído/Pendente/Próximo atualizadas com estado real
+- DB path: `armazenamento_dados/sar_repositorio.db` → `%APPDATA%\SAR\sar_repositorio.db`
+- `interface_backend.py` → `aplicacao.py` no diagrama de fluxo de dados
+- Próximos passos: substituídas tarefas antigas por pendências reais do Motor 3 e Motor 4
+
+**Registro de conduta:**
+- Memória `feedback_intervencao_incremental.md` criada: intervenções devem ser sempre pontuais e cirúrgicas, nunca reescritas totais.
+
+**Status:** Documentação alinhada com estado real do projeto. Próximo passo: resolver bug crítico (Pendência 4 — formulários das abas do perfil).
+
+---
+
 *Documento mantido pela equipe de desenvolvimento. Atualização obrigatória a cada turno de trabalho concluído.*

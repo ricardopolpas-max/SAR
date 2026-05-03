@@ -9,41 +9,43 @@
 
 | Fase | Nome | Status |
 |---|---|---|
-| 1 | Fundação — ambiente, orquestrador e interface inicial | 🔄 Em andamento |
-| 2 | Persistência — SQLite e CRUD agnóstico | 🔄 Em andamento |
-| 3 | Inteligência — motores de scoring e processamento | ⏳ Pendente |
-| 4 | Conectividade — rotas de integração e robôs | ⏳ Pendente |
-| 5 | UX/UI — refinamento da interface | ⏳ Pendente |
-| 6 | Stress & QA — testes e simulação de falhas | ⏳ Pendente |
-| 7 | Certificação — auditoria e congelamento de versão | ⏳ Pendente |
+| 1 | Fundação — ambiente, orquestrador e interface inicial | ✅ Concluída |
+| 2 | Motor 1 — Captura de vagas (Peixe 30) | ✅ Concluída |
+| 3 | Motor 2 — Identidade e Acesso (auth + sessão) | ✅ Concluída |
+| 4 | Motor 3 — Perfil do Candidato | ✅ Implementado / ⏳ Certificação pendente |
+| 5 | Motor 4 — Geração de Currículo Premium (IA) | ⏳ Pendente |
+| 6 | UX/UI — refinamento da interface | ⏳ Pendente |
+| 7 | Stress & QA — testes e simulação de falhas | ⏳ Pendente |
+| 8 | Certificação — auditoria e congelamento de versão | ⏳ Pendente |
 
 ---
 
-## 3. Status Atual — 2026-04-27
+## 3. Status Atual — 2026-05-03
 
-**Fase ativa:** Fase 1 (Fundação) — em processo de regularização
+**Fase ativa:** Motor 3 — Perfil do Candidato (implementado, aguardando certificação)
 
 ### Concluído
-- [x] Estrutura de pastas do projeto
-- [x] Backend: rotas `/` e `/vagas`, banco SQLite inicializado
-- [x] CRUD agnóstico em `rotinas/genericas.py`
-- [x] Frontend: `SAR.html`, `visual.css`, `vagas.js`
+- [x] Estrutura de pastas do projeto e governança completa
+- [x] Backend: FastAPI + SQLite em `%APPDATA%\SAR\sar_repositorio.db`
+- [x] CRUD agnóstico em `rotinas/genericas.py` — ponto único de acesso ao banco
+- [x] Frontend: `SAR.html`, `visual.css`, `vagas.js`, `api.js`
 - [x] Repositório GitHub sincronizado
-- [x] Devcontainer configurado para Codespaces
 - [x] SSL local configurado com mkcert (válido até 27/07/2028)
-- [x] Governança Seção 1 corrigida (prefixos abolidos)
-- [x] Diário de bordo criado
+- [x] Motor 1 — Sync bidirecional Peixe 30, UPSERT por `id_externo`, DELETE protegido
+- [x] Motor 2 — Auth bcrypt, token UUID4 em `sessionStorage`, middleware, telas login/cadastro
+- [x] Motor 3 — Perfil do candidato: 8 tabelas, CRUD completo, upload de arquivo
+- [x] Correção arquitetural: DB único em AppData, `_obter_conexao()` como ponto único
 
-### Em andamento — correções de governança
-- [ ] Governança Seções 2, 3, 4, 5
-- [ ] Renomear `srv_interface_backend.py` → `interface_backend.py`
-- [ ] Renomear `cfg_dependencias_python.txt` → `dependencias.txt`
-- [ ] Mover `api.js` → `integracao/rotas/api.js`
-- [ ] Criar `servidor.py` (orquestrador com SSL)
-- [ ] Teste real do frontend pelo usuário
+### Pendente — certificação Motor 3 (teste físico não concluído — 2026-05-02)
+- [ ] **Bug crítico:** formulários das abas do perfil não abrem (binding `data-aba` desconectado)
+- [ ] Cadastro: falta confirmação de senha + eye toggle
+- [ ] Vagas: falta filtro de localidade (combobox `SELECT DISTINCT localizacao`)
+- [ ] UX perfil: avaliar página única vs abas (preferência do usuário: sem trocas de página)
 
-### Pendente (Fase 1 — certificação bloqueada até concluir acima)
-- [ ] Handshake GUI ↔ Backend validado pelo usuário em HTTPS
+### Próximo — Motor 4 (bloqueado até certificação do Motor 3)
+- [ ] Geração de currículo personalizado por vaga via Gemini
+- [ ] Score de aderência candidato × vaga
+- [ ] Exportação PDF + pacote ZIP no Desktop
 
 ---
 
@@ -59,13 +61,13 @@
 [integracao/rotas/api.js]    ← transporte (HTTP/REST)
         |
         ↓
-[backend/interface_backend.py]  ← rotas FastAPI
+[backend/aplicacao.py]          ← rotas FastAPI
         |
         ↓
-[backend/rotinas/genericas.py]  ← CRUD SQLite
+[backend/rotinas/genericas.py]  ← CRUD SQLite (_obter_conexao — ponto único)
         |
         ↓
-[armazenamento_dados/sar_repositorio.db]  ← Verdade Absoluta
+[%APPDATA%\SAR\sar_repositorio.db]  ← Verdade Absoluta
 ```
 
 ---
@@ -83,11 +85,9 @@
 
 ## 6. Próximos Passos (ordem de execução)
 
-1. Corrigir Governança Seções 2 a 5
-2. Renomear `srv_interface_backend.py`
-3. Renomear `cfg_dependencias_python.txt`
-4. Mover `api.js` para `integracao/rotas/`
-5. Criar `servidor.py`
-6. Solicitar teste real do usuário
-7. Certificar Fase 1
-8. Iniciar Fase 3 (Inteligência)
+1. Corrigir bug crítico: formulários das abas do perfil não abrem
+2. Corrigir cadastro: adicionar confirmação de senha + eye toggle
+3. Corrigir vagas: adicionar filtro de localidade
+4. Decidir UX perfil: página única vs abas
+5. Validação real do Motor 3 pelo usuário (certificação)
+6. Iniciar Motor 4 — Geração de Currículo Premium

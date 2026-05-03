@@ -2,7 +2,7 @@
 
 **Objetivo:** Plataforma inteligente para automação da jornada de recolocação profissional — captura de vagas, geração de currículo personalizado via IA e otimização para sistemas ATS de recrutamento.
 
-**Última atualização:** 2026-04-28 (sessão de análise completa — 4 motores fechados)
+**Última atualização:** 2026-05-03 (Motors 2 e 3 implementados — teste físico Motor 3 pendente)
 
 ---
 
@@ -40,7 +40,7 @@
 /
 ├── backend/
 │   ├── servidor.py              ← orquestrador central + PID management ✅
-│   ├── interface_backend.py     ← rotas FastAPI + inicialização do banco ✅
+│   ├── aplicacao.py             ← rotas FastAPI + inicialização do banco ✅
 │   └── rotinas/
 │       ├── genericas.py         ← CRUD agnóstico SQLite ✅
 │       ├── sincronizacao.py     ← motor de sync com Peixe 30 (Fase 2)
@@ -89,10 +89,10 @@ O SAR é composto por quatro motores funcionais independentes e interdependentes
 **Responsabilidade:** autenticar candidatos e isolar dados por identidade.
 - Tela de login como porta de entrada obrigatória (modelo ERP — nenhum dado exposto sem autenticação)
 - Autenticação por email + senha (hash bcrypt)
-- Sessão por token UUID4 armazenado no `localStorage` — enviado no header `Authorization: Bearer`
+- Sessão por token UUID4 armazenado no `sessionStorage` — enviado no header `Authorization: Bearer`
 - Tabela `sessoes` no banco — auditável, revogável, sem cookie
 - Isolamento total: toda query filtrada por `id_candidato` extraído do token
-- Modelo mestre-detalhe: `candidatos` (identidade) + `perfis` (dados profissionais)
+- Modelo mestre-detalhe: `candidatos` (identidade) + `perfil_candidato` (dados profissionais)
 
 ### Motor 3 — Perfil do Candidato
 **Responsabilidade:** construir e manter o perfil profissional completo do candidato.
@@ -165,12 +165,21 @@ CREATE VIEW vagas_todas AS
 | `vagas` | repositório de vagas do Peixe 30 (renomear para `vagas_peixe30` na expansão) |
 | `configuracoes` | parâmetros agnósticos do sistema |
 | `logs_sistema` | rastreabilidade total de ações |
+| `candidatos` | identidade e acesso — autenticação bcrypt, token UUID4 |
+| `sessoes` | tokens de sessão auditáveis e revogáveis |
+| `perfil_candidato` | dados profissionais do candidato (1:1 com candidatos) |
+| `experiencias` | histórico de empregos do candidato |
+| `formacoes` | histórico de formação acadêmica |
+| `habilidades` | habilidades técnicas com nível de proficiência |
+| `idiomas` | idiomas com nível de proficiência |
+| `certificacoes` | certificações e cursos concluídos |
+| `documentos` | arquivos apensos (diplomas, portfólio, carta de apresentação) |
+| `contatos` | dados de contato e redes profissionais (1:1 com candidatos) |
 
 ### Tabelas previstas
 | Tabela | Fase | Campos principais |
 |---|---|---|
-| `candidatos` | 3 | nome, email, telefone, formação, habilidades, experiências, arquivo_original |
-| `curriculos_gerados` | 4 | id_candidato, id_vaga, arquivo_pdf, data_geracao, score_aderencia |
+| `curriculos_gerados` | 5 | id_candidato, id_vaga, arquivo_pdf, data_geracao, score_aderencia |
 
 ### Arquitetura futura — Multi-Plataforma (ver DA-01)
 | Elemento | Tipo | Descrição |
@@ -189,13 +198,14 @@ CREATE VIEW vagas_todas AS
 ### Tabelas — Motor 3 (Perfil do Candidato)
 | Tabela | Campos principais |
 |---|---|
-| `perfis` | id_candidato (FK 1:1), telefone, cidade, estado, linkedin, github, resumo_profissional |
-| `candidato_experiencias` | id, id_candidato (FK), empresa, cargo, inicio, fim, descricao, atual |
-| `candidato_formacoes` | id, id_candidato (FK), instituicao, curso, nivel, inicio, conclusao, em_andamento |
-| `candidato_habilidades` | id, id_candidato (FK), habilidade, nivel (Básico/Intermediário/Avançado/Especialista) |
-| `candidato_idiomas` | id, id_candidato (FK), idioma, proficiencia (Básico/Intermediário/Avançado/Fluente/Nativo) |
-| `candidato_certificacoes` | id, id_candidato (FK), nome, instituicao, data_obtencao, validade |
+| `perfil_candidato` | id_candidato (FK 1:1), cidade, estado, resumo_profissional |
+| `experiencias` | id, id_candidato (FK), empresa, cargo, inicio, fim, descricao, atual |
+| `formacoes` | id, id_candidato (FK), instituicao, curso, nivel, inicio, conclusao, em_andamento |
+| `habilidades` | id, id_candidato (FK), habilidade, nivel (Básico/Intermediário/Avançado/Especialista) |
+| `idiomas` | id, id_candidato (FK), idioma, proficiencia (Básico/Intermediário/Avançado/Fluente/Nativo) |
+| `certificacoes` | id, id_candidato (FK), nome, instituicao, data_obtencao, validade |
 | `documentos` | id, id_candidato (FK), tipo, nome_arquivo, caminho, descricao, data_upload |
+| `contatos` | id_candidato (FK 1:1), telefone, linkedin, github, portfolio, outras_redes |
 
 ### Tabelas — Motor 4 (Geração)
 | Tabela | Campos principais |
@@ -215,7 +225,7 @@ CREATE VIEW vagas_todas AS
 |---|---|
 | Estrutura de pastas | ✅ |
 | `rotinas/genericas.py` — CRUD SQLite | ✅ |
-| `interface_backend.py` — rotas FastAPI + StaticFiles | ✅ |
+| `aplicacao.py` — rotas FastAPI + StaticFiles | ✅ |
 | `SAR.html` — tela principal com design system | ✅ |
 | `visual.css` — design system global | ✅ |
 | `vagas.js` — lógica de negócio | ✅ |
@@ -256,43 +266,43 @@ CREATE VIEW vagas_todas AS
 
 ---
 
-### [Fase 3] Motor 2 — Identidade e Acesso — ⏳ Próxima implementação
+### [Fase 3] Motor 2 — Identidade e Acesso — ✅ Implementado / Pendente certificação
 
 **Objetivo:** Sistema com login obrigatório, isolamento de dados por candidato e sessão segura.
 
 | Entrega | Status |
 |---|---|
-| Tela `login.html` — porta de entrada obrigatória | ❌ |
-| Tela `cadastro.html` — primeiro acesso | ❌ |
-| Tabelas `candidatos` e `sessoes` no banco | ❌ |
-| Endpoint `POST /auth/cadastrar` | ❌ |
-| Endpoint `POST /auth/login` — devolve token UUID4 | ❌ |
-| Endpoint `POST /auth/logout` — revoga token | ❌ |
-| Middleware de autenticação — intercepta toda rota protegida | ❌ |
-| `api.js` — header `Authorization: Bearer` em toda requisição | ❌ |
-| `iniciar_servidor.bat` abre `/login` (não `/sar`) | ❌ |
-| `dependencias.txt` atualizado: `passlib[bcrypt]` | ❌ |
-| **Certificação:** acesso bloqueado sem login, dados isolados por candidato | ❌ |
+| Tela `login.html` — porta de entrada obrigatória | ✅ |
+| Tela `cadastro.html` — primeiro acesso | ✅ |
+| Tabelas `candidatos` e `sessoes` no banco | ✅ |
+| Endpoint `POST /auth/cadastrar` | ✅ |
+| Endpoint `POST /auth/login` — devolve token UUID4 | ✅ |
+| Endpoint `POST /auth/logout` — revoga token | ✅ |
+| Middleware de autenticação — intercepta toda rota protegida | ✅ |
+| `api.js` — header `Authorization: Bearer` em toda requisição | ✅ |
+| `iniciar_servidor.bat` abre `/login` (não `/sar`) | ✅ |
+| `dependencias.txt` atualizado: `passlib[bcrypt]` | ✅ |
+| **Certificação:** acesso bloqueado sem login, dados isolados por candidato | ⏳ Pendente teste real |
 
 ---
 
-### [Fase 4] Motor 3 — Perfil do Candidato — ⏳ Pendente
+### [Fase 4] Motor 3 — Perfil do Candidato — ✅ Implementado / Pendente certificação (teste físico não concluído — 2026-05-02)
 
 **Objetivo:** Candidato constrói perfil completo via importação de documento ou formulário manual.
 
 | Entrega | Status |
 |---|---|
-| Tabelas filhas: perfis, experiências, formações, habilidades, idiomas, certificações, documentos | ❌ |
-| Endpoint `POST /candidatos/importar` — upload de arquivo | ❌ |
-| `rotinas/ia.py` — abstração Gemini | ❌ |
-| Extração de texto: PDF, DOCX, TXT | ❌ |
-| Prompt Gemini etapa única: texto → perfil estruturado JSON | ❌ |
-| Tela `candidatos.html` — formulário com salvamento parcial | ❌ |
-| Validação mínima para geração: nome + contato + habilidade + experiência OU formação OU certificação | ❌ |
-| Contêiner de documentos — upload, catalogação e listagem | ❌ |
-| `.env` atualizado: `IA_PROVEDOR`, `IA_MODELO`, `IA_API_KEY` | ❌ |
-| `dependencias.txt`: google-generativeai, pdfplumber, python-docx | ❌ |
-| **Certificação:** perfil real importado e extraído corretamente pela IA | ❌ |
+| Tabelas filhas: perfil_candidato, experiencias, formacoes, habilidades, idiomas, certificacoes, documentos, contatos | ✅ |
+| Endpoint `POST /perfil-candidato/upload-arquivo` — upload de arquivo | ✅ |
+| Endpoints CRUD completos para cada seção do perfil | ✅ |
+| Formulário manual com salvamento parcial por seção | ✅ |
+| Validação mínima para geração: nome + contato + habilidade + experiência OU formação OU certificação | ✅ |
+| Contêiner de documentos — upload, catalogação e listagem | ✅ |
+| **Pendência 1:** Cadastro sem confirmação de senha + eye toggle | ⚠️ |
+| **Pendência 2:** Tela vagas sem filtro de localidade | ⚠️ |
+| **Pendência 3:** UX perfil — avaliar página única vs abas | ⚠️ |
+| **Pendência 4 (Bug):** Formulários das abas do perfil não abrem | ⚠️ |
+| **Certificação:** perfil completo preenchido e salvo pelo usuário | ⏳ Pendente teste real |
 
 ---
 
