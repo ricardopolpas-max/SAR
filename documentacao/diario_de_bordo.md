@@ -706,4 +706,48 @@ Motivação: "Ver ↗" enviava candidato para plataforma externa antes de estar 
 
 ---
 
+## 2026-05-04 — Redefinição de Escopo Motor 3 / Motor 4 + Certificação Motor 3
+
+### Decisão de escopo (2026-05-04)
+
+**Contexto:** Durante o teste físico e revisão da tela "Meu Perfil", o usuário identificou inconsistência fundamental de fluxo: o sistema força o candidato a redigitar manualmente dados que já estão documentados no currículo existente.
+
+**Decisão:** Redefinição das fronteiras de Motor 3 e Motor 4:
+
+| Motor | Escopo correto |
+|---|---|
+| Motor 3 | Cadastro básico (nome, e-mail, senha) + Acesso (login, sessão, token) + Infraestrutura de dados (8 tabelas criadas) |
+| Motor 4 | Importação de currículo existente (PDF/DOCX → IA extrai) + Complementação manual do perfil + Geração de currículo personalizado por vaga |
+
+**Motivação:** Se o candidato já possui currículo com todas as informações, forçar redigitação é contra o propósito do sistema. O fluxo correto é: upload do currículo → IA popula perfil automaticamente → candidato complementa/revisa → seleciona vaga → Motor 4 gera currículo otimizado.
+
+**Impacto em código:**
+- `SAR.html` — `secao-perfil` simplificada: exibe apenas dados de acesso (readonly). Os 9 blocos de formulário removidos da interface (Motor 4).
+- `perfil.js` — descarregado do `SAR.html`. Arquivo preservado no codebase para Motor 4.
+- Backend: tabelas e endpoints de perfil intactos — prontos para Motor 4.
+
+**Fases são controle interno:** Sinalização de fases ("Motor 4", "Em desenvolvimento") não é exposta ao candidato. O sistema apresenta experiência coerente — o que está disponível funciona, o que não está não aparece.
+
+### Motor 3 — Certificado
+
+Com o escopo correto definido, Motor 3 está **certificado**:
+- ✅ Cadastro: nome, e-mail, senha, confirmação de senha, eye toggle
+- ✅ Login: e-mail + senha → token UUID4 → sessionStorage
+- ✅ Sessão: middleware protege todas as rotas, logout revoga token
+- ✅ Tela principal: vagas, filtros, localidade, sync — funcionando
+- ✅ Meu Perfil: exibe nome e e-mail do candidato autenticado
+- ✅ Infraestrutura de banco: 8 tabelas de perfil criadas e prontas para Motor 4
+
+### Próximo: Motor 4
+
+Ordem de execução:
+1. Importação de currículo (PDF/DOCX) → Gemini extrai dados → popula tabelas de perfil
+2. Interface de complementação: blocos de experiências, formações, habilidades, idiomas, certificações
+3. Modal "Ver descrição" + botão "Preparar candidatura" no card de vagas
+4. Verificação periódica de disponibilidade de vagas (ciclo 20 min)
+5. Score de aderência + geração do currículo personalizado
+6. Exportação PDF + ZIP no Desktop
+
+---
+
 *Documento mantido pela equipe de desenvolvimento. Atualização obrigatória a cada turno de trabalho concluído.*

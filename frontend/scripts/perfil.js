@@ -7,9 +7,6 @@
    ELEMENTOS DO DOM
 ---------------------------------------------------------- */
 const el = {
-  abaBtns:         document.querySelectorAll(".aba-btn"),
-  abaConteudos:    document.querySelectorAll(".aba-conteudo"),
-
   // Formulários
   formDados:       document.getElementById("form-dados"),
   formContatos:    document.getElementById("form-contatos"),
@@ -33,25 +30,6 @@ const el = {
    ESTADO LOCAL
 ---------------------------------------------------------- */
 let _perfilCompleto = null;
-
-/* ----------------------------------------------------------
-   NAVEGAÇÃO DE ABAS
----------------------------------------------------------- */
-function _inicializarAbas() {
-  el.abaBtns.forEach(btn => {
-    btn.addEventListener("click", () => {
-      const abaAlvo = btn.dataset.aba;
-
-      // Remove ativo de todos os botões e conteúdos
-      el.abaBtns.forEach(b => b.classList.remove("aba-ativo"));
-      el.abaConteudos.forEach(c => c.classList.remove("aba-ativo"));
-
-      // Ativa selecionado
-      btn.classList.add("aba-ativo");
-      document.getElementById(`aba-${abaAlvo}`).classList.add("aba-ativo");
-    });
-  });
-}
 
 /* ----------------------------------------------------------
    RENDERIZAÇÃO — Listas de itens
@@ -383,7 +361,6 @@ window.removerDocumento = async (id) => {
    INICIALIZAÇÃO
 ---------------------------------------------------------- */
 (async () => {
-  _inicializarAbas();
   await carregarPerfil();
 })();
 

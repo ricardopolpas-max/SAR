@@ -2,7 +2,7 @@
 
 **Objetivo:** Plataforma inteligente para automação da jornada de recolocação profissional — captura de vagas, geração de currículo personalizado via IA e otimização para sistemas ATS de recrutamento.
 
-**Última atualização:** 2026-05-03 (Motors 2 e 3 implementados — teste físico Motor 3 pendente)
+**Última atualização:** 2026-05-04 (Motor 3 certificado com escopo correto — Motor 4 iniciando)
 
 ---
 
@@ -94,21 +94,20 @@ O SAR é composto por quatro motores funcionais independentes e interdependentes
 - Isolamento total: toda query filtrada por `id_candidato` extraído do token
 - Modelo mestre-detalhe: `candidatos` (identidade) + `perfil_candidato` (dados profissionais)
 
-### Motor 3 — Perfil do Candidato
-**Responsabilidade:** construir e manter o perfil profissional completo do candidato.
-- Duas entradas: importação de documento existente (IA extrai) OU formulário manual
-- Salvamento parcial permitido — bloqueio só na validação para geração do currículo
-- Mínimo para geração: nome + contato + 1 habilidade + (1 experiência OU 1 formação OU 1 certificação)
-- Mínimo inclusivo — atende jovem aprendiz e primeiro emprego sem elevar o sarrafo
-- Tabelas filhas com FK para `candidatos`: experiências, formações, habilidades, idiomas, certificações
-- Proficiência de habilidades: Básico / Intermediário / Avançado / Especialista
-- Proficiência de idiomas: Básico / Intermediário / Avançado / Fluente / Nativo
-- Contêiner de documentos: arquivos apensos (certificados, diplomas, portfólio, carta de apresentação)
-- Carta de apresentação: upload manual ou gerada pela IA sob demanda na hora do empacotamento
+### Motor 3 — Cadastro e Acesso
+**Responsabilidade:** registrar o candidato e garantir acesso autenticado à plataforma.
+- Cadastro básico: nome, e-mail, senha (hash bcrypt), confirmação de senha com eye toggle
+- Login: e-mail + senha → token UUID4 em `sessionStorage` → header `Authorization: Bearer`
+- Sessão auditável: tabela `sessoes` — revogável, sem cookie
+- Infraestrutura de dados profissionais: 8 tabelas criadas (`perfil_candidato`, `experiencias`, `formacoes`, `habilidades`, `idiomas`, `certificacoes`, `documentos`, `contatos`) — prontas para Motor 4
+- Interface Motor 3: exibe apenas dados de acesso (nome, e-mail) — sem formulários de perfil detalhado
 
-### Motor 4 — Geração de Currículo Premium
-**Responsabilidade:** gerar currículo personalizado por vaga, empacotar e exportar.
-- Entrada exclusiva via botão "Preparar candidatura" no card da vaga (ver DA-03)
+### Motor 4 — Importação, Perfil e Currículo Premium
+**Responsabilidade:** importar currículo existente, construir perfil profissional completo e gerar currículo personalizado por vaga.
+- **Entrada primária:** importação de currículo existente (PDF/DOCX) → IA extrai dados → popula perfil automaticamente
+- **Entrada alternativa:** complementação ou preenchimento manual dos blocos de perfil (experiências, formações, habilidades, idiomas, certificações, contatos)
+- Mínimo para geração: nome + contato + 1 habilidade + (1 experiência OU 1 formação OU 1 certificação) — inclusivo, atende jovem aprendiz e primeiro emprego
+- Entrada no ciclo de candidatura via botão "Preparar candidatura" no card da vaga (ver DA-03)
 - Verificação de disponibilidade da vaga ao entrar no Motor 4 — aviso não-bloqueante se indisponível
 - Geração em 3 etapas via Gemini:
   1. Extrai requisitos reais da vaga (palavras-chave, competências, soft skills)
@@ -338,44 +337,53 @@ Card de vaga
 
 ---
 
-### [Fase 4] Motor 3 — Perfil do Candidato — ✅ Implementado / Pendente certificação (teste físico não concluído — 2026-05-02)
+### [Fase 4] Motor 3 — Cadastro e Acesso — ✅ Certificado (2026-05-04)
 
-**Objetivo:** Candidato constrói perfil completo via importação de documento ou formulário manual.
+**Objetivo:** Candidato cadastra-se e acessa a plataforma com segurança. Infraestrutura de dados profissionais criada para Motor 4.
 
 | Entrega | Status |
 |---|---|
-| Tabelas filhas: perfil_candidato, experiencias, formacoes, habilidades, idiomas, certificacoes, documentos, contatos | ✅ |
+| Tela `login.html` — porta de entrada obrigatória | ✅ |
+| Tela `cadastro.html` — campo confirmação de senha + eye toggle | ✅ |
+| Tabelas `candidatos` e `sessoes` no banco | ✅ |
+| Endpoints `POST /auth/cadastrar`, `/auth/login`, `/auth/logout` | ✅ |
+| Middleware de autenticação — intercepta toda rota protegida | ✅ |
+| Token UUID4 em `sessionStorage` — header `Authorization: Bearer` | ✅ |
+| Tabelas de perfil criadas (infraestrutura para Motor 4): perfil_candidato, experiencias, formacoes, habilidades, idiomas, certificacoes, documentos, contatos | ✅ |
 | Endpoint `POST /perfil-candidato/upload-arquivo` — upload de arquivo | ✅ |
-| Endpoints CRUD completos para cada seção do perfil | ✅ |
-| Formulário manual com salvamento parcial por seção | ✅ |
-| Validação mínima para geração: nome + contato + habilidade + experiência OU formação OU certificação | ✅ |
-| Contêiner de documentos — upload, catalogação e listagem | ✅ |
-| **Pendência 1:** Cadastro sem confirmação de senha + eye toggle | ⚠️ |
-| **Pendência 2:** Tela vagas sem filtro de localidade | ⚠️ |
-| **Pendência 3:** UX perfil — avaliar página única vs abas | ⚠️ |
-| **Pendência 4 (Bug):** Formulários das abas do perfil não abrem | ⚠️ |
-| **Certificação:** perfil completo preenchido e salvo pelo usuário | ⏳ Pendente teste real |
+| Endpoints CRUD completos para cada seção do perfil (backend pronto) | ✅ |
+| Vagas: select de localidade com filtro dinâmico | ✅ |
+| `Meu Perfil` na interface: exibe apenas dados de acesso (nome, e-mail) | ✅ |
+| **Decisão de escopo (2026-05-04):** perfil detalhado é Motor 4, não Motor 3 | ✅ |
+| **Certificação:** cadastro, login e acesso funcionando; infraestrutura de perfil pronta | ✅ |
 
 ---
 
-### [Fase 5] Motor 4 — Geração de Currículo Premium — ⏳ Pendente
+### [Fase 5] Motor 4 — Importação, Perfil e Currículo Premium — ⏳ Pendente
 
-**Objetivo:** IA gera currículo personalizado por vaga, candidato revisa e exporta pacote ZIP.
+**Objetivo:** Candidato importa currículo existente → IA popula perfil → candidato complementa → geração de currículo personalizado por vaga → exportação.
 
 | Entrega | Status |
 |---|---|
+| Upload de currículo (PDF/DOCX/ODT) — tela de importação | ❌ |
+| Endpoint `POST /perfil-candidato/importar` — Gemini extrai dados do arquivo e popula as tabelas de perfil | ❌ |
+| Interface de complementação: blocos editáveis (experiências, formações, habilidades, idiomas, certificações, contatos) | ❌ |
+| Modal interno "Ver descrição" no card de vagas — dados do JSON local, sem saída da plataforma (DA-03) | ❌ |
+| Botão "Preparar candidatura" no card de vagas — entrada exclusiva no ciclo Motor 4 | ❌ |
+| Endpoint leve `GET /vagas/verificar-disponibilidade` — aviso não-bloqueante ao candidato | ❌ |
 | Tabelas `candidaturas` e `curriculos_gerados` no banco | ❌ |
-| Endpoint `POST /curriculos/analisar` — Gemini etapa 1+2 (requisitos + score) | ❌ |
-| Endpoint `POST /curriculos/gerar` — Gemini etapa 3 (currículo HTML) | ❌ |
+| Endpoint `POST /curriculos/analisar` — Gemini etapa 1+2 (requisitos + score de aderência) | ❌ |
+| Endpoint `POST /curriculos/gerar` — Gemini etapa 3 (currículo HTML personalizado) | ❌ |
 | Endpoint `POST /curriculos/exportar` — weasyprint → PDF | ❌ |
 | Endpoint `POST /curriculos/empacotar` — ZIP no Desktop | ❌ |
 | Editor `contenteditable` — edição livre antes do PDF | ❌ |
-| Geração de carta de apresentação sob demanda (Gemini) | ❌ |
 | Score de aderência exibido antes da geração | ❌ |
 | Tom adaptativo por perfil (jovem aprendiz / sênior) | ❌ |
+| Salvar como base / carregar base salva (DA-02) | ❌ |
 | Histórico de currículos gerados por candidato | ❌ |
-| `dependencias.txt`: weasyprint | ❌ |
-| **Certificação:** currículo premium gerado, editado, exportado em ZIP no Desktop | ❌ |
+| Link externo liberado após ciclo completo (DA-03) | ❌ |
+| `dependencias.txt`: weasyprint, pdfplumber, python-docx, python-magic | ❌ |
+| **Certificação:** importação → complementação → geração → edição → exportação ZIP validados | ❌ |
 
 ---
 

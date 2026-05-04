@@ -1103,6 +1103,57 @@ button { cursor: pointer; font-family: var(--fonte); border: none; background: n
 /* ============================================================
    MOTOR 3 — Perfil do Candidato
 ============================================================ */
+
+/* Blocos verticais (página única mestre-detalhe) */
+.perfil-bloco {
+  max-width: 860px;
+  margin: 0 auto var(--esp-xl);
+  background: var(--card);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-lg);
+  padding: var(--esp-xl);
+}
+
+.perfil-bloco-titulo {
+  font-size: var(--fonte-lg);
+  font-weight: 700;
+  color: var(--texto);
+  margin-bottom: var(--esp-lg);
+  padding-bottom: var(--esp-sm);
+  border-bottom: 1px solid var(--borda);
+}
+
+/* Formulário inline (habilidades, idiomas) */
+.perfil-form-inline {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--esp-sm);
+  margin-bottom: var(--esp-md);
+}
+
+.perfil-form-inline input,
+.perfil-form-inline select {
+  flex: 1;
+  min-width: 130px;
+  background: var(--card-hover);
+  border: 1px solid var(--borda);
+  color: var(--texto);
+  padding: var(--esp-sm) var(--esp-md);
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: var(--fonte-base);
+  transition: border-color 0.2s ease;
+}
+
+.perfil-form-inline input:focus,
+.perfil-form-inline select:focus {
+  outline: none;
+  border-color: var(--primaria);
+  background: rgba(45, 101, 224, 0.05);
+}
+
+/* Tabs (mantidas para compatibilidade) */
 .perfil-abas {
   display: flex;
   gap: var(--esp-sm);
