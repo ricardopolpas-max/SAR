@@ -6,7 +6,7 @@
 /* ----------------------------------------------------------
    ELEMENTOS DO DOM
 ---------------------------------------------------------- */
-const el = {
+const elPerfil = {
   // Formulários
   formDados:       document.getElementById("form-dados"),
   formContatos:    document.getElementById("form-contatos"),
@@ -30,6 +30,27 @@ const el = {
    ESTADO LOCAL
 ---------------------------------------------------------- */
 let _perfilCompleto = null;
+
+const _elImportar    = document.getElementById("perfil-importar");
+const _elProcessando = document.getElementById("perfil-processando");
+const _elConteudo    = document.getElementById("perfil-conteudo");
+
+function _mostrarEstado(estado) {
+  _elImportar.classList.toggle("hidden", estado !== "vazio");
+  _elProcessando.classList.toggle("hidden", estado !== "processando");
+  _elConteudo.classList.toggle("hidden", estado !== "completo");
+}
+
+async function _processarImportacao(arquivo) {
+  _mostrarEstado("processando");
+  const { ok, erro } = await SarAPI.perfil.importar(arquivo);
+  if (!ok) {
+    _mostrarEstado("vazio");
+    alert("Erro ao importar currículo:\n" + erro);
+    return;
+  }
+  await carregarPerfil();
+}
 
 /* ----------------------------------------------------------
    RENDERIZAÇÃO — Listas de itens
@@ -164,18 +185,20 @@ async function carregarPerfil() {
   }
 
   // Renderiza listas
-  _renderizarLista(dados.experiencias, el.listaExperiencias, _templateExperiencia);
-  _renderizarLista(dados.formacoes, el.listaFormacoes, _templateFormacao);
-  _renderizarLista(dados.habilidades, el.listaHabilidades, _templateHabilidade);
-  _renderizarLista(dados.idiomas, el.listaIdiomas, _templateIdioma);
-  _renderizarLista(dados.certificacoes, el.listaCertificacoes, _templateCertificacao);
-  _renderizarLista(dados.documentos, el.listaDocumentos, _templateDocumento);
+  _renderizarLista(dados.experiencias, elPerfil.listaExperiencias, _templateExperiencia);
+  _renderizarLista(dados.formacoes, elPerfil.listaFormacoes, _templateFormacao);
+  _renderizarLista(dados.habilidades, elPerfil.listaHabilidades, _templateHabilidade);
+  _renderizarLista(dados.idiomas, elPerfil.listaIdiomas, _templateIdioma);
+  _renderizarLista(dados.certificacoes, elPerfil.listaCertificacoes, _templateCertificacao);
+  _renderizarLista(dados.documentos, elPerfil.listaDocumentos, _templateDocumento);
+
+  _mostrarEstado(dados.perfil ? "completo" : "vazio");
 }
 
 /* ----------------------------------------------------------
    EVENTOS — Formulários (criar/atualizar)
 ---------------------------------------------------------- */
-el.formDados.addEventListener("submit", async (e) => {
+elPerfil.formDados.addEventListener("submit", async (e) => {
   e.preventDefault();
   const dados = {
     resumo_profissional: document.getElementById("dados-resumo").value.trim(),
@@ -192,7 +215,7 @@ el.formDados.addEventListener("submit", async (e) => {
   }
 });
 
-el.formContatos.addEventListener("submit", async (e) => {
+elPerfil.formContatos.addEventListener("submit", async (e) => {
   e.preventDefault();
   const dados = {
     telefone: document.getElementById("contatos-telefone").value.trim() || null,
@@ -209,7 +232,7 @@ el.formContatos.addEventListener("submit", async (e) => {
   }
 });
 
-el.formExperiencia.addEventListener("submit", async (e) => {
+elPerfil.formExperiencia.addEventListener("submit", async (e) => {
   e.preventDefault();
   const dados = {
     cargo: document.getElementById("exp-cargo").value.trim(),
@@ -223,12 +246,12 @@ el.formExperiencia.addEventListener("submit", async (e) => {
   if (!ok) {
     alert("Erro: " + erro);
   } else {
-    el.formExperiencia.reset();
+    elPerfil.formExperiencia.reset();
     await carregarPerfil();
   }
 });
 
-el.formFormacao.addEventListener("submit", async (e) => {
+elPerfil.formFormacao.addEventListener("submit", async (e) => {
   e.preventDefault();
   const dados = {
     instituicao: document.getElementById("form-instituicao").value.trim(),
@@ -242,12 +265,12 @@ el.formFormacao.addEventListener("submit", async (e) => {
   if (!ok) {
     alert("Erro: " + erro);
   } else {
-    el.formFormacao.reset();
+    elPerfil.formFormacao.reset();
     await carregarPerfil();
   }
 });
 
-el.formHabilidade.addEventListener("submit", async (e) => {
+elPerfil.formHabilidade.addEventListener("submit", async (e) => {
   e.preventDefault();
   const dados = {
     nome: document.getElementById("hab-nome").value.trim(),
@@ -258,12 +281,12 @@ el.formHabilidade.addEventListener("submit", async (e) => {
   if (!ok) {
     alert("Erro: " + erro);
   } else {
-    el.formHabilidade.reset();
+    elPerfil.formHabilidade.reset();
     await carregarPerfil();
   }
 });
 
-el.formIdioma.addEventListener("submit", async (e) => {
+elPerfil.formIdioma.addEventListener("submit", async (e) => {
   e.preventDefault();
   const dados = {
     nome: document.getElementById("idio-nome").value.trim(),
@@ -273,12 +296,12 @@ el.formIdioma.addEventListener("submit", async (e) => {
   if (!ok) {
     alert("Erro: " + erro);
   } else {
-    el.formIdioma.reset();
+    elPerfil.formIdioma.reset();
     await carregarPerfil();
   }
 });
 
-el.formCertificacao.addEventListener("submit", async (e) => {
+elPerfil.formCertificacao.addEventListener("submit", async (e) => {
   e.preventDefault();
   const dados = {
     nome: document.getElementById("cert-nome").value.trim(),
@@ -291,12 +314,12 @@ el.formCertificacao.addEventListener("submit", async (e) => {
   if (!ok) {
     alert("Erro: " + erro);
   } else {
-    el.formCertificacao.reset();
+    elPerfil.formCertificacao.reset();
     await carregarPerfil();
   }
 });
 
-el.formDocumento.addEventListener("submit", async (e) => {
+if (elPerfil.formDocumento) elPerfil.formDocumento.addEventListener("submit", async (e) => {
   e.preventDefault();
   const dados = {
     tipo: document.getElementById("doc-tipo").value,
@@ -307,7 +330,7 @@ el.formDocumento.addEventListener("submit", async (e) => {
   if (!ok) {
     alert("Erro: " + erro);
   } else {
-    el.formDocumento.reset();
+    elPerfil.formDocumento.reset();
     await carregarPerfil();
   }
 });
@@ -356,6 +379,31 @@ window.removerDocumento = async (id) => {
   if (!ok) alert("Erro: " + erro);
   else await carregarPerfil();
 };
+
+/* ----------------------------------------------------------
+   IMPORTAÇÃO — Motor 4
+---------------------------------------------------------- */
+document.getElementById("btn-importar").addEventListener("click", () => {
+  document.getElementById("input-curriculo").click();
+});
+
+document.getElementById("input-curriculo").addEventListener("change", async (e) => {
+  const arquivo = e.target.files[0];
+  if (arquivo) await _processarImportacao(arquivo);
+  e.target.value = "";
+});
+
+document.getElementById("btn-reimportar").addEventListener("click", () => {
+  document.getElementById("input-reimportar").click();
+});
+
+document.getElementById("input-reimportar").addEventListener("change", async (e) => {
+  const arquivo = e.target.files[0];
+  if (arquivo && confirm("Reimportar substituirá todos os dados do perfil atual. Continuar?")) {
+    await _processarImportacao(arquivo);
+  }
+  e.target.value = "";
+});
 
 /* ----------------------------------------------------------
    INICIALIZAÇÃO

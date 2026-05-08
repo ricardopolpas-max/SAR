@@ -138,18 +138,298 @@
         <span class="page-titulo">Meu Perfil</span>
       </div>
       <div class="content-scroll">
-        <div class="perfil-bloco">
-          <h2 class="perfil-bloco-titulo">Dados de acesso</h2>
-          <div class="sobre-academico">
-            <div class="academico-item">
-              <span class="academico-label">Nome</span>
-              <span id="perfil-nome" class="academico-valor"></span>
-            </div>
-            <div class="academico-item">
-              <span class="academico-label">E-mail</span>
-              <span id="perfil-email" class="academico-valor academico-placeholder">carregando…</span>
+
+        <!-- Estado: sem perfil -->
+        <div id="perfil-importar">
+          <div class="perfil-importar-card">
+            <div class="perfil-importar-icone">📄</div>
+            <div class="perfil-importar-titulo">Importe seu currículo</div>
+            <p class="perfil-importar-desc">A IA extrai os dados automaticamente. Você revisa e complementa em seguida.</p>
+            <input type="file" id="input-curriculo" accept=".pdf,.docx" style="display:none">
+            <button id="btn-importar" class="btn btn-primario">📄 Importar currículo</button>
+            <p class="perfil-importar-hint">PDF ou DOCX · máximo 10 MB</p>
+          </div>
+        </div>
+
+        <!-- Estado: processando -->
+        <div id="perfil-processando" class="hidden">
+          <div class="estado-container">
+            <div class="estado-icone processando">⏳</div>
+            <div class="estado-titulo">Processando currículo…</div>
+            <p class="estado-descricao">A IA está extraindo os dados. Aguarde alguns segundos.</p>
+          </div>
+        </div>
+
+        <!-- Estado: perfil completo -->
+        <div id="perfil-conteudo" class="hidden">
+
+          <!-- Dados de acesso (readonly) -->
+          <div class="perfil-bloco">
+            <h2 class="perfil-bloco-titulo">Dados de acesso</h2>
+            <div class="sobre-academico">
+              <div class="academico-item">
+                <span class="academico-label">Nome</span>
+                <span id="perfil-nome" class="academico-valor"></span>
+              </div>
+              <div class="academico-item">
+                <span class="academico-label">E-mail</span>
+                <span id="perfil-email" class="academico-valor academico-placeholder">carregando…</span>
+              </div>
             </div>
           </div>
+
+          <!-- Dados profissionais -->
+          <div class="perfil-bloco">
+            <h2 class="perfil-bloco-titulo">Dados profissionais</h2>
+            <form id="form-dados" class="perfil-form">
+              <div class="form-grupo">
+                <label for="dados-resumo" class="form-label">Resumo profissional</label>
+                <textarea id="dados-resumo" class="form-input" rows="3" placeholder="Breve apresentação profissional…"></textarea>
+              </div>
+              <div class="form-row">
+                <div class="form-grupo">
+                  <label for="dados-localizacao" class="form-label">Localização</label>
+                  <input type="text" id="dados-localizacao" class="form-input" placeholder="Cidade, UF">
+                </div>
+                <div class="form-grupo">
+                  <label for="dados-disponibilidade" class="form-label">Disponibilidade</label>
+                  <select id="dados-disponibilidade" class="form-input">
+                    <option value="">Selecione…</option>
+                    <option value="imediata">Imediata</option>
+                    <option value="30_dias">30 dias</option>
+                    <option value="60_dias">60 dias</option>
+                    <option value="a_combinar">A combinar</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-grupo">
+                <label for="dados-salario" class="form-label">Pretensão salarial (R$)</label>
+                <input type="number" id="dados-salario" class="form-input" placeholder="0" min="0" style="max-width:200px;">
+              </div>
+              <button type="submit" class="btn btn-primario">Salvar</button>
+            </form>
+          </div>
+
+          <!-- Contatos -->
+          <div class="perfil-bloco">
+            <h2 class="perfil-bloco-titulo">Contatos</h2>
+            <form id="form-contatos" class="perfil-form">
+              <div class="form-row">
+                <div class="form-grupo">
+                  <label for="contatos-telefone" class="form-label">Telefone</label>
+                  <input type="text" id="contatos-telefone" class="form-input" placeholder="(11) 99999-0000">
+                </div>
+                <div class="form-grupo">
+                  <label for="contatos-linkedin" class="form-label">LinkedIn</label>
+                  <input type="url" id="contatos-linkedin" class="form-input" placeholder="https://linkedin.com/in/…">
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-grupo">
+                  <label for="contatos-github" class="form-label">GitHub</label>
+                  <input type="url" id="contatos-github" class="form-input" placeholder="https://github.com/…">
+                </div>
+                <div class="form-grupo">
+                  <label for="contatos-website" class="form-label">Website</label>
+                  <input type="url" id="contatos-website" class="form-input" placeholder="https://…">
+                </div>
+              </div>
+              <button type="submit" class="btn btn-primario">Salvar</button>
+            </form>
+          </div>
+
+          <!-- Experiências -->
+          <div class="perfil-bloco">
+            <h2 class="perfil-bloco-titulo">Experiências profissionais</h2>
+            <form id="form-experiencia" class="perfil-form">
+              <div class="form-row">
+                <div class="form-grupo">
+                  <label for="exp-cargo" class="form-label">Cargo *</label>
+                  <input type="text" id="exp-cargo" class="form-input" placeholder="Advogado Júnior" required>
+                </div>
+                <div class="form-grupo">
+                  <label for="exp-empresa" class="form-label">Empresa *</label>
+                  <input type="text" id="exp-empresa" class="form-input" placeholder="Escritório…" required>
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-grupo">
+                  <label for="exp-inicio" class="form-label">Início</label>
+                  <input type="date" id="exp-inicio" class="form-input">
+                </div>
+                <div class="form-grupo">
+                  <label for="exp-fim" class="form-label">Fim</label>
+                  <input type="date" id="exp-fim" class="form-input">
+                </div>
+              </div>
+              <div class="form-grupo">
+                <label class="form-label" style="flex-direction:row;align-items:center;gap:var(--esp-sm);cursor:pointer;">
+                  <input type="checkbox" id="exp-atual"> Emprego atual
+                </label>
+              </div>
+              <div class="form-grupo">
+                <label for="exp-descricao" class="form-label">Descrição</label>
+                <textarea id="exp-descricao" class="form-input" rows="2" placeholder="Principais responsabilidades…"></textarea>
+              </div>
+              <button type="submit" class="btn btn-secundario">+ Adicionar experiência</button>
+            </form>
+            <div id="lista-experiencias"></div>
+          </div>
+
+          <!-- Formações -->
+          <div class="perfil-bloco">
+            <h2 class="perfil-bloco-titulo">Formações acadêmicas</h2>
+            <form id="form-formacao" class="perfil-form">
+              <div class="form-row">
+                <div class="form-grupo">
+                  <label for="form-curso" class="form-label">Curso *</label>
+                  <input type="text" id="form-curso" class="form-input" placeholder="Direito" required>
+                </div>
+                <div class="form-grupo">
+                  <label for="form-instituicao" class="form-label">Instituição *</label>
+                  <input type="text" id="form-instituicao" class="form-input" placeholder="Universidade…" required>
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-grupo">
+                  <label for="form-nivel" class="form-label">Nível *</label>
+                  <select id="form-nivel" class="form-input" required>
+                    <option value="">Selecione…</option>
+                    <option value="graduacao">Graduação</option>
+                    <option value="pos_graduacao">Pós-graduação</option>
+                    <option value="mestrado">Mestrado</option>
+                    <option value="doutorado">Doutorado</option>
+                    <option value="tecnico">Técnico</option>
+                    <option value="curso">Curso livre</option>
+                  </select>
+                </div>
+                <div class="form-grupo">
+                  <label for="form-inicio" class="form-label">Início</label>
+                  <input type="date" id="form-inicio" class="form-input">
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-grupo">
+                  <label for="form-conclusao" class="form-label">Conclusão</label>
+                  <input type="date" id="form-conclusao" class="form-input">
+                </div>
+                <div class="form-grupo" style="justify-content:flex-end;">
+                  <label class="form-label" style="flex-direction:row;align-items:center;gap:var(--esp-sm);cursor:pointer;">
+                    <input type="checkbox" id="form-progresso"> Em progresso
+                  </label>
+                </div>
+              </div>
+              <button type="submit" class="btn btn-secundario">+ Adicionar formação</button>
+            </form>
+            <div id="lista-formacoes"></div>
+          </div>
+
+          <!-- Habilidades -->
+          <div class="perfil-bloco">
+            <h2 class="perfil-bloco-titulo">Habilidades</h2>
+            <form id="form-habilidade" class="perfil-form">
+              <div class="form-row">
+                <div class="form-grupo">
+                  <label for="hab-nome" class="form-label">Habilidade *</label>
+                  <input type="text" id="hab-nome" class="form-input" placeholder="Direito Trabalhista…" required>
+                </div>
+                <div class="form-grupo">
+                  <label for="hab-proficiencia" class="form-label">Proficiência *</label>
+                  <select id="hab-proficiencia" class="form-input" required>
+                    <option value="">Selecione…</option>
+                    <option value="basico">Básico</option>
+                    <option value="intermediario">Intermediário</option>
+                    <option value="avancado">Avançado</option>
+                    <option value="especialista">Especialista</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-grupo">
+                <label for="hab-categoria" class="form-label">Categoria</label>
+                <select id="hab-categoria" class="form-input">
+                  <option value="">Selecione…</option>
+                  <option value="juridica">Jurídica</option>
+                  <option value="tecnica">Técnica</option>
+                  <option value="comportamental">Comportamental</option>
+                </select>
+              </div>
+              <button type="submit" class="btn btn-secundario">+ Adicionar habilidade</button>
+            </form>
+            <div id="lista-habilidades"></div>
+          </div>
+
+          <!-- Idiomas -->
+          <div class="perfil-bloco">
+            <h2 class="perfil-bloco-titulo">Idiomas</h2>
+            <form id="form-idioma" class="perfil-form">
+              <div class="form-row">
+                <div class="form-grupo">
+                  <label for="idio-nome" class="form-label">Idioma *</label>
+                  <input type="text" id="idio-nome" class="form-input" placeholder="Inglês, Espanhol…" required>
+                </div>
+                <div class="form-grupo">
+                  <label for="idio-proficiencia" class="form-label">Proficiência *</label>
+                  <select id="idio-proficiencia" class="form-input" required>
+                    <option value="">Selecione…</option>
+                    <option value="basico">Básico</option>
+                    <option value="intermediario">Intermediário</option>
+                    <option value="avancado">Avançado</option>
+                    <option value="fluente">Fluente</option>
+                    <option value="nativo">Nativo</option>
+                  </select>
+                </div>
+              </div>
+              <button type="submit" class="btn btn-secundario">+ Adicionar idioma</button>
+            </form>
+            <div id="lista-idiomas"></div>
+          </div>
+
+          <!-- Certificações -->
+          <div class="perfil-bloco">
+            <h2 class="perfil-bloco-titulo">Certificações</h2>
+            <form id="form-certificacao" class="perfil-form">
+              <div class="form-row">
+                <div class="form-grupo">
+                  <label for="cert-nome" class="form-label">Certificação *</label>
+                  <input type="text" id="cert-nome" class="form-input" placeholder="OAB, CCNA…" required>
+                </div>
+                <div class="form-grupo">
+                  <label for="cert-emissor" class="form-label">Emissor *</label>
+                  <input type="text" id="cert-emissor" class="form-input" placeholder="OAB-SP, Cisco…" required>
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-grupo">
+                  <label for="cert-emissao" class="form-label">Emissão</label>
+                  <input type="date" id="cert-emissao" class="form-input">
+                </div>
+                <div class="form-grupo">
+                  <label for="cert-expiracao" class="form-label">Expiração</label>
+                  <input type="date" id="cert-expiracao" class="form-input">
+                </div>
+              </div>
+              <div class="form-grupo">
+                <label for="cert-url" class="form-label">URL de verificação</label>
+                <input type="url" id="cert-url" class="form-input" placeholder="https://…">
+              </div>
+              <button type="submit" class="btn btn-secundario">+ Adicionar certificação</button>
+            </form>
+            <div id="lista-certificacoes"></div>
+          </div>
+
+          <!-- Currículos importados (readonly) -->
+          <div class="perfil-bloco">
+            <h2 class="perfil-bloco-titulo">Currículos importados</h2>
+            <div id="lista-documentos"></div>
+          </div>
+
+          <!-- Reimportar -->
+          <div class="perfil-bloco" style="text-align:center;">
+            <input type="file" id="input-reimportar" accept=".pdf,.docx" style="display:none">
+            <button id="btn-reimportar" class="btn btn-ghost">↻ Reimportar currículo</button>
+            <p style="font-size:var(--fonte-sm);color:var(--texto-sec);margin-top:var(--esp-sm);">Substituirá todos os dados do perfil atual</p>
+          </div>
+
         </div>
       </div>
     </section>
@@ -347,6 +627,7 @@
   })();
 </script>
 <script src="/frontend/scripts/vagas.js"></script>
+<script src="/frontend/scripts/perfil.js"></script>
 <script>
   /* Nome do candidato na sidebar e na seção Meu Perfil */
   const _nomeCandidato = SarAPI.autenticacao.obterNome();

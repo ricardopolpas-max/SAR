@@ -377,6 +377,46 @@ const SarAPI = (() => {
       }
     },
 
+    // Importação via IA — Motor 4
+    async importar(arquivo) {
+      const formData = new FormData();
+      formData.append("arquivo", arquivo);
+
+      const token = _obterToken();
+      const cabecalhos = { "Accept": "application/json" };
+      if (token) {
+        cabecalhos["Authorization"] = `Bearer ${token}`;
+      }
+
+      try {
+        const resposta = await fetch(`${BASE_URL}/perfil-candidato/importar`, {
+          method: "POST",
+          headers: cabecalhos,
+          body: formData,
+        });
+
+        if (!resposta.ok) {
+          const detalhe = await resposta.text();
+          return {
+            ok: false,
+            status: resposta.status,
+            erro: detalhe || `Erro HTTP ${resposta.status}`,
+            dados: null,
+          };
+        }
+
+        const dados = await resposta.json();
+        return { ok: true, status: resposta.status, dados, erro: null };
+      } catch (e) {
+        return {
+          ok: false,
+          status: 0,
+          erro: "Erro ao enviar currículo para importação.",
+          dados: null,
+        };
+      }
+    },
+
     // Validação
     async validar() {
       return _requisitar("POST", "/perfil-candidato/validar");

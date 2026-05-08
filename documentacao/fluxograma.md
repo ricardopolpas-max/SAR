@@ -20,9 +20,9 @@
 
 ---
 
-## 3. Status Atual — 2026-05-04
+## 3. Status Atual — 2026-05-08
 
-**Fase ativa:** Motor 4 — Importação, Perfil e Currículo Premium (pendente)
+**Fase ativa:** Motor 4 — Importação, Perfil e Currículo Premium (em progresso)
 
 ### Certificado
 - [x] Estrutura de pastas do projeto e governança completa
@@ -41,9 +41,9 @@
 - [x] DA-03 registrada: contenção na plataforma — link externo só no Motor 4
 - [x] Decisão de escopo: Motor 3 = cadastro básico + acesso. Perfil detalhado = Motor 4
 
-### Pendente — Motor 4
-- [ ] Importação de currículo (PDF/DOCX) como entrada primária do perfil
-- [ ] Complementação manual dos dados extraídos pela IA
+### Em progresso — Motor 4
+- [x] Importação de currículo (PDF/DOCX) → Gemini extrai → 8 tabelas populadas — validado 2026-05-08
+- [x] Complementação manual dos dados extraídos (blocos: experiências, formações, habilidades, idiomas, certificações)
 - [ ] Card de vagas: modal interno "Ver descrição" + botão "Preparar candidatura" (substituir "Ver ↗")
 - [ ] Endpoint leve `GET /vagas/verificar-disponibilidade` — ciclo automático de 20 min
 - [ ] Score de aderência candidato × vaga

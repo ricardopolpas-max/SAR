@@ -1297,6 +1297,32 @@ button { cursor: pointer; font-family: var(--fonte); border: none; background: n
   to { opacity: 1; }
 }
 
+/* ============================================================
+   MOTOR 4 — Importação e Perfil Completo
+============================================================ */
+.perfil-importar-card {
+  max-width: 540px;
+  margin: var(--esp-2xl) auto;
+  background: var(--card);
+  border: 2px dashed var(--borda);
+  border-radius: var(--raio-lg);
+  padding: var(--esp-2xl) var(--esp-xl);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--esp-md);
+  transition: border-color var(--transicao);
+}
+.perfil-importar-card:hover { border-color: var(--primaria); }
+.perfil-importar-icone { font-size: 3.5rem; opacity: 0.7; }
+.perfil-importar-titulo { font-size: var(--fonte-xl); font-weight: 700; color: var(--texto); }
+.perfil-importar-desc { font-size: var(--fonte-md); color: var(--texto-sec); max-width: 380px; line-height: 1.6; }
+.perfil-importar-hint { font-size: var(--fonte-sm); color: var(--texto-des); }
+
+@keyframes pulsar { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
+.estado-icone.processando { animation: pulsar 1.4s ease-in-out infinite; opacity: 1; }
+
 @media (max-width: 768px) {
   .sidebar {
     width: 60px;

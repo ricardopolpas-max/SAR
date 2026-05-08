@@ -1,8 +1,31 @@
-c# Diário de Bordo — SAR (Sistema de Automação de Recolocação)
+# Diário de Bordo — SAR (Sistema de Automação de Recolocação)
 
 Registro cronológico de decisões, entregas, curvas e erros do projeto.
 Documento obrigatório — atualizado ao final de cada tarefa concluída.
 Garante rastreabilidade, legado e prevenção de recorrência de erros.
+
+---
+
+## 2026-05-08 — Motor 4 Bloco 1: Importação de Currículo com IA (Validado)
+
+**Ações:**
+- Instaladas dependências: `pdfplumber==0.11.9`, `python-docx==1.2.0`, `google-generativeai==0.8.6`
+- Criado `backend/rotinas/importacao.py`: extração de texto PDF/DOCX + chamada Gemini
+- Adicionado endpoint `POST /perfil-candidato/importar` em `aplicacao.py`
+- Adicionado `SarAPI.perfil.importar(arquivo)` em `api.js`
+- Expandida `secao-perfil` em `SAR.html` com 3 estados: importar / processando / completo
+- Implementados todos os blocos de complementação manual (experiências, formações, habilidades, idiomas, certificações)
+- Carregamento de `perfil.js` reativado em `SAR.html`
+- Corrigido conflito de escopo: `const el` renomeado para `const elPerfil` em `perfil.js`
+
+**Decisões / Problemas resolvidos:**
+- `google-generativeai==0.8.6` usa `v1beta`; `gemini-1.5-flash` não disponível nessa versão da API
+- Modelo confirmado via `list_models()`: `gemini-2.5-flash` operacional na chave configurada
+- `gemini-2.0-flash` e `gemini-2.0-flash-lite` retornam quota `limit: 0` no free tier desta conta
+- `load_dotenv()` sem caminho explícito não encontrava `.env` na raiz do projeto; corrigido com `Path(__file__).resolve().parent.parent.parent / ".env"`
+- Conflito de variável global `const el` entre `vagas.js` e `perfil.js` causava `SyntaxError` silencioso que impedia todos os event handlers; corrigido renomeando para `elPerfil`
+
+**Resultado:** Importação de PDF/DOCX → Gemini extrai → 8 tabelas populadas automaticamente — **validado fisicamente em 2026-05-08**.
 
 ---
 

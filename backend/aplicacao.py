@@ -729,6 +729,112 @@ async def upload_arquivo(
     }
 
 # ─────────────────────────────────────────────────────────
+# IMPORTAÇÃO DE CURRÍCULO — Motor 4
+# ─────────────────────────────────────────────────────────
+@app.post("/perfil-candidato/importar")
+async def importar_curriculo(
+    arquivo: UploadFile = File(...),
+    id_candidato: int = Depends(autenticar)
+):
+    from rotinas.importacao import extrair_texto_pdf, extrair_texto_docx, processar_curriculo_com_ia
+
+    tipos_permitidos = {
+        "application/pdf",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "application/msword",
+    }
+    if arquivo.content_type not in tipos_permitidos:
+        raise HTTPException(400, "Apenas PDF e DOCX são suportados para importação.")
+
+    conteudo = await arquivo.read()
+    if len(conteudo) > 10 * 1024 * 1024:
+        raise HTTPException(400, "Arquivo muito grande. Máximo 10MB.")
+
+    if "pdf" in arquivo.content_type:
+        texto = extrair_texto_pdf(conteudo)
+    else:
+        texto = extrair_texto_docx(conteudo)
+
+    if not texto.strip():
+        raise HTTPException(422, "Não foi possível extrair texto do arquivo.")
+
+    try:
+        dados = processar_curriculo_com_ia(texto)
+    except ValueError as e:
+        raise HTTPException(503, str(e))
+    except Exception as e:
+        raise HTTPException(500, f"Erro ao processar com IA: {str(e)}")
+
+    # Salva arquivo físico
+    pasta_candidato = os.path.join(PASTA_UPLOADS, str(id_candidato))
+    os.makedirs(pasta_candidato, exist_ok=True)
+    nome_arquivo = arquivo.filename.replace("/", "_").replace("\\", "_")
+    caminho_destino = os.path.join(pasta_candidato, nome_arquivo)
+    with open(caminho_destino, "wb") as f:
+        f.write(conteudo)
+
+    db_inserir("documentos", {
+        "id_candidato": id_candidato,
+        "tipo": "curriculo_importado",
+        "nome_arquivo": nome_arquivo,
+        "caminho_disco": caminho_destino,
+    })
+
+    # Upsert perfil_candidato
+    perfil_dados = {
+        "tipo_importacao": "arquivo",
+        "arquivo_nome": nome_arquivo,
+        "resumo_profissional": dados.get("resumo_profissional"),
+        "localizacao": dados.get("localizacao"),
+        "pretensao_salarial": dados.get("pretensao_salarial") or 0,
+        "data_atualizacao": datetime.now(timezone.utc).isoformat(),
+    }
+    perfil_existente = db_selecionar("perfil_candidato", condicao={"id_candidato": id_candidato}, unico=True)
+    if perfil_existente:
+        db_atualizar("perfil_candidato", perfil_dados, {"id_candidato": id_candidato})
+    else:
+        perfil_dados["id_candidato"] = id_candidato
+        db_inserir("perfil_candidato", perfil_dados)
+
+    # Substitui dados filhos — limpa e reinsere
+    with _obter_conexao() as conn:
+        for tabela in ["experiencias", "formacoes", "habilidades", "idiomas", "certificacoes"]:
+            conn.execute(f"DELETE FROM {tabela} WHERE id_candidato = ?", (id_candidato,))
+        conn.commit()
+
+    for exp in dados.get("experiencias") or []:
+        exp["id_candidato"] = id_candidato
+        db_inserir("experiencias", exp)
+
+    for form in dados.get("formacoes") or []:
+        form["id_candidato"] = id_candidato
+        db_inserir("formacoes", form)
+
+    for hab in dados.get("habilidades") or []:
+        hab["id_candidato"] = id_candidato
+        db_inserir("habilidades", hab)
+
+    for idm in dados.get("idiomas") or []:
+        idm["id_candidato"] = id_candidato
+        db_inserir("idiomas", idm)
+
+    for cert in dados.get("certificacoes") or []:
+        cert["id_candidato"] = id_candidato
+        db_inserir("certificacoes", cert)
+
+    # Upsert contatos
+    contatos = dados.get("contatos") or {}
+    if any(v for v in contatos.values() if v):
+        contato_existente = db_selecionar("contatos", condicao={"id_candidato": id_candidato}, unico=True)
+        if contato_existente:
+            db_atualizar("contatos", contatos, {"id_candidato": id_candidato})
+        else:
+            contatos["id_candidato"] = id_candidato
+            db_inserir("contatos", contatos)
+
+    return {"ok": True, "mensagem": "Currículo importado com sucesso.", "dados": dados}
+
+# ─────────────────────────────────────────────────────────
 # VAGAS — protegidas
 # ─────────────────────────────────────────────────────────
 @app.get("/vagas")
