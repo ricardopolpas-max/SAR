@@ -6,6 +6,55 @@ Garante rastreabilidade, legado e prevenção de recorrência de erros.
 
 ---
 
+## 2026-05-11 — Motor 4 Blocos 3–6: Entrevista IA, Score, Currículo Premium, Restauração de Sessão (Implementado)
+
+**Ações:**
+- Implementada entrevista guiada com Recrutador IA — uma pergunta por vez, histórico persistido na tabela `conversas`
+- Score de aderência progressivo exibido em barra visual com marca de 75% — botão "Gerar currículo" liberado ao atingir a meta
+- Upload de documentos complementares durante a entrevista (📎) — texto extraído enviado à IA como contexto adicional
+- Geração de currículo personalizado por vaga via IA — cada geração salva como arquivo `.txt` independente com timestamp (DA-02)
+- Prompt ABNT: estrutura rígida definida no `_PROMPT_CURRICULO` — sem markdown, sem datas nos cabeçalhos de seção, formato `Mês/AAAA`, candidato multidisciplinar
+- PDF via `window.print()` com `@page { size: A4; margin: 2cm }` — suprime cabeçalho/rodapé do browser, fonte Times New Roman
+- Exibição do currículo como `div.curriculo-display` com texto justificado e `white-space: pre-wrap` — substituída textarea monospace
+- Camada IA abstrata `rotinas/ia.py` — Gemini primário + Groq fallback automático com tratamento de quota
+- Onboarding gate: menus Vagas e Currículo Premium bloqueados até importar currículo — desbloqueio automático após importação
+- Restauração de sessão: `GET /perfil-candidato/curriculos-gerados` retorna todos os currículos com conteúdo — ao retornar ao sistema o último gerado é exibido automaticamente
+- Prompt de importação corrigido — removida referência exclusiva ao mercado jurídico; candidato multidisciplinar contemplado
+
+**Correções críticas:**
+- Regressão de onboarding: `verificarOnboarding` checava `resultado.dados.perfil.id` (undefined) — corrigido para `resultado.dados.dados` (path real após double-wrap do `_requisitar`)
+- Mesma correção em `_iniciarChat`: `checaPerfil.dados.id` → `checaPerfil.dados.dados`
+
+**Decisões:**
+- DA-02 reforçada: múltiplos currículos premium por candidato — nunca sobrescritos, todos usados como contexto multidisciplinar pela IA
+- `_obter_base_perfil`: lê TODOS os `curriculo_gerado` do candidato e os combina como seções rotuladas — IA vê o perfil completo, não apenas o mais recente
+- PDF por `window.print()` em vez de weasyprint — solução leve sem dependência adicional; weasyprint avaliada para versão futura
+- Tabelas `candidaturas` e `curriculos_gerados` substituídas por uso da tabela `conversas` (chat) e `documentos` (arquivos gerados) — arquitetura simplificada sem perda funcional
+
+**Resultado:** Motor 4 com fluxo completo implementado — importação → perfil → entrevista IA → score → geração ABNT → PDF → restauração de sessão. **Pendente teste físico end-to-end.**
+
+---
+
+## 2026-05-10 — Motor 4 Bloco 2: Modal "Ver descrição" + botão "Preparar candidatura" (Implementado)
+
+**Ações:**
+- Substituído botão `Ver ↗` (link externo) por dois botões empilhados em cada card de vaga: "Ver descrição" e "Preparar"
+- Criado modal interno `#modal-vaga` em `SAR.html` com cabeçalho, badges, corpo com descrição e rodapé com "Preparar candidatura"
+- Adicionadas funções `_abrirModalVaga`, `_fecharModal`, `_inicializarModal` em `vagas.js`
+- Modal usa delegação de eventos no `vagas-lista` (itens renderizados dinamicamente)
+- Modal fecha via botão ✕, clique fora da caixa ou tecla Escape
+- "Preparar" (card) e "Preparar candidatura" (modal) navegam para seção Currículos dentro do SPA — stub para próximos blocos
+- Adicionados estilos `.item-acoes` e todo o stack `.modal-*` em `visual.css`
+
+**Decisões:**
+- DA-03 aplicada: link externo removido completamente dos cards de vagas
+- Dados do modal preenchidos a partir de `_todasVagas` (memória) — zero chamadas extras ao backend
+- `ConnectionResetError [WinError 10054]` no console do uvicorn é ruído do Windows (socket fechado pelo browser), não indica falha
+
+**Resultado:** Cards de vagas sem link externo. Modal interno operacional. Bloco 2 implementado — **pendente teste físico**.
+
+---
+
 ## 2026-05-08 — Motor 4 Bloco 1: Importação de Currículo com IA (Validado)
 
 **Ações:**

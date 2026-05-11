@@ -39,17 +39,17 @@
     </div>
 
     <nav class="sidebar-nav">
-      <div class="nav-item ativo" data-secao="vagas">
-        <span class="nav-icone">💼</span>
-        <span>Vagas</span>
-      </div>
       <div class="nav-item" data-secao="perfil">
         <span class="nav-icone">👤</span>
         <span>Meu Perfil</span>
       </div>
+      <div class="nav-item ativo" data-secao="vagas">
+        <span class="nav-icone">💼</span>
+        <span>Vagas</span>
+      </div>
       <div class="nav-item" data-secao="curriculos">
-        <span class="nav-icone">📄</span>
-        <span>Currículos</span>
+        <span class="nav-icone">⭐</span>
+        <span>Currículo Premium</span>
       </div>
       <div class="nav-item" data-secao="sobre">
         <span class="nav-icone">ℹ️</span>
@@ -136,6 +136,13 @@
     <section id="secao-perfil" class="secao hidden">
       <div class="page-header">
         <span class="page-titulo">Meu Perfil</span>
+      </div>
+      <div id="onboarding-aviso" class="onboarding-aviso hidden">
+        <span class="onboarding-aviso-icone">👋</span>
+        <div>
+          <strong>Bem-vindo ao SAR!</strong> Para acessar as vagas e o Recrutador IA,
+          importe seu currículo abaixo. A IA preencherá seu perfil automaticamente.
+        </div>
       </div>
       <div class="content-scroll">
 
@@ -456,54 +463,113 @@
     </section>
 
     <!-- ----------------------------------------------------------
-         SEÇÃO: CURRÍCULOS — Motor 4 Bloco 5
+         SEÇÃO: CURRÍCULOS — Recrutador IA (Motor 4 Bloco 5)
     ---------------------------------------------------------- -->
     <section id="secao-curriculos" class="secao hidden">
       <div class="page-header">
         <span class="page-titulo">Currículos</span>
       </div>
-      <div class="content-scroll">
 
-        <!-- Estado: vazio -->
-        <div id="curriculos-vazio" class="estado-container">
-          <div class="estado-icone">📄</div>
-          <div class="estado-titulo">Nenhum currículo gerado ainda</div>
+      <!-- Estado 1: vazio — instrução inicial -->
+      <div id="curriculos-vazio" class="content-scroll">
+        <div class="estado-container">
+          <div class="estado-icone">🤝</div>
+          <div class="estado-titulo">Recrutador IA</div>
           <p class="estado-descricao">
             Selecione uma vaga em <strong>Vagas</strong> e clique em
-            <strong>Preparar candidatura</strong>.<br>
-            A IA criará um currículo sob medida, otimizado para a vaga escolhida.
+            <strong>Preparar candidatura</strong> para iniciar a entrevista.<br><br>
+            O Recrutador IA irá entrevistá-lo, identificar pontos de melhoria
+            e, ao atingir 75% de aderência, gerar um currículo sob medida para a vaga.
           </p>
         </div>
+      </div>
 
-        <!-- Estado: gerando -->
-        <div id="curriculos-gerando" class="estado-container hidden">
-          <div class="estado-icone processando">⏳</div>
-          <div id="curriculos-gerando-titulo" class="estado-titulo">Gerando currículo…</div>
-          <p class="estado-descricao">A IA está criando seu currículo personalizado. Aguarde.</p>
+      <!-- Estado 2: chat — entrevista com o Recrutador IA -->
+      <div id="curriculos-chat" class="chat-container hidden">
+
+        <div class="chat-cabecalho">
+          <div class="chat-vaga-info">
+            <div id="chat-vaga-titulo" class="chat-vaga-titulo"></div>
+            <div id="chat-vaga-empresa" class="chat-vaga-empresa"></div>
+          </div>
+          <div class="chat-aderencia">
+            <div class="chat-aderencia-topo">
+              <span class="chat-aderencia-label">Aderência à vaga</span>
+              <span id="chat-score-valor" class="chat-score-valor">0%</span>
+            </div>
+            <div class="chat-barra-fundo">
+              <div id="chat-barra-preenchida" class="chat-barra-preenchida" style="width:0%"></div>
+              <div class="chat-barra-marca75"></div>
+            </div>
+            <div class="chat-barra-legenda">
+              <span>0%</span>
+              <span class="chat-barra-meta">75% — meta</span>
+              <span>100%</span>
+            </div>
+          </div>
         </div>
 
-        <!-- Estado: resultado -->
-        <div id="curriculos-resultado" class="hidden">
-          <div class="perfil-bloco">
-            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:var(--esp-sm);margin-bottom:var(--esp-md);">
-              <div>
-                <h2 class="perfil-bloco-titulo" style="margin-bottom:4px;">Currículo gerado</h2>
-                <div id="curriculos-vaga-info" style="font-size:var(--fonte-sm);color:var(--texto-sec);"></div>
-              </div>
-              <div style="display:flex;gap:var(--esp-sm);flex-shrink:0;">
-                <button id="btn-curriculo-copiar" class="btn btn-secundario">Copiar texto</button>
-                <button id="btn-curriculo-regerar" class="btn btn-ghost">Gerar novamente</button>
-              </div>
+        <div id="chat-mensagens" class="chat-mensagens"></div>
+
+        <div id="chat-gerar-area" class="chat-gerar-area hidden">
+          <span class="chat-gerar-aviso">Aderência suficiente — currículo final disponível</span>
+          <button id="btn-gerar-curriculo-final" class="btn btn-primario">
+            Gerar Currículo Final
+          </button>
+        </div>
+
+        <div class="chat-input-area">
+          <textarea
+            id="chat-input"
+            class="chat-input"
+            rows="2"
+            placeholder="Digite sua resposta…"
+          ></textarea>
+          <div class="chat-input-acoes">
+            <button id="btn-chat-reiniciar" class="btn btn-ghost">↺ Reiniciar entrevista</button>
+            <div class="chat-acoes-direita">
+              <label id="btn-chat-anexo" class="btn btn-secundario" title="Enviar documento complementar (opcional)">
+                📎 Anexar
+                <input type="file" id="chat-arquivo-input" accept=".pdf,.docx,.doc,.txt" style="display:none">
+              </label>
+              <button id="btn-chat-enviar" class="btn btn-primario">Enviar →</button>
             </div>
-            <div style="font-size:var(--fonte-sm);color:#22c55e;margin-bottom:var(--esp-md);">
-              ✓ Salvo automaticamente no seu perfil como documento reutilizável
-            </div>
-            <textarea id="curriculos-texto" class="form-input" rows="30" readonly
-              style="font-family:monospace;font-size:13px;line-height:1.6;resize:vertical;"></textarea>
           </div>
         </div>
 
       </div>
+
+      <!-- Estado 3: gerando currículo final -->
+      <div id="curriculos-gerando" class="content-scroll hidden">
+        <div class="estado-container">
+          <div class="estado-icone processando">⏳</div>
+          <div id="curriculos-gerando-titulo" class="estado-titulo">Gerando currículo…</div>
+          <p class="estado-descricao">A IA está criando seu currículo personalizado. Aguarde.</p>
+        </div>
+      </div>
+
+      <!-- Estado 4: resultado -->
+      <div id="curriculos-resultado" class="content-scroll hidden">
+        <div class="perfil-bloco">
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:var(--esp-sm);margin-bottom:var(--esp-md);">
+            <div>
+              <h2 class="perfil-bloco-titulo" style="margin-bottom:4px;">Currículo gerado</h2>
+              <div id="curriculos-vaga-info" style="font-size:var(--fonte-sm);color:var(--texto-sec);"></div>
+            </div>
+            <div style="display:flex;gap:var(--esp-sm);flex-shrink:0;flex-wrap:wrap;">
+              <button id="btn-curriculo-copiar" class="btn btn-secundario">Copiar texto</button>
+              <button id="btn-curriculo-pdf" class="btn btn-secundario">Baixar PDF</button>
+              <button id="btn-curriculo-regerar" class="btn btn-ghost">Gerar novamente</button>
+            </div>
+          </div>
+          <div style="font-size:var(--fonte-sm);color:#22c55e;margin-bottom:var(--esp-md);">
+            ✓ Salvo automaticamente no seu perfil como documento reutilizável
+          </div>
+          <div id="curriculos-texto-display" class="curriculo-display"></div>
+          <textarea id="curriculos-texto" style="display:none;"></textarea>
+        </div>
+      </div>
+
     </section>
 
     <!-- ----------------------------------------------------------
@@ -680,7 +746,7 @@
 </script>
 <script src="/frontend/scripts/vagas.js"></script>
 <script src="/frontend/scripts/perfil.js"></script>
-<script src="/frontend/scripts/curriculos.js?v=2"></script>
+<script src="/frontend/scripts/curriculos.js?v=3"></script>
 <script>
   /* Nome do candidato na sidebar e na seção Meu Perfil */
   const _nomeCandidato = SarAPI.autenticacao.obterNome();
@@ -707,13 +773,43 @@
   /* Navegação SPA — alterna seções sem recarregar a página */
   document.querySelectorAll('.nav-item').forEach(function(item) {
     item.addEventListener('click', function() {
+      if (item.classList.contains('bloqueado')) return;
       var alvo = item.dataset.secao;
       document.querySelectorAll('.nav-item').forEach(function(n) { n.classList.remove('ativo'); });
       document.querySelectorAll('.secao').forEach(function(s) { s.classList.add('hidden'); });
       item.classList.add('ativo');
       document.getElementById('secao-' + alvo).classList.remove('hidden');
+      if (alvo === 'curriculos' && typeof entrarSecaoCurriculos === 'function') {
+        entrarSecaoCurriculos();
+      }
     });
   });
+
+  /* Onboarding — libera Vagas e Currículos somente após perfil com currículo importado */
+  window.verificarOnboarding = async function () {
+    var _secoesBloqueadas = ['vagas', 'curriculos'];
+    var resultado = await SarAPI.perfil.carregar();
+    var completo  = resultado.ok && resultado.dados && resultado.dados.dados;
+
+    _secoesBloqueadas.forEach(function (secao) {
+      document.querySelector('.nav-item[data-secao="' + secao + '"]')
+        .classList.toggle('bloqueado', !completo);
+    });
+
+    if (!completo) {
+      /* Redireciona para Meu Perfil e exibe aviso no topo da seção */
+      var navPerfil = document.querySelector('.nav-item[data-secao="perfil"]');
+      if (!navPerfil.classList.contains('ativo')) navPerfil.click();
+
+      var aviso = document.getElementById('onboarding-aviso');
+      if (aviso) aviso.classList.remove('hidden');
+    } else {
+      var aviso = document.getElementById('onboarding-aviso');
+      if (aviso) aviso.classList.add('hidden');
+    }
+  };
+
+  verificarOnboarding();
 </script>
 
 <!-- Modal: Descrição da Vaga -->

@@ -20,9 +20,9 @@
 
 ---
 
-## 3. Status Atual — 2026-05-10
+## 3. Status Atual — 2026-05-11
 
-**Fase ativa:** Motor 4 — Importação, Perfil e Currículo Premium (em progresso)
+**Fase ativa:** Motor 4 — implementado, pendente refinamentos e certificação end-to-end
 
 ### Certificado
 - [x] Estrutura de pastas do projeto e governança completa
@@ -33,24 +33,36 @@
 - [x] SSL local configurado com mkcert (válido até 27/07/2028)
 - [x] Motor 1 — Sync bidirecional Peixe 30, UPSERT por `id_externo`, DELETE protegido
 - [x] Motor 2 — Auth bcrypt, token UUID4 em `sessionStorage`, middleware, telas login/cadastro
-- [x] Motor 3 — Cadastro básico e acesso: 8 tabelas no banco, CRUD completo, upload de arquivo (infraestrutura pronta para Motor 4)
-- [x] Correção arquitetural: DB único em AppData, `_obter_conexao()` como ponto único
-- [x] Cadastro: campo confirmação de senha + eye toggle
-- [x] Vagas: select de localidade com filtro dinâmico
-- [x] DA-02 registrada: currículo como ativo reutilizável do candidato
-- [x] DA-03 registrada: contenção na plataforma — link externo só no Motor 4
-- [x] Decisão de escopo: Motor 3 = cadastro básico + acesso. Perfil detalhado = Motor 4
+- [x] Motor 3 — Cadastro básico e acesso: 8 tabelas no banco, CRUD completo, upload de arquivo
+- [x] DA-02 e DA-03 registradas e implementadas
+- [x] Motor 4 — fluxo completo implementado (ver detalhes abaixo)
 
-### Em progresso — Motor 4
-- [x] Importação de currículo (PDF/DOCX) → Gemini extrai → 8 tabelas populadas — validado 2026-05-08
-- [x] Complementação manual dos dados extraídos (blocos: experiências, formações, habilidades, idiomas, certificações)
-- [x] Card de vagas: modal interno "Ver descrição" + botão "Preparar candidatura" (substituir "Ver ↗") — validado 2026-05-10
-- [x] Endpoint leve `GET /vagas/verificar-disponibilidade` — ciclo automático de 20 min (pendente teste físico)
-- [x] Score de aderência candidato × vaga via IA (pendente validação com cota disponível)
-- [x] Camada IA abstrata `rotinas/ia.py` — Gemini primário + OpenAI fallback automático — 2026-05-10
-- [x] Geração de currículo personalizado por vaga via IA — DA-02 + DA-03 aplicadas (pendente teste físico)
-- [ ] Exportação PDF + pacote ZIP no Desktop
-- [ ] Link externo liberado somente após ciclo completo (DA-03)
+### Motor 4 — Implementado (pendente certificação física)
+- [x] Importação de currículo (PDF/DOCX) → IA extrai → 8 tabelas populadas
+- [x] Complementação manual: blocos de experiências, formações, habilidades, idiomas, certificações, contatos
+- [x] Card de vagas: modal interno "Ver descrição" + botão "Preparar candidatura"
+- [x] Camada IA abstrata — Gemini primário + Groq fallback automático
+- [x] Entrevista guiada com Recrutador IA — pergunta a pergunta, histórico persistido
+- [x] Score de aderência com barra visual e marco de 75%
+- [x] Upload de documentos complementares durante entrevista (📎)
+- [x] Geração de currículo personalizado — prompt ABNT, perfil multidisciplinar
+- [x] DA-02: cada geração salva como ativo independente com timestamp
+- [x] `_obter_base_perfil`: combina todos os currículos gerados como contexto multidisciplinar
+- [x] Onboarding gate: menus bloqueados até importar currículo
+- [x] Restauração de sessão: último currículo exibido ao retornar
+- [x] PDF com formatação ABNT via `window.print()` — sem data/hora do browser
+- [x] Texto do currículo justificado com `div.curriculo-display`
+- [x] Prompt de importação genérico — contempla candidato multidisciplinar
+
+### Pendências — próxima sessão
+- [ ] Editor `contenteditable` — candidato edita o currículo antes de exportar
+- [ ] Link externo liberado após gerar currículo (DA-03 completo)
+- [ ] Restauração do histórico de chat ao retornar à seção
+- [ ] Aviso não-bloqueante de vaga indisponível ao entrar no ciclo
+- [ ] Tom adaptativo no prompt do Recrutador IA (jovem aprendiz ≠ sênior)
+- [ ] Pacote ZIP no Desktop (PDF + carta + documentos)
+- [ ] Carta de apresentação gerada junto com o currículo
+- [ ] **Certificação end-to-end:** importação → entrevista → score 75% → geração → edição → PDF → candidatura
 
 ---
 
@@ -90,12 +102,13 @@
 
 ---
 
-## 6. Próximos Passos — Motor 4 (ordem de execução)
+## 6. Próximos Passos — Refinamento Motor 4 (ordem de execução)
 
-1. Importação de currículo existente (PDF/DOCX) → IA extrai → popula perfil automaticamente
-2. Complementação manual dos dados extraídos (blocos: experiências, formações, habilidades, idiomas, certificações)
-3. Modal interno "Ver descrição" + botão "Preparar candidatura" no card de vagas
-4. Endpoint leve de verificação de disponibilidade de vagas (ciclo 20 min)
-5. Score de aderência candidato × vaga via Gemini
-6. Geração de currículo personalizado (DA-02 + DA-03 aplicadas)
-7. Exportação PDF + pacote ZIP no Desktop
+1. Editor `contenteditable` no currículo gerado — candidato ajusta antes de exportar
+2. Link externo da vaga liberado após geração do currículo (DA-03 completa)
+3. Restauração do histórico de chat ao retornar à seção Currículo Premium
+4. Aviso não-bloqueante de vaga indisponível ao entrar no ciclo de candidatura
+5. Tom adaptativo no prompt do Recrutador IA
+6. Carta de apresentação gerada junto com o currículo
+7. Pacote ZIP no Desktop (PDF + carta + documentos apensos)
+8. Certificação end-to-end do fluxo completo

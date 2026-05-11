@@ -189,6 +189,21 @@ const SarAPI = (() => {
       return _requisitar("POST", `/vagas/${id}/gerar-curriculo`);
     },
 
+    /** Retorna a conversa (histórico + score) do candidato para uma vaga. */
+    async carregarConversa(id) {
+      return _requisitar("GET", `/vagas/${id}/conversa`);
+    },
+
+    /** Envia mensagem do candidato ao Recrutador IA e recebe próxima pergunta ou conclusão. */
+    async conversar(id, mensagem) {
+      return _requisitar("POST", `/vagas/${id}/conversar`, { mensagem });
+    },
+
+    /** Apaga a conversa do candidato para uma vaga (permite reiniciar entrevista). */
+    async resetarConversa(id) {
+      return _requisitar("DELETE", `/vagas/${id}/conversa`);
+    },
+
     /** Retorna o resultado da última sincronização gravado em configuracoes. */
     async ultimaSync() {
       return _requisitar("GET", "/configuracoes/ultima_sincronizacao");
@@ -457,6 +472,11 @@ const SarAPI = (() => {
     // Validação
     async validar() {
       return _requisitar("POST", "/perfil-candidato/validar");
+    },
+
+    // Lista currículos premium gerados com conteúdo (restauração de sessão)
+    async listarCurriculosGerados() {
+      return _requisitar("GET", "/perfil-candidato/curriculos-gerados");
     },
   };
 

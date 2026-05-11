@@ -165,6 +165,23 @@ button { cursor: pointer; font-family: var(--fonte); border: none; background: n
 .nav-item.ativo               { background: var(--primaria-suave); color: var(--primaria); font-weight: 600; }
 .nav-item .nav-icone          { font-size: var(--fonte-lg); width: 22px; text-align: center; flex-shrink: 0; }
 
+.nav-item.bloqueado           { opacity: 0.38; cursor: not-allowed; pointer-events: none; }
+.nav-item.bloqueado::after    { content: "🔒"; font-size: 0.6rem; margin-left: auto; }
+
+/* Banner de onboarding — visível até o currículo ser importado */
+.onboarding-aviso {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--esp-md);
+  padding: var(--esp-md) var(--esp-xl);
+  background: var(--primaria-suave);
+  border-bottom: 1px solid var(--primaria);
+  font-size: var(--fonte-md);
+  color: var(--texto);
+  flex-shrink: 0;
+}
+.onboarding-aviso-icone { font-size: 1.4rem; flex-shrink: 0; line-height: 1.4; }
+
 .sidebar-footer {
   padding: var(--esp-md) var(--esp-lg) 0;
   border-top: 1px solid var(--borda);
@@ -1382,6 +1399,258 @@ button { cursor: pointer; font-family: var(--fonte); border: none; background: n
 .score-lista li { font-size: var(--fonte-sm); color: var(--texto-sec); padding: 4px 8px; border-radius: var(--raio-sm); }
 .score-lista-forte li { background: rgba(34, 197, 94, 0.08); }
 .score-lista-lacuna li { background: rgba(239, 68, 68, 0.08); }
+
+/* ============================================================
+   MOTOR 4 — Recrutador IA (chat)
+============================================================ */
+
+/* Container principal — substitui content-scroll no estado chat */
+.chat-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* Cabeçalho: info da vaga + barra de aderência */
+.chat-cabecalho {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--esp-xl);
+  padding: var(--esp-md) var(--esp-xl);
+  border-bottom: 1px solid var(--borda);
+  background: var(--superficie);
+}
+
+.chat-vaga-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.chat-vaga-titulo {
+  font-size: var(--fonte-base);
+  font-weight: 700;
+  color: var(--texto);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chat-vaga-empresa {
+  font-size: var(--fonte-sm);
+  color: var(--texto-sec);
+  margin-top: 2px;
+}
+
+/* Bloco de aderência */
+.chat-aderencia {
+  flex-shrink: 0;
+  min-width: 200px;
+  max-width: 260px;
+}
+
+.chat-aderencia-topo {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 6px;
+}
+
+.chat-aderencia-label {
+  font-size: var(--fonte-xs);
+  color: var(--texto-sec);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.chat-score-valor {
+  font-size: var(--fonte-base);
+  font-weight: 800;
+  color: var(--texto);
+  transition: color var(--transicao);
+}
+
+.chat-score-valor.atingido { color: var(--sucesso); }
+
+/* Barra de progresso */
+.chat-barra-fundo {
+  position: relative;
+  height: 8px;
+  background: var(--borda);
+  border-radius: var(--raio-full);
+  overflow: visible;
+}
+
+.chat-barra-preenchida {
+  height: 100%;
+  border-radius: var(--raio-full);
+  background: var(--primaria);
+  transition: width 0.6s ease, background 0.4s ease;
+  max-width: 100%;
+}
+
+.chat-barra-preenchida.atingido { background: var(--sucesso); }
+
+/* Marcador de 75% */
+.chat-barra-marca75 {
+  position: absolute;
+  top: -4px;
+  left: 75%;
+  width: 2px;
+  height: 16px;
+  background: var(--aviso);
+  border-radius: 1px;
+}
+
+.chat-barra-legenda {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 4px;
+  font-size: var(--fonte-xs);
+  color: var(--texto-des);
+}
+
+.chat-barra-meta {
+  color: var(--aviso);
+  font-weight: 600;
+}
+
+/* Área de mensagens */
+.chat-mensagens {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--esp-lg) var(--esp-xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-md);
+  min-height: 0;
+}
+
+/* Bolhas de mensagem */
+.chat-bolha {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-width: 72%;
+}
+
+.chat-bolha-ia      { align-self: flex-start; }
+.chat-bolha-usuario { align-self: flex-end; align-items: flex-end; }
+
+.chat-bolha-autor {
+  font-size: var(--fonte-xs);
+  font-weight: 600;
+  color: var(--texto-des);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  padding: 0 var(--esp-xs);
+}
+
+.chat-bolha-texto {
+  padding: var(--esp-md);
+  border-radius: var(--raio-lg);
+  font-size: var(--fonte-md);
+  line-height: 1.65;
+}
+
+.chat-bolha-ia .chat-bolha-texto {
+  background: var(--card);
+  border: 1px solid var(--borda);
+  color: var(--texto);
+  border-top-left-radius: var(--raio-sm);
+}
+
+.chat-bolha-usuario .chat-bolha-texto {
+  background: var(--primaria);
+  color: #fff;
+  border-top-right-radius: var(--raio-sm);
+}
+
+.chat-digitando .chat-bolha-texto {
+  color: var(--texto-des);
+  font-style: italic;
+}
+
+/* Faixa de desbloqueio do currículo final */
+.chat-gerar-area {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--esp-md);
+  padding: var(--esp-md) var(--esp-xl);
+  background: var(--sucesso-suave);
+  border-top: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.chat-gerar-aviso {
+  font-size: var(--fonte-sm);
+  color: var(--sucesso);
+  font-weight: 500;
+}
+
+/* Área de input */
+.chat-input-area {
+  flex-shrink: 0;
+  padding: var(--esp-md) var(--esp-xl);
+  border-top: 1px solid var(--borda);
+  background: var(--superficie);
+  display: flex;
+  flex-direction: column;
+  gap: var(--esp-sm);
+}
+
+.chat-input {
+  width: 100%;
+  padding: var(--esp-sm) var(--esp-md);
+  background: var(--card);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-md);
+  font-family: var(--fonte);
+  font-size: var(--fonte-md);
+  color: var(--texto);
+  outline: none;
+  resize: none;
+  transition: border-color var(--transicao), box-shadow var(--transicao);
+  line-height: 1.5;
+}
+
+.chat-input:focus {
+  border-color: var(--primaria);
+  box-shadow: 0 0 0 3px var(--primaria-suave);
+}
+
+.chat-input::placeholder { color: var(--texto-des); }
+
+.chat-input-acoes {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--esp-sm);
+}
+
+.chat-acoes-direita {
+  display: flex;
+  align-items: center;
+  gap: var(--esp-sm);
+}
+
+.curriculo-display {
+  background: var(--fundo);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  padding: var(--esp-xl) calc(var(--esp-xl) * 1.5);
+  font-size: 14px;
+  line-height: 1.8;
+  color: var(--texto);
+  text-align: justify;
+  white-space: pre-wrap;
+  word-break: break-word;
+  min-height: 400px;
+}
 
 @media (max-width: 768px) {
   .sidebar {

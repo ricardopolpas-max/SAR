@@ -2,7 +2,7 @@
 
 **Objetivo:** Plataforma inteligente para automação da jornada de recolocação profissional — captura de vagas, geração de currículo personalizado via IA e otimização para sistemas ATS de recrutamento.
 
-**Última atualização:** 2026-05-04 (Motor 3 certificado com escopo correto — Motor 4 iniciando)
+**Última atualização:** 2026-05-11 (Motor 4 implementado — pendente teste end-to-end e refinamentos)
 
 ---
 
@@ -359,31 +359,49 @@ Card de vaga
 
 ---
 
-### [Fase 5] Motor 4 — Importação, Perfil e Currículo Premium — ⏳ Pendente
+### [Fase 5] Motor 4 — Importação, Perfil e Currículo Premium — ⏳ Implementado / Pendente certificação
 
-**Objetivo:** Candidato importa currículo existente → IA popula perfil → candidato complementa → geração de currículo personalizado por vaga → exportação.
+**Objetivo:** Candidato importa currículo existente → IA popula perfil → candidato complementa → entrevista com Recrutador IA → geração de currículo personalizado por vaga → exportação.
 
 | Entrega | Status |
 |---|---|
-| Upload de currículo (PDF/DOCX/ODT) — tela de importação | ❌ |
-| Endpoint `POST /perfil-candidato/importar` — Gemini extrai dados do arquivo e popula as tabelas de perfil | ❌ |
-| Interface de complementação: blocos editáveis (experiências, formações, habilidades, idiomas, certificações, contatos) | ❌ |
-| Modal interno "Ver descrição" no card de vagas — dados do JSON local, sem saída da plataforma (DA-03) | ❌ |
-| Botão "Preparar candidatura" no card de vagas — entrada exclusiva no ciclo Motor 4 | ❌ |
-| Endpoint leve `GET /vagas/verificar-disponibilidade` — aviso não-bloqueante ao candidato | ❌ |
-| Tabelas `candidaturas` e `curriculos_gerados` no banco | ❌ |
-| Endpoint `POST /curriculos/analisar` — Gemini etapa 1+2 (requisitos + score de aderência) | ❌ |
-| Endpoint `POST /curriculos/gerar` — Gemini etapa 3 (currículo HTML personalizado) | ❌ |
-| Endpoint `POST /curriculos/exportar` — weasyprint → PDF | ❌ |
-| Endpoint `POST /curriculos/empacotar` — ZIP no Desktop | ❌ |
-| Editor `contenteditable` — edição livre antes do PDF | ❌ |
-| Score de aderência exibido antes da geração | ❌ |
-| Tom adaptativo por perfil (jovem aprendiz / sênior) | ❌ |
-| Salvar como base / carregar base salva (DA-02) | ❌ |
-| Histórico de currículos gerados por candidato | ❌ |
-| Link externo liberado após ciclo completo (DA-03) | ❌ |
-| `dependencias.txt`: weasyprint, pdfplumber, python-docx, python-magic | ❌ |
-| **Certificação:** importação → complementação → geração → edição → exportação ZIP validados | ❌ |
+| Upload de currículo (PDF/DOCX) — tela de importação | ✅ |
+| Endpoint `POST /perfil-candidato/importar` — IA extrai dados e popula 8 tabelas de perfil | ✅ |
+| Interface de complementação: blocos editáveis (experiências, formações, habilidades, idiomas, certificações, contatos) | ✅ |
+| Modal interno "Ver descrição" no card de vagas — dados locais, sem saída da plataforma (DA-03) | ✅ |
+| Botão "Preparar candidatura" no card de vagas — entrada exclusiva no ciclo Motor 4 | ✅ |
+| Endpoint `GET /vagas/verificar-disponibilidade` — aviso não-bloqueante | ✅ |
+| Camada IA abstrata `rotinas/ia.py` — Gemini primário + Groq fallback automático | ✅ |
+| Score de aderência candidato × vaga via IA — barra visual com marco de 75% | ✅ |
+| Entrevista guiada com Recrutador IA — uma pergunta por vez, histórico persistido em `conversas` | ✅ |
+| Upload de documentos complementares durante entrevista (📎) — conteúdo enviado à IA como contexto | ✅ |
+| Geração de currículo personalizado por vaga — prompt ABNT, candidato multidisciplinar | ✅ |
+| DA-02: cada geração salva como arquivo independente com timestamp — nunca sobrescreve | ✅ |
+| `_obter_base_perfil`: combina TODOS os currículos gerados como contexto multidisciplinar | ✅ |
+| Onboarding gate: menus bloqueados até importar currículo — desbloqueio automático | ✅ |
+| Restauração de sessão: último currículo exibido ao retornar ao sistema | ✅ |
+| PDF via `window.print()` com formatação ABNT — sem cabeçalho/rodapé do browser | ✅ |
+| Texto do currículo justificado com `div.curriculo-display` | ✅ |
+| `dependencias.txt`: pdfplumber, python-docx, google-generativeai, groq | ✅ |
+| **Certificação:** fluxo end-to-end validado fisicamente | ⏳ Pendente |
+
+---
+
+### [Fase 5] Pendências Motor 4 — Próxima Sessão
+
+Itens identificados para completar antes da certificação final:
+
+| Item | Descrição | Prioridade |
+|---|---|---|
+| **Editor de texto** | Tornar o currículo gerado editável (`contenteditable`) antes de exportar — candidato ajusta livremente | Alta |
+| **Link externo pós-ciclo** | DA-03: após gerar currículo, exibir botão com link da vaga na plataforma para candidatura real | Alta |
+| **Restauração do histórico de chat** | Ao retornar à seção, restaurar também a conversa da entrevista (não só o currículo) | Média |
+| **Aviso de vaga indisponível** | Usar `GET /vagas/verificar-disponibilidade` para avisar o candidato ao entrar no ciclo se a vaga sumiu | Média |
+| **Tom adaptativo** | IA ajusta linguagem ao perfil do candidato (jovem aprendiz ≠ sênior experiente) | Baixa |
+| **Pacote ZIP no Desktop** | Empacotar PDF + carta de apresentação + documentos apensos em ZIP salvo no Desktop | Baixa |
+| **Carta de apresentação** | Gerar junto com o currículo, personalizada para a vaga | Baixa |
+| **weasyprint para PDF** | Substituir `window.print()` por PDF WYSIWYG via weasyprint (sem dependência do browser) | Baixa |
+| **Teste end-to-end** | Importação → complementação → entrevista → score 75% → geração → edição → PDF → candidatura | Obrigatório |
 
 ---
 

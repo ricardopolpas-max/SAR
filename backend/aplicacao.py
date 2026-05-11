@@ -249,6 +249,22 @@ def inicializar_banco():
             )
         """)
 
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS conversas (
+                id             INTEGER PRIMARY KEY AUTOINCREMENT,
+                id_candidato   INTEGER NOT NULL,
+                id_vaga        INTEGER NOT NULL,
+                historico      TEXT NOT NULL DEFAULT '[]',
+                score_estimado REAL DEFAULT 0,
+                status         TEXT DEFAULT 'em_andamento',
+                criado_em      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                atualizado_em  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(id_candidato, id_vaga),
+                FOREIGN KEY (id_candidato) REFERENCES candidatos(id) ON DELETE CASCADE,
+                FOREIGN KEY (id_vaga)      REFERENCES vagas(id)      ON DELETE CASCADE
+            )
+        """)
+
         # Normaliza valores legados da API Peixe 30 já gravados no banco
         cursor.execute("UPDATE vagas SET modalidade    = 'remoto'  WHERE modalidade    = 'remota'")
         cursor.execute("UPDATE vagas SET modalidade    = 'hibrido' WHERE modalidade    = 'ambos'")
@@ -717,7 +733,18 @@ async def upload_documento_complementar(
     if resultado["status"] == "erro":
         raise HTTPException(400, resultado["mensagem"])
 
-    return {"ok": True, "dados": resultado}
+    texto_extraido = None
+    try:
+        from rotinas.importacao import extrair_texto_pdf, extrair_texto_docx
+        ext = nome_arquivo.lower().rsplit(".", 1)[-1]
+        if ext == "pdf":
+            texto_extraido = extrair_texto_pdf(conteudo)
+        elif ext in ("docx", "doc"):
+            texto_extraido = extrair_texto_docx(conteudo)
+    except Exception:
+        pass
+
+    return {"ok": True, "dados": resultado, "texto_extraido": texto_extraido}
 
 @app.post("/perfil-candidato/upload-arquivo")
 async def upload_arquivo(
@@ -939,6 +966,202 @@ async def buscar_vaga(id: int, id_candidato: int = Depends(autenticar)):
         raise HTTPException(404, "Vaga não encontrada.")
     return vaga
 
+def _montar_perfil_texto(id_candidato: int) -> str:
+    candidato    = db_selecionar("candidatos",       condicao={"id": id_candidato},           unico=True) or {}
+    perfil       = db_selecionar("perfil_candidato", condicao={"id_candidato": id_candidato}, unico=True) or {}
+    contatos     = db_selecionar("contatos",         condicao={"id_candidato": id_candidato}, unico=True) or {}
+    experiencias = db_selecionar("experiencias",     condicao={"id_candidato": id_candidato}) or []
+    formacoes    = db_selecionar("formacoes",        condicao={"id_candidato": id_candidato}) or []
+    habilidades  = db_selecionar("habilidades",      condicao={"id_candidato": id_candidato}) or []
+    idiomas      = db_selecionar("idiomas",          condicao={"id_candidato": id_candidato}) or []
+    certificacoes= db_selecionar("certificacoes",    condicao={"id_candidato": id_candidato}) or []
+    docs         = db_selecionar("documentos",       condicao={"id_candidato": id_candidato}) or []
+
+    linhas = [f"Nome: {candidato.get('nome', '')}"]
+
+    itens_contato = [
+        f"Telefone: {contatos['telefone']}" if contatos.get("telefone") else None,
+        f"LinkedIn: {contatos['linkedin']}"  if contatos.get("linkedin")  else None,
+        f"GitHub: {contatos['github']}"      if contatos.get("github")    else None,
+        f"Website: {contatos['website']}"    if contatos.get("website")   else None,
+    ]
+    itens_contato = [i for i in itens_contato if i]
+    if itens_contato:
+        linhas.append("Contatos: " + " | ".join(itens_contato))
+
+    if perfil.get("localizacao"):
+        linhas.append(f"Localização: {perfil['localizacao']}")
+    if perfil.get("resumo_profissional"):
+        linhas.append(f"\nResumo: {perfil['resumo_profissional']}")
+
+    if experiencias:
+        linhas.append("\nExperiências:")
+        for e in experiencias:
+            periodo = " (atual)" if e.get("em_atual") else (f" até {e['data_fim']}" if e.get("data_fim") else "")
+            linhas.append(f"  - {e.get('cargo')} em {e.get('empresa')}{periodo}")
+            if e.get("descricao"):
+                linhas.append(f"    {e['descricao']}")
+
+    if formacoes:
+        linhas.append("\nFormação:")
+        for f in formacoes:
+            prog = " (em progresso)" if f.get("em_progresso") else ""
+            linhas.append(f"  - {f.get('curso')} — {f.get('instituicao')} ({f.get('nivel')}){prog}")
+
+    if habilidades:
+        linhas.append(f"\nHabilidades: {', '.join(h.get('nome', '') for h in habilidades)}")
+
+    if idiomas:
+        linhas.append("\nIdiomas: " + ", ".join(
+            f"{i.get('nome')} ({i.get('proficiencia')})" for i in idiomas
+        ))
+
+    if certificacoes:
+        linhas.append("\nCertificações: " + ", ".join(
+            f"{c.get('nome')} ({c.get('emissor')})" for c in certificacoes
+        ))
+
+    complementares = [d for d in docs if d.get("tipo") == "complementar"]
+    if complementares:
+        linhas.append("\nDocumentos complementares (portfólio):")
+        for d in complementares:
+            linhas.append(f"  - {d.get('descricao') or d.get('nome_arquivo', '')}")
+
+    return "\n".join(linhas) if linhas else "Perfil sem dados suficientes."
+
+
+def _obter_base_perfil(id_candidato: int) -> str:
+    """Combina todos os currículos premium gerados pelo candidato como base de contexto.
+    Cada currículo representa uma faceta do perfil multidisciplinar.
+    Se nenhum existir, usa o perfil estruturado extraído do currículo importado."""
+    docs = db_selecionar("documentos", condicao={"id_candidato": id_candidato}) or []
+    gerados = sorted(
+        [d for d in docs if d.get("tipo") == "curriculo_gerado"],
+        key=lambda d: d.get("id", 0),
+    )
+    secoes = []
+    for doc in gerados:
+        caminho = doc.get("caminho_disco", "")
+        try:
+            with open(caminho, "r", encoding="utf-8") as f:
+                conteudo = f.read().strip()
+            if conteudo:
+                descricao = doc.get("descricao") or f"Currículo #{doc.get('id', '')}"
+                secoes.append(f"=== {descricao} ===\n{conteudo}")
+        except Exception:
+            pass
+    if secoes:
+        return (
+            "CURRÍCULOS PREMIUM DO CANDIDATO (perfil multidisciplinar completo — "
+            "use o conjunto para conhecer toda a trajetória do candidato):\n\n"
+            + "\n\n".join(secoes)
+        )
+    return _montar_perfil_texto(id_candidato)
+
+
+@app.get("/vagas/{id}/conversa")
+async def carregar_conversa(id: int, id_candidato: int = Depends(autenticar)):
+    with _obter_conexao() as conn:
+        row = conn.execute(
+            "SELECT id, historico, score_estimado, status FROM conversas WHERE id_candidato = ? AND id_vaga = ?",
+            (id_candidato, id)
+        ).fetchone()
+    if not row:
+        return {"ok": True, "dados": None}
+    return {
+        "ok": True,
+        "dados": {
+            "id": row[0],
+            "historico": json.loads(row[1]),
+            "score_estimado": row[2],
+            "status": row[3],
+        },
+    }
+
+
+@app.post("/vagas/{id}/conversar")
+async def conversar(id: int, corpo: dict, id_candidato: int = Depends(autenticar)):
+    mensagem = (corpo.get("mensagem") or "").strip()
+
+    vaga = db_selecionar("vagas", condicao={"id": id}, unico=True)
+    if not vaga:
+        raise HTTPException(404, "Vaga não encontrada.")
+
+    perfil = db_selecionar("perfil_candidato", condicao={"id_candidato": id_candidato}, unico=True)
+    if not perfil:
+        raise HTTPException(422, "Importe seu currículo antes de iniciar a entrevista.")
+
+    perfil_texto = _obter_base_perfil(id_candidato)
+
+    with _obter_conexao() as conn:
+        row = conn.execute(
+            "SELECT id, historico, score_estimado FROM conversas WHERE id_candidato = ? AND id_vaga = ?",
+            (id_candidato, id)
+        ).fetchone()
+
+    if row:
+        conv_id  = row[0]
+        historico = json.loads(row[1])
+    else:
+        conv_id  = None
+        historico = []
+
+    if mensagem:
+        historico.append({"role": "candidato", "conteudo": mensagem})
+
+    from rotinas.importacao import conduzir_entrevista
+    try:
+        resultado = conduzir_entrevista(
+            titulo=vaga.get("titulo", ""),
+            descricao=vaga.get("descricao", ""),
+            perfil=perfil_texto,
+            historico=historico,
+        )
+    except Exception as e:
+        msg = str(e).lower()
+        if "quota" in msg or "insufficient" in msg or "429" in msg or "rate" in msg:
+            raise HTTPException(503, "Cota de IA esgotada. Tente novamente em instantes.")
+        raise HTTPException(500, f"Erro ao processar: {str(e)}")
+
+    historico.append({"role": "recrutador", "conteudo": resultado["mensagem"]})
+
+    pronto = bool(resultado.get("pronto", False))
+    score  = float(resultado.get("score_estimado", 0))
+    status = "pronto" if pronto else "em_andamento"
+    hist_json = json.dumps(historico, ensure_ascii=False)
+
+    with _obter_conexao() as conn:
+        if conv_id:
+            conn.execute(
+                "UPDATE conversas SET historico=?, score_estimado=?, status=?, atualizado_em=CURRENT_TIMESTAMP WHERE id=?",
+                (hist_json, score, status, conv_id)
+            )
+        else:
+            conn.execute(
+                "INSERT INTO conversas (id_candidato, id_vaga, historico, score_estimado, status) VALUES (?,?,?,?,?)",
+                (id_candidato, id, hist_json, score, status)
+            )
+        conn.commit()
+
+    return {
+        "ok": True,
+        "resposta": resultado["mensagem"],
+        "pronto": pronto,
+        "score_estimado": score,
+    }
+
+
+@app.delete("/vagas/{id}/conversa")
+async def resetar_conversa(id: int, id_candidato: int = Depends(autenticar)):
+    with _obter_conexao() as conn:
+        conn.execute(
+            "DELETE FROM conversas WHERE id_candidato = ? AND id_vaga = ?",
+            (id_candidato, id)
+        )
+        conn.commit()
+    return {"ok": True, "mensagem": "Conversa reiniciada."}
+
+
 @app.post("/vagas/{id}/score")
 async def calcular_score_vaga(id: int, id_candidato: int = Depends(autenticar)):
     vaga = db_selecionar("vagas", condicao={"id": id}, unico=True)
@@ -949,43 +1172,7 @@ async def calcular_score_vaga(id: int, id_candidato: int = Depends(autenticar)):
     if not perfil:
         raise HTTPException(422, "Importe seu currículo antes de calcular compatibilidade.")
 
-    linhas = []
-    if perfil.get("resumo_profissional"):
-        linhas.append(f"Resumo: {perfil['resumo_profissional']}")
-
-    experiencias = db_selecionar("experiencias", condicao={"id_candidato": id_candidato}) or []
-    if experiencias:
-        linhas.append("\nExperiências:")
-        for e in experiencias:
-            atual = " (atual)" if e.get("em_atual") else ""
-            linhas.append(f"  - {e.get('cargo')} em {e.get('empresa')}{atual}")
-            if e.get("descricao"):
-                linhas.append(f"    {e['descricao'][:200]}")
-
-    formacoes = db_selecionar("formacoes", condicao={"id_candidato": id_candidato}) or []
-    if formacoes:
-        linhas.append("\nFormação:")
-        for f in formacoes:
-            linhas.append(f"  - {f.get('curso')} em {f.get('instituicao')} ({f.get('nivel')})")
-
-    habilidades = db_selecionar("habilidades", condicao={"id_candidato": id_candidato}) or []
-    if habilidades:
-        linhas.append(f"\nHabilidades: {', '.join(h.get('nome', '') for h in habilidades)}")
-
-    idiomas = db_selecionar("idiomas", condicao={"id_candidato": id_candidato}) or []
-    if idiomas:
-        linhas.append("\nIdiomas: " + ", ".join(
-            f"{i.get('nome')} ({i.get('proficiencia')})" for i in idiomas
-        ))
-
-    docs = db_selecionar("documentos", condicao={"id_candidato": id_candidato}) or []
-    complementares = [d for d in docs if d.get("tipo") == "complementar"]
-    if complementares:
-        linhas.append("\nDocumentos complementares (portfólio):")
-        for d in complementares:
-            linhas.append(f"  - {d.get('descricao') or d.get('nome_arquivo', '')}")
-
-    perfil_texto = "\n".join(linhas) if linhas else "Perfil sem dados suficientes."
+    perfil_texto = _obter_base_perfil(id_candidato)
 
     from rotinas.importacao import processar_score_com_ia
     try:
@@ -1074,12 +1261,29 @@ async def gerar_curriculo_vaga(id: int, id_candidato: int = Depends(autenticar))
 
     perfil_texto = "\n".join(linhas)
 
+    with _obter_conexao() as conn:
+        row_conv = conn.execute(
+            "SELECT historico FROM conversas WHERE id_candidato = ? AND id_vaga = ?",
+            (id_candidato, id)
+        ).fetchone()
+    historico_entrevista = ""
+    if row_conv:
+        try:
+            msgs = json.loads(row_conv["historico"])
+            historico_entrevista = "\n".join(
+                f"{m['role'].upper()}: {m['conteudo']}"
+                for m in msgs if m.get("conteudo", "").strip()
+            )
+        except Exception:
+            pass
+
     from rotinas.importacao import gerar_curriculo_com_ia
     try:
         texto = gerar_curriculo_com_ia(
             titulo=vaga.get("titulo", ""),
             descricao=vaga.get("descricao", ""),
             perfil=perfil_texto,
+            historico=historico_entrevista,
         )
     except Exception as e:
         msg = str(e).lower()
@@ -1087,32 +1291,23 @@ async def gerar_curriculo_vaga(id: int, id_candidato: int = Depends(autenticar))
             raise HTTPException(503, "Cota de IA esgotada em todos os provedores. Tente novamente mais tarde ou adicione créditos em platform.openai.com.")
         raise HTTPException(500, f"Erro ao processar com IA: {str(e)}")
 
-    # DA-02: salvar como ativo reutilizável
+    # DA-02: preservar cada geração como ativo independente (nunca sobrescrever)
+    import time as _time
     pasta_candidato = os.path.join(PASTA_UPLOADS, str(id_candidato))
     os.makedirs(pasta_candidato, exist_ok=True)
-    nome_arquivo    = f"curriculo_vaga_{id}.txt"
+    nome_arquivo    = f"curriculo_vaga_{id}_{int(_time.time())}.txt"
     caminho_destino = os.path.join(pasta_candidato, nome_arquivo)
     with open(caminho_destino, "w", encoding="utf-8") as f:
         f.write(texto)
 
     with _obter_conexao() as conn:
-        existente = conn.execute(
-            "SELECT id FROM documentos WHERE id_candidato = ? AND tipo = 'curriculo_gerado' AND nome_arquivo = ?",
-            (id_candidato, nome_arquivo)
-        ).fetchone()
-        if existente:
-            conn.execute(
-                "UPDATE documentos SET caminho_disco = ?, data_upload = CURRENT_TIMESTAMP WHERE id = ?",
-                (caminho_destino, existente[0])
+        conn.execute(
+            "INSERT INTO documentos (id_candidato, tipo, nome_arquivo, caminho_disco, descricao) VALUES (?,?,?,?,?)",
+            (
+                id_candidato, "curriculo_gerado", nome_arquivo, caminho_destino,
+                f"Currículo — {vaga.get('titulo', 'Vaga')} ({vaga.get('empresa', '')})",
             )
-        else:
-            conn.execute(
-                "INSERT INTO documentos (id_candidato, tipo, nome_arquivo, caminho_disco, descricao) VALUES (?,?,?,?,?)",
-                (
-                    id_candidato, "curriculo_gerado", nome_arquivo, caminho_destino,
-                    f"Currículo personalizado — {vaga.get('titulo', 'Vaga')} ({vaga.get('empresa', '')})",
-                )
-            )
+        )
         conn.commit()
 
     return {
@@ -1120,6 +1315,44 @@ async def gerar_curriculo_vaga(id: int, id_candidato: int = Depends(autenticar))
         "curriculo": texto,
         "vaga": {"id": id, "titulo": vaga.get("titulo", ""), "empresa": vaga.get("empresa", "")},
     }
+
+
+@app.get("/perfil-candidato/curriculos-gerados")
+async def listar_curriculos_gerados(id_candidato: int = Depends(autenticar)):
+    """Retorna todos os currículos premium gerados, com conteúdo, ordenados do mais recente."""
+    import re as _re
+    docs = db_selecionar("documentos", condicao={"id_candidato": id_candidato}) or []
+    gerados = sorted(
+        [d for d in docs if d.get("tipo") == "curriculo_gerado"],
+        key=lambda d: d.get("id", 0),
+        reverse=True,
+    )
+    resultado = []
+    for doc in gerados:
+        conteudo = ""
+        try:
+            with open(doc.get("caminho_disco", ""), "r", encoding="utf-8") as f:
+                conteudo = f.read()
+        except Exception:
+            pass
+        # extrai vagaId do nome_arquivo: curriculo_vaga_{id}_{ts}.txt
+        m = _re.match(r"curriculo_vaga_(\d+)_", doc.get("nome_arquivo", ""))
+        vaga_id = int(m.group(1)) if m else None
+        vaga_info = {}
+        if vaga_id:
+            vaga_row = db_selecionar("vagas", condicao={"id": vaga_id}, unico=True)
+            vaga_info = {
+                "id": vaga_id,
+                "titulo": vaga_row.get("titulo", "") if vaga_row else "",
+                "empresa": vaga_row.get("empresa", "") if vaga_row else "",
+            }
+        resultado.append({
+            "id_documento": doc.get("id"),
+            "descricao": doc.get("descricao", ""),
+            "vaga": vaga_info,
+            "conteudo": conteudo,
+        })
+    return {"ok": True, "dados": resultado}
 
 
 @app.post("/vagas")

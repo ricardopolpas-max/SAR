@@ -51,6 +51,9 @@ async function _processarImportacao(arquivo) {
     return;
   }
   await carregarPerfil();
+  if (typeof window.verificarOnboarding === "function") {
+    window.verificarOnboarding();
+  }
 }
 
 /* ----------------------------------------------------------
