@@ -1,8 +1,9 @@
-from fastapi import FastAPI, Depends, Header, HTTPException, UploadFile, File
+from fastapi import FastAPI, Depends, Header, HTTPException, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response, FileResponse
 from fastapi.staticfiles import StaticFiles
 from datetime import datetime, timezone
+import asyncio
 import sqlite3
 import json
 import os
@@ -33,6 +34,17 @@ app.add_middleware(
 
 app.mount("/frontend",   StaticFiles(directory=PASTA_FRONTEND),   name="frontend")
 app.mount("/integracao", StaticFiles(directory=PASTA_INTEGRACAO), name="integracao")
+
+# ------------------------------------------------------------
+# LOOP — suprime ConnectionResetError (ruído Windows/ProactorEventLoop)
+# ------------------------------------------------------------
+@app.on_event("startup")
+async def _suprimir_ruido_windows():
+    def _handler(loop, context):
+        if isinstance(context.get("exception"), ConnectionResetError):
+            return
+        loop.default_exception_handler(context)
+    asyncio.get_running_loop().set_exception_handler(_handler)
 
 # ------------------------------------------------------------
 # BANCO DE DADOS — inicialização e migrações
@@ -219,6 +231,11 @@ def inicializar_banco():
                 FOREIGN KEY (id_candidato) REFERENCES candidatos(id) ON DELETE CASCADE
             )
         """)
+
+        try:
+            cursor.execute("ALTER TABLE documentos ADD COLUMN descricao TEXT")
+        except Exception:
+            pass
 
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS contatos (
@@ -670,6 +687,38 @@ async def validar_perfil(id_candidato: int = Depends(autenticar)):
 # ─────────────────────────────────────────────────────────
 # UPLOAD DE ARQUIVO — preparação para Motor 4
 # ─────────────────────────────────────────────────────────
+@app.post("/perfil-candidato/documentos/upload-complementar")
+async def upload_documento_complementar(
+    arquivo: UploadFile = File(...),
+    descricao: str = Form(""),
+    id_candidato: int = Depends(autenticar)
+):
+    conteudo = await arquivo.read()
+    if len(conteudo) > 10 * 1024 * 1024:
+        raise HTTPException(400, "Arquivo muito grande. Máximo 10MB.")
+
+    pasta_candidato = os.path.join(PASTA_UPLOADS, str(id_candidato))
+    os.makedirs(pasta_candidato, exist_ok=True)
+
+    nome_arquivo = arquivo.filename.replace("/", "_").replace("\\", "_")
+    caminho_destino = os.path.join(pasta_candidato, nome_arquivo)
+
+    with open(caminho_destino, "wb") as f:
+        f.write(conteudo)
+
+    resultado = db_inserir("documentos", {
+        "id_candidato": id_candidato,
+        "tipo": "complementar",
+        "nome_arquivo": nome_arquivo,
+        "caminho_disco": caminho_destino,
+        "descricao": descricao.strip() or nome_arquivo,
+    })
+
+    if resultado["status"] == "erro":
+        raise HTTPException(400, resultado["mensagem"])
+
+    return {"ok": True, "dados": resultado}
+
 @app.post("/perfil-candidato/upload-arquivo")
 async def upload_arquivo(
     arquivo: UploadFile = File(...),
@@ -763,6 +812,9 @@ async def importar_curriculo(
     except ValueError as e:
         raise HTTPException(503, str(e))
     except Exception as e:
+        msg = str(e).lower()
+        if "quota" in msg or "insufficient" in msg or "429" in msg or "rate" in msg:
+            raise HTTPException(503, "Cota de IA esgotada em todos os provedores. Tente novamente mais tarde ou adicione créditos em platform.openai.com.")
         raise HTTPException(500, f"Erro ao processar com IA: {str(e)}")
 
     # Salva arquivo físico
@@ -858,12 +910,217 @@ async def sincronizar_vagas(id_candidato: int = Depends(autenticar)):
           f"{resultado['indisponiveis']} indisponíveis.")
     return resultado
 
+@app.get("/vagas/verificar-disponibilidade")
+async def verificar_disponibilidade_vagas(id_candidato: int = Depends(autenticar)):
+    from rotinas.sincronizacao import _get_json, _API_URL
+    try:
+        meta = _get_json(f"{_API_URL}?page=1&perPage=1")["meta"]
+        total_api = meta.get("total", 0)
+    except Exception as e:
+        return {"ok": False, "erro": str(e)}
+
+    with _obter_conexao() as conn:
+        row = conn.execute(
+            "SELECT COUNT(*) FROM vagas WHERE disponivel_plataforma = 1"
+        ).fetchone()
+        total_db = row[0] if row else 0
+
+    return {
+        "ok": True,
+        "total_api": total_api,
+        "total_db": total_db,
+        "desatualizado": total_api != total_db,
+    }
+
 @app.get("/vagas/{id}")
 async def buscar_vaga(id: int, id_candidato: int = Depends(autenticar)):
     vaga = db_selecionar("vagas", condicao={"id": id}, unico=True)
     if not vaga:
         raise HTTPException(404, "Vaga não encontrada.")
     return vaga
+
+@app.post("/vagas/{id}/score")
+async def calcular_score_vaga(id: int, id_candidato: int = Depends(autenticar)):
+    vaga = db_selecionar("vagas", condicao={"id": id}, unico=True)
+    if not vaga:
+        raise HTTPException(404, "Vaga não encontrada.")
+
+    perfil = db_selecionar("perfil_candidato", condicao={"id_candidato": id_candidato}, unico=True)
+    if not perfil:
+        raise HTTPException(422, "Importe seu currículo antes de calcular compatibilidade.")
+
+    linhas = []
+    if perfil.get("resumo_profissional"):
+        linhas.append(f"Resumo: {perfil['resumo_profissional']}")
+
+    experiencias = db_selecionar("experiencias", condicao={"id_candidato": id_candidato}) or []
+    if experiencias:
+        linhas.append("\nExperiências:")
+        for e in experiencias:
+            atual = " (atual)" if e.get("em_atual") else ""
+            linhas.append(f"  - {e.get('cargo')} em {e.get('empresa')}{atual}")
+            if e.get("descricao"):
+                linhas.append(f"    {e['descricao'][:200]}")
+
+    formacoes = db_selecionar("formacoes", condicao={"id_candidato": id_candidato}) or []
+    if formacoes:
+        linhas.append("\nFormação:")
+        for f in formacoes:
+            linhas.append(f"  - {f.get('curso')} em {f.get('instituicao')} ({f.get('nivel')})")
+
+    habilidades = db_selecionar("habilidades", condicao={"id_candidato": id_candidato}) or []
+    if habilidades:
+        linhas.append(f"\nHabilidades: {', '.join(h.get('nome', '') for h in habilidades)}")
+
+    idiomas = db_selecionar("idiomas", condicao={"id_candidato": id_candidato}) or []
+    if idiomas:
+        linhas.append("\nIdiomas: " + ", ".join(
+            f"{i.get('nome')} ({i.get('proficiencia')})" for i in idiomas
+        ))
+
+    docs = db_selecionar("documentos", condicao={"id_candidato": id_candidato}) or []
+    complementares = [d for d in docs if d.get("tipo") == "complementar"]
+    if complementares:
+        linhas.append("\nDocumentos complementares (portfólio):")
+        for d in complementares:
+            linhas.append(f"  - {d.get('descricao') or d.get('nome_arquivo', '')}")
+
+    perfil_texto = "\n".join(linhas) if linhas else "Perfil sem dados suficientes."
+
+    from rotinas.importacao import processar_score_com_ia
+    try:
+        resultado = processar_score_com_ia(
+            titulo=vaga.get("titulo", ""),
+            descricao=vaga.get("descricao", ""),
+            perfil=perfil_texto,
+        )
+    except Exception as e:
+        msg = str(e).lower()
+        if "quota" in msg or "insufficient" in msg or "429" in msg or "rate" in msg:
+            raise HTTPException(503, "Cota de IA esgotada em todos os provedores. Tente novamente mais tarde ou adicione créditos em platform.openai.com.")
+        raise HTTPException(500, f"Erro ao processar com IA: {str(e)}")
+
+    return resultado
+
+@app.post("/vagas/{id}/gerar-curriculo")
+async def gerar_curriculo_vaga(id: int, id_candidato: int = Depends(autenticar)):
+    vaga = db_selecionar("vagas", condicao={"id": id}, unico=True)
+    if not vaga:
+        raise HTTPException(404, "Vaga não encontrada.")
+
+    perfil = db_selecionar("perfil_candidato", condicao={"id_candidato": id_candidato}, unico=True)
+    if not perfil:
+        raise HTTPException(422, "Importe seu currículo antes de gerar.")
+
+    candidato = db_selecionar("candidatos", condicao={"id": id_candidato}, unico=True)
+    contatos  = db_selecionar("contatos",   condicao={"id_candidato": id_candidato}, unico=True)
+
+    linhas = [f"Nome: {candidato.get('nome', '')}"]
+
+    if contatos:
+        itens = [
+            f"Telefone: {contatos['telefone']}" if contatos.get("telefone") else None,
+            f"LinkedIn: {contatos['linkedin']}"  if contatos.get("linkedin")  else None,
+            f"GitHub: {contatos['github']}"      if contatos.get("github")    else None,
+            f"Website: {contatos['website']}"    if contatos.get("website")   else None,
+        ]
+        itens = [i for i in itens if i]
+        if itens:
+            linhas.append("Contatos: " + " | ".join(itens))
+
+    if perfil.get("localizacao"):
+        linhas.append(f"Localização: {perfil['localizacao']}")
+    if perfil.get("resumo_profissional"):
+        linhas.append(f"\nResumo: {perfil['resumo_profissional']}")
+
+    experiencias = db_selecionar("experiencias", condicao={"id_candidato": id_candidato}) or []
+    if experiencias:
+        linhas.append("\nExperiências:")
+        for e in experiencias:
+            periodo = " (atual)" if e.get("em_atual") else (f" até {e['data_fim']}" if e.get("data_fim") else "")
+            linhas.append(f"  - {e.get('cargo')} em {e.get('empresa')}{periodo}")
+            if e.get("descricao"):
+                linhas.append(f"    {e['descricao']}")
+
+    formacoes = db_selecionar("formacoes", condicao={"id_candidato": id_candidato}) or []
+    if formacoes:
+        linhas.append("\nFormação:")
+        for f in formacoes:
+            prog = " (em progresso)" if f.get("em_progresso") else ""
+            linhas.append(f"  - {f.get('curso')} — {f.get('instituicao')} ({f.get('nivel')}){prog}")
+
+    habilidades = db_selecionar("habilidades", condicao={"id_candidato": id_candidato}) or []
+    if habilidades:
+        linhas.append(f"\nHabilidades: {', '.join(h.get('nome', '') for h in habilidades)}")
+
+    idiomas = db_selecionar("idiomas", condicao={"id_candidato": id_candidato}) or []
+    if idiomas:
+        linhas.append("\nIdiomas: " + ", ".join(
+            f"{i.get('nome')} ({i.get('proficiencia')})" for i in idiomas
+        ))
+
+    certificacoes = db_selecionar("certificacoes", condicao={"id_candidato": id_candidato}) or []
+    if certificacoes:
+        linhas.append("\nCertificações: " + ", ".join(
+            f"{c.get('nome')} ({c.get('emissor')})" for c in certificacoes
+        ))
+
+    docs = db_selecionar("documentos", condicao={"id_candidato": id_candidato}) or []
+    complementares = [d for d in docs if d.get("tipo") == "complementar"]
+    if complementares:
+        linhas.append("\nDocumentos complementares (portfólio):")
+        for d in complementares:
+            linhas.append(f"  - {d.get('descricao') or d.get('nome_arquivo', '')}")
+
+    perfil_texto = "\n".join(linhas)
+
+    from rotinas.importacao import gerar_curriculo_com_ia
+    try:
+        texto = gerar_curriculo_com_ia(
+            titulo=vaga.get("titulo", ""),
+            descricao=vaga.get("descricao", ""),
+            perfil=perfil_texto,
+        )
+    except Exception as e:
+        msg = str(e).lower()
+        if "quota" in msg or "insufficient" in msg or "429" in msg or "rate" in msg:
+            raise HTTPException(503, "Cota de IA esgotada em todos os provedores. Tente novamente mais tarde ou adicione créditos em platform.openai.com.")
+        raise HTTPException(500, f"Erro ao processar com IA: {str(e)}")
+
+    # DA-02: salvar como ativo reutilizável
+    pasta_candidato = os.path.join(PASTA_UPLOADS, str(id_candidato))
+    os.makedirs(pasta_candidato, exist_ok=True)
+    nome_arquivo    = f"curriculo_vaga_{id}.txt"
+    caminho_destino = os.path.join(pasta_candidato, nome_arquivo)
+    with open(caminho_destino, "w", encoding="utf-8") as f:
+        f.write(texto)
+
+    with _obter_conexao() as conn:
+        existente = conn.execute(
+            "SELECT id FROM documentos WHERE id_candidato = ? AND tipo = 'curriculo_gerado' AND nome_arquivo = ?",
+            (id_candidato, nome_arquivo)
+        ).fetchone()
+        if existente:
+            conn.execute(
+                "UPDATE documentos SET caminho_disco = ?, data_upload = CURRENT_TIMESTAMP WHERE id = ?",
+                (caminho_destino, existente[0])
+            )
+        else:
+            conn.execute(
+                "INSERT INTO documentos (id_candidato, tipo, nome_arquivo, caminho_disco, descricao) VALUES (?,?,?,?,?)",
+                (
+                    id_candidato, "curriculo_gerado", nome_arquivo, caminho_destino,
+                    f"Currículo personalizado — {vaga.get('titulo', 'Vaga')} ({vaga.get('empresa', '')})",
+                )
+            )
+        conn.commit()
+
+    return {
+        "ok": True,
+        "curriculo": texto,
+        "vaga": {"id": id, "titulo": vaga.get("titulo", ""), "empresa": vaga.get("empresa", "")},
+    }
+
 
 @app.post("/vagas")
 async def criar_vaga(dados: dict, id_candidato: int = Depends(autenticar)):

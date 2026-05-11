@@ -417,6 +417,27 @@
             <div id="lista-certificacoes"></div>
           </div>
 
+          <!-- Documentos complementares -->
+          <div class="perfil-bloco">
+            <h2 class="perfil-bloco-titulo">Documentos complementares</h2>
+            <p style="font-size:var(--fonte-sm);color:var(--texto-sec);margin-bottom:var(--esp-md);">
+              Portfólio, fluxogramas, certificados ou qualquer documento que comprove suas competências.
+              Considerados no cálculo de aderência às vagas.
+            </p>
+            <div style="display:flex;gap:var(--esp-sm);align-items:flex-end;flex-wrap:wrap;margin-bottom:var(--esp-md);">
+              <div class="form-grupo" style="flex:1;min-width:220px;margin-bottom:0;">
+                <label for="doc-descricao" class="form-label">Descrição do documento</label>
+                <input type="text" id="doc-descricao" class="form-input" placeholder="Ex: Fluxograma do SAR, Governança do Projeto…">
+              </div>
+              <label id="btn-doc-upload" class="btn btn-secundario" style="position:relative;flex-shrink:0;cursor:pointer;overflow:hidden;">
+                + Adicionar documento
+                <input type="file" id="doc-arquivo" accept=".pdf,.docx,.doc,.txt,.md,.png,.jpg,.jpeg" style="position:absolute;top:0;left:0;width:100%;height:100%;opacity:0;cursor:pointer;">
+              </label>
+            </div>
+            <div id="doc-upload-status" style="font-size:var(--fonte-sm);min-height:18px;margin-bottom:var(--esp-sm);"></div>
+            <div id="lista-docs-complementares"></div>
+          </div>
+
           <!-- Currículos importados (readonly) -->
           <div class="perfil-bloco">
             <h2 class="perfil-bloco-titulo">Currículos importados</h2>
@@ -435,22 +456,53 @@
     </section>
 
     <!-- ----------------------------------------------------------
-         SEÇÃO: CURRÍCULOS (Fase 4)
+         SEÇÃO: CURRÍCULOS — Motor 4 Bloco 5
     ---------------------------------------------------------- -->
     <section id="secao-curriculos" class="secao hidden">
       <div class="page-header">
         <span class="page-titulo">Currículos</span>
       </div>
       <div class="content-scroll">
-        <div class="estado-container">
-          <div class="estado-icone">🚧</div>
-          <div class="estado-titulo">Em desenvolvimento</div>
+
+        <!-- Estado: vazio -->
+        <div id="curriculos-vazio" class="estado-container">
+          <div class="estado-icone">📄</div>
+          <div class="estado-titulo">Nenhum currículo gerado ainda</div>
           <p class="estado-descricao">
-            O módulo de geração de currículos chega na Fase 4.<br>
-            A IA criará um currículo sob medida para cada vaga,
-            otimizado para sistemas ATS de recrutamento.
+            Selecione uma vaga em <strong>Vagas</strong> e clique em
+            <strong>Preparar candidatura</strong>.<br>
+            A IA criará um currículo sob medida, otimizado para a vaga escolhida.
           </p>
         </div>
+
+        <!-- Estado: gerando -->
+        <div id="curriculos-gerando" class="estado-container hidden">
+          <div class="estado-icone processando">⏳</div>
+          <div id="curriculos-gerando-titulo" class="estado-titulo">Gerando currículo…</div>
+          <p class="estado-descricao">A IA está criando seu currículo personalizado. Aguarde.</p>
+        </div>
+
+        <!-- Estado: resultado -->
+        <div id="curriculos-resultado" class="hidden">
+          <div class="perfil-bloco">
+            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:var(--esp-sm);margin-bottom:var(--esp-md);">
+              <div>
+                <h2 class="perfil-bloco-titulo" style="margin-bottom:4px;">Currículo gerado</h2>
+                <div id="curriculos-vaga-info" style="font-size:var(--fonte-sm);color:var(--texto-sec);"></div>
+              </div>
+              <div style="display:flex;gap:var(--esp-sm);flex-shrink:0;">
+                <button id="btn-curriculo-copiar" class="btn btn-secundario">Copiar texto</button>
+                <button id="btn-curriculo-regerar" class="btn btn-ghost">Gerar novamente</button>
+              </div>
+            </div>
+            <div style="font-size:var(--fonte-sm);color:#22c55e;margin-bottom:var(--esp-md);">
+              ✓ Salvo automaticamente no seu perfil como documento reutilizável
+            </div>
+            <textarea id="curriculos-texto" class="form-input" rows="30" readonly
+              style="font-family:monospace;font-size:13px;line-height:1.6;resize:vertical;"></textarea>
+          </div>
+        </div>
+
       </div>
     </section>
 
@@ -628,6 +680,7 @@
 </script>
 <script src="/frontend/scripts/vagas.js"></script>
 <script src="/frontend/scripts/perfil.js"></script>
+<script src="/frontend/scripts/curriculos.js?v=2"></script>
 <script>
   /* Nome do candidato na sidebar e na seção Meu Perfil */
   const _nomeCandidato = SarAPI.autenticacao.obterNome();
@@ -662,5 +715,44 @@
     });
   });
 </script>
+
+<!-- Modal: Descrição da Vaga -->
+<div id="modal-vaga" class="modal-overlay hidden">
+  <div class="modal-box">
+    <div class="modal-cabecalho">
+      <div>
+        <div id="modal-vaga-titulo" class="modal-titulo"></div>
+        <div id="modal-vaga-empresa" class="modal-empresa"></div>
+      </div>
+      <button id="modal-fechar" class="btn btn-ghost modal-fechar" title="Fechar">✕</button>
+    </div>
+    <div id="modal-vaga-badges" class="modal-badges"></div>
+    <div class="modal-corpo">
+      <div id="modal-vaga-descricao" class="modal-descricao"></div>
+      <div id="modal-score" class="modal-score hidden">
+        <div class="score-gauge">
+          <span id="modal-score-valor" class="score-valor">—</span>
+          <span class="score-label">compatibilidade</span>
+        </div>
+        <div id="modal-score-resumo" class="score-resumo"></div>
+        <div class="score-colunas">
+          <div>
+            <div class="score-col-titulo">Pontos fortes</div>
+            <ul id="modal-score-fortes" class="score-lista score-lista-forte"></ul>
+          </div>
+          <div>
+            <div class="score-col-titulo">Lacunas</div>
+            <ul id="modal-score-lacunas" class="score-lista score-lista-lacuna"></ul>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-rodape">
+      <button id="modal-score-btn" class="btn btn-secundario">📊 Ver compatibilidade</button>
+      <button id="modal-preparar" class="btn btn-primario">Preparar candidatura</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>

@@ -23,7 +23,8 @@ const elPerfil = {
   listaHabilidades:    document.getElementById("lista-habilidades"),
   listaIdiomas:        document.getElementById("lista-idiomas"),
   listaCertificacoes:  document.getElementById("lista-certificacoes"),
-  listaDocumentos:     document.getElementById("lista-documentos"),
+  listaDocumentos:          document.getElementById("lista-documentos"),
+  listaDocsComplementares:  document.getElementById("lista-docs-complementares"),
 };
 
 /* ----------------------------------------------------------
@@ -155,6 +156,20 @@ function _templateDocumento(doc) {
   `;
 }
 
+function _templateDocComplementar(doc) {
+  return `
+    <div class="item-lista">
+      <div class="item-lista-info">
+        <div class="item-lista-titulo">${doc.descricao || doc.nome_arquivo}</div>
+        <div class="item-lista-desc">${doc.nome_arquivo}</div>
+      </div>
+      <div class="item-lista-acoes">
+        <button onclick="removerDocumento(${doc.id})">Remover</button>
+      </div>
+    </div>
+  `;
+}
+
 /* ----------------------------------------------------------
    CARREGAMENTO DE PERFIL
 ---------------------------------------------------------- */
@@ -190,7 +205,12 @@ async function carregarPerfil() {
   _renderizarLista(dados.habilidades, elPerfil.listaHabilidades, _templateHabilidade);
   _renderizarLista(dados.idiomas, elPerfil.listaIdiomas, _templateIdioma);
   _renderizarLista(dados.certificacoes, elPerfil.listaCertificacoes, _templateCertificacao);
-  _renderizarLista(dados.documentos, elPerfil.listaDocumentos, _templateDocumento);
+  const curriculos     = (dados.documentos || []).filter(d => d.tipo !== "complementar");
+  const complementares = (dados.documentos || []).filter(d => d.tipo === "complementar");
+  _renderizarLista(curriculos, elPerfil.listaDocumentos, _templateDocumento);
+  if (elPerfil.listaDocsComplementares) {
+    _renderizarLista(complementares, elPerfil.listaDocsComplementares, _templateDocComplementar);
+  }
 
   _mostrarEstado(dados.perfil ? "completo" : "vazio");
 }
@@ -391,6 +411,42 @@ document.getElementById("input-curriculo").addEventListener("change", async (e) 
   const arquivo = e.target.files[0];
   if (arquivo) await _processarImportacao(arquivo);
   e.target.value = "";
+});
+
+document.addEventListener("change", async (e) => {
+  if (e.target.id !== "doc-arquivo") return;
+  const arquivo = e.target.files[0];
+  if (!arquivo) return;
+  e.target.value = "";
+
+  const inputEl  = e.target;
+  const statusEl = document.getElementById("doc-upload-status");
+  inputEl.disabled = true;
+  if (statusEl) { statusEl.textContent = "Enviando " + arquivo.name + "…"; statusEl.style.color = ""; }
+
+  try {
+    const descEl    = document.getElementById("doc-descricao");
+    const descricao = descEl ? descEl.value.trim() : "";
+    const { ok, erro } = await SarAPI.perfil.documentos.uploadComplementar(arquivo, descricao);
+
+    if (!ok) {
+      if (statusEl) { statusEl.textContent = "✗ Erro: " + erro; statusEl.style.color = "#ef4444"; }
+      else { alert("Erro ao enviar:\n" + erro); }
+      return;
+    }
+
+    if (descEl) descEl.value = "";
+    await carregarPerfil();
+    if (statusEl) {
+      statusEl.textContent = "✓ " + arquivo.name + " adicionado.";
+      statusEl.style.color = "#22c55e";
+      setTimeout(() => { if (statusEl) statusEl.textContent = ""; }, 4000);
+    }
+  } catch (ex) {
+    alert("Erro inesperado:\n" + ex.message);
+  } finally {
+    inputEl.disabled = false;
+  }
 });
 
 document.getElementById("btn-reimportar").addEventListener("click", () => {

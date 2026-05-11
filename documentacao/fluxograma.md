@@ -20,7 +20,7 @@
 
 ---
 
-## 3. Status Atual — 2026-05-08
+## 3. Status Atual — 2026-05-10
 
 **Fase ativa:** Motor 4 — Importação, Perfil e Currículo Premium (em progresso)
 
@@ -44,11 +44,11 @@
 ### Em progresso — Motor 4
 - [x] Importação de currículo (PDF/DOCX) → Gemini extrai → 8 tabelas populadas — validado 2026-05-08
 - [x] Complementação manual dos dados extraídos (blocos: experiências, formações, habilidades, idiomas, certificações)
-- [ ] Card de vagas: modal interno "Ver descrição" + botão "Preparar candidatura" (substituir "Ver ↗")
-- [ ] Endpoint leve `GET /vagas/verificar-disponibilidade` — ciclo automático de 20 min
-- [ ] Score de aderência candidato × vaga
-- [ ] Geração de currículo personalizado por vaga via Gemini
-- [ ] Salvar como base / carregar base salva (DA-02)
+- [x] Card de vagas: modal interno "Ver descrição" + botão "Preparar candidatura" (substituir "Ver ↗") — validado 2026-05-10
+- [x] Endpoint leve `GET /vagas/verificar-disponibilidade` — ciclo automático de 20 min (pendente teste físico)
+- [x] Score de aderência candidato × vaga via IA (pendente validação com cota disponível)
+- [x] Camada IA abstrata `rotinas/ia.py` — Gemini primário + OpenAI fallback automático — 2026-05-10
+- [x] Geração de currículo personalizado por vaga via IA — DA-02 + DA-03 aplicadas (pendente teste físico)
 - [ ] Exportação PDF + pacote ZIP no Desktop
 - [ ] Link externo liberado somente após ciclo completo (DA-03)
 

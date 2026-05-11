@@ -99,10 +99,11 @@ function _renderizarItem(v) {
     ? `<div class="item-salario">${salario}</div>`
     : `<div class="item-salario a-combinar">A combinar</div>`;
 
-  const linkHtml = v.link
-    ? `<a href="${v.link}" target="_blank" rel="noopener noreferrer"
-          class="btn btn-secundario btn-item-acao">Ver ↗</a>`
-    : `<span class="btn btn-secundario btn-item-acao" style="opacity:.3;cursor:default">Sem link</span>`;
+  const acoesHtml = `
+    <div class="item-acoes">
+      <button class="btn btn-secundario btn-item-acao btn-ver-descricao" data-id="${v.id}">Ver descrição</button>
+      <button class="btn btn-primario btn-item-acao btn-preparar" data-id="${v.id}">Preparar</button>
+    </div>`;
 
   const empresa = v.empresa || "Empresa não informada";
   const local   = v.localizacao ? ` · 📍 ${v.localizacao}` : "";
@@ -131,7 +132,7 @@ function _renderizarItem(v) {
         ${salarioHtml}
         <div class="item-data">${_dataRelativa(v.data_extracao || v.ultima_sincronizacao)}</div>
       </div>
-      ${linkHtml}
+      ${acoesHtml}
     </div>
   `;
 }
@@ -378,6 +379,126 @@ function _inicializarSync() {
 }
 
 /* ----------------------------------------------------------
+   CICLO DE DISPONIBILIDADE — verifica a cada 20 min
+---------------------------------------------------------- */
+function _inicializarCicloDisponibilidade() {
+  async function _verificar() {
+    const { ok, dados } = await SarAPI.vagas.verificarDisponibilidade();
+    if (!ok || !dados || !dados.desatualizado) return;
+    el.syncStatus.textContent = "⚠ Vagas desatualizadas — clique Atualizar";
+  }
+  setInterval(_verificar, 20 * 60 * 1000);
+}
+
+/* ----------------------------------------------------------
+   MODAL — Descrição da Vaga
+---------------------------------------------------------- */
+let _vagaModalId = null;
+
+function _abrirModalVaga(id) {
+  const v = _todasVagas.find(x => x.id === id);
+  if (!v) return;
+  _vagaModalId = id;
+
+  document.getElementById("modal-vaga-titulo").textContent = v.titulo || "Sem título";
+  document.getElementById("modal-vaga-empresa").textContent =
+    (v.empresa || "Empresa não informada") + (v.localizacao ? ` · 📍 ${v.localizacao}` : "");
+
+  const salario = _formatarSalario(v.salario_inicial);
+  document.getElementById("modal-vaga-badges").innerHTML = [
+    v.tipo_contrato ? _badgeRegime(v.tipo_contrato) : "",
+    v.modalidade    ? _badgeModalidade(v.modalidade) : "",
+    salario ? `<span class="badge">${salario}</span>` : "",
+  ].join("");
+
+  const descEl = document.getElementById("modal-vaga-descricao");
+  if (v.descricao) {
+    descEl.textContent = v.descricao;
+  } else {
+    descEl.innerHTML = '<em style="color:var(--texto-des)">Descrição não disponível para esta vaga.</em>';
+  }
+
+  document.getElementById("modal-score").classList.add("hidden");
+  const scoreBtn = document.getElementById("modal-score-btn");
+  scoreBtn.textContent = "📊 Ver compatibilidade";
+  scoreBtn.disabled = false;
+
+  document.getElementById("modal-vaga").classList.remove("hidden");
+  document.body.style.overflow = "hidden";
+}
+
+function _fecharModal() {
+  document.getElementById("modal-vaga").classList.add("hidden");
+  document.body.style.overflow = "";
+}
+
+function _inicializarModal() {
+  document.getElementById("modal-fechar").addEventListener("click", _fecharModal);
+  document.getElementById("modal-vaga").addEventListener("click", function (e) {
+    if (e.target === this) _fecharModal();
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") _fecharModal();
+  });
+
+  el.vagasLista.addEventListener("click", function (e) {
+    const btnVer = e.target.closest(".btn-ver-descricao");
+    if (btnVer) {
+      _abrirModalVaga(parseInt(btnVer.dataset.id));
+      return;
+    }
+    const btnPreparar = e.target.closest(".btn-preparar");
+    if (btnPreparar) {
+      const id = parseInt(btnPreparar.dataset.id);
+      const v  = _todasVagas.find(x => x.id === id);
+      document.querySelector('[data-secao="curriculos"]').click();
+      if (v && typeof iniciarGeracaoCurriculo === "function") {
+        iniciarGeracaoCurriculo(id, v.titulo, v.empresa);
+      }
+    }
+  });
+
+  document.getElementById("modal-preparar").addEventListener("click", function () {
+    const id = _vagaModalId;
+    const v  = _todasVagas.find(x => x.id === id);
+    _fecharModal();
+    document.querySelector('[data-secao="curriculos"]').click();
+    if (v && typeof iniciarGeracaoCurriculo === "function") {
+      iniciarGeracaoCurriculo(id, v.titulo, v.empresa);
+    }
+  });
+
+  document.getElementById("modal-score-btn").addEventListener("click", async function () {
+    if (!_vagaModalId) return;
+    this.textContent = "Calculando…";
+    this.disabled = true;
+
+    const { ok, dados, erro } = await SarAPI.vagas.score(_vagaModalId);
+
+    this.textContent = "📊 Recalcular";
+    this.disabled = false;
+
+    if (!ok) {
+      alert("Erro ao calcular compatibilidade:\n" + erro);
+      return;
+    }
+
+    const scoreEl = document.getElementById("modal-score-valor");
+    scoreEl.textContent = `${dados.score}%`;
+    scoreEl.className = "score-valor " +
+      (dados.score >= 70 ? "alto" : dados.score >= 40 ? "medio" : "baixo");
+
+    document.getElementById("modal-score-resumo").textContent = dados.resumo || "";
+    document.getElementById("modal-score-fortes").innerHTML =
+      (dados.pontos_fortes || []).map(p => `<li>${p}</li>`).join("");
+    document.getElementById("modal-score-lacunas").innerHTML =
+      (dados.lacunas || []).map(l => `<li>${l}</li>`).join("");
+
+    document.getElementById("modal-score").classList.remove("hidden");
+  });
+}
+
+/* ----------------------------------------------------------
    INICIALIZAÇÃO
 ---------------------------------------------------------- */
 (async () => {
@@ -387,6 +508,8 @@ function _inicializarSync() {
   _inicializarOrdenacao();
   _inicializarLocalidade();
   _inicializarSync();
+  _inicializarModal();
+  _inicializarCicloDisponibilidade();
   await carregarVagas();
 })();
 

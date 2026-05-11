@@ -174,6 +174,21 @@ const SarAPI = (() => {
       return _requisitar("POST", "/vagas/sincronizar");
     },
 
+    /** Verifica se o total de vagas disponíveis diverge do Peixe 30. */
+    async verificarDisponibilidade() {
+      return _requisitar("GET", "/vagas/verificar-disponibilidade");
+    },
+
+    /** Calcula score de aderência do candidato para uma vaga via IA. */
+    async score(id) {
+      return _requisitar("POST", `/vagas/${id}/score`);
+    },
+
+    /** Gera currículo personalizado para a vaga via IA (DA-02: salvo automaticamente). */
+    async gerarCurriculo(id) {
+      return _requisitar("POST", `/vagas/${id}/gerar-curriculo`);
+    },
+
     /** Retorna o resultado da última sincronização gravado em configuracoes. */
     async ultimaSync() {
       return _requisitar("GET", "/configuracoes/ultima_sincronizacao");
@@ -324,6 +339,28 @@ const SarAPI = (() => {
       },
       async remover(id) {
         return _requisitar("DELETE", `/perfil-candidato/documentos/${id}`);
+      },
+      async uploadComplementar(arquivo, descricao) {
+        const formData = new FormData();
+        formData.append("arquivo", arquivo);
+        formData.append("descricao", descricao || "");
+        const token = _obterToken();
+        const cabecalhos = { "Accept": "application/json" };
+        if (token) cabecalhos["Authorization"] = `Bearer ${token}`;
+        try {
+          const resposta = await fetch(
+            `${BASE_URL}/perfil-candidato/documentos/upload-complementar`,
+            { method: "POST", headers: cabecalhos, body: formData }
+          );
+          if (!resposta.ok) {
+            const detalhe = await resposta.text();
+            return { ok: false, status: resposta.status, erro: detalhe, dados: null };
+          }
+          const dados = await resposta.json();
+          return { ok: true, status: resposta.status, dados, erro: null };
+        } catch (e) {
+          return { ok: false, status: 0, erro: "Erro ao enviar documento.", dados: null };
+        }
       },
     },
 

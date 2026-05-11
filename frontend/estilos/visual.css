@@ -803,6 +803,7 @@ button { cursor: pointer; font-family: var(--fonte); border: none; background: n
 }
 
 .select-ordenacao:focus { border-color: var(--primaria); }
+.select-ordenacao option { background: #1e2433; color: var(--texto); }
 
 /* ------------------------------------------------------------
    19. LISTA DE VAGAS
@@ -1027,6 +1028,7 @@ button { cursor: pointer; font-family: var(--fonte); border: none; background: n
 }
 
 .form-input::placeholder { color: var(--texto-des); }
+.form-input option { background: #1e2433; color: var(--texto); }
 
 .input-senha-wrapper {
   position: relative;
@@ -1322,6 +1324,64 @@ button { cursor: pointer; font-family: var(--fonte); border: none; background: n
 
 @keyframes pulsar { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
 .estado-icone.processando { animation: pulsar 1.4s ease-in-out infinite; opacity: 1; }
+
+/* ---- Ações do card de vaga (dois botões empilhados) ---- */
+.item-acoes { display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; }
+.item-acoes .btn-item-acao { width: 100%; text-align: center; }
+
+/* ---- Modal de descrição de vaga ---- */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: var(--esp-lg);
+}
+.modal-box {
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-lg);
+  max-width: 680px;
+  width: 100%;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.modal-cabecalho {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--esp-md);
+  padding: var(--esp-lg);
+  border-bottom: 1px solid var(--borda);
+}
+.modal-titulo { font-size: var(--fonte-lg); font-weight: 700; color: var(--texto); }
+.modal-empresa { font-size: var(--fonte-sm); color: var(--texto-sec); margin-top: 3px; }
+.modal-fechar { font-size: 1.2rem; line-height: 1; padding: 4px 8px; flex-shrink: 0; }
+.modal-badges { display: flex; flex-wrap: wrap; gap: var(--esp-xs); padding: var(--esp-sm) var(--esp-lg); border-bottom: 1px solid var(--borda); }
+.modal-corpo { flex: 1; overflow-y: auto; padding: var(--esp-lg); }
+.modal-descricao { font-size: var(--fonte-sm); color: var(--texto-sec); line-height: 1.75; white-space: pre-wrap; }
+.modal-rodape { padding: var(--esp-md) var(--esp-lg); border-top: 1px solid var(--borda); display: flex; justify-content: space-between; align-items: center; gap: var(--esp-md); }
+
+/* ---- Score de aderência ---- */
+.modal-score { padding: var(--esp-md); margin-top: var(--esp-md); border: 1px solid var(--borda); border-radius: var(--raio-md); background: var(--card); }
+.score-gauge { display: flex; align-items: baseline; gap: var(--esp-xs); margin-bottom: var(--esp-xs); }
+.score-valor { font-size: 2.2rem; font-weight: 800; color: var(--texto); line-height: 1; }
+.score-valor.alto  { color: #22c55e; }
+.score-valor.medio { color: #f59e0b; }
+.score-valor.baixo { color: #ef4444; }
+.score-label { font-size: var(--fonte-sm); color: var(--texto-des); }
+.score-resumo { font-size: var(--fonte-sm); color: var(--texto-sec); margin-bottom: var(--esp-md); line-height: 1.5; }
+.score-colunas { display: grid; grid-template-columns: 1fr 1fr; gap: var(--esp-md); }
+.score-col-titulo { font-size: var(--fonte-xs); font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--texto-des); margin-bottom: 6px; }
+.score-lista { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 4px; }
+.score-lista li { font-size: var(--fonte-sm); color: var(--texto-sec); padding: 4px 8px; border-radius: var(--raio-sm); }
+.score-lista-forte li { background: rgba(34, 197, 94, 0.08); }
+.score-lista-lacuna li { background: rgba(239, 68, 68, 0.08); }
 
 @media (max-width: 768px) {
   .sidebar {
