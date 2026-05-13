@@ -226,10 +226,23 @@ async function _restaurarUltimoCurriculo() {
   _curriculoVagaTitulo  = vaga.titulo  || "";
   _curriculoVagaEmpresa = vaga.empresa || "";
 
+  // Popula cabeçalho do chat e o resultado
   const info = ultimo.descricao || (vaga.titulo + (vaga.empresa ? " · " + vaga.empresa : ""));
+  document.getElementById("chat-vaga-titulo").textContent           = _curriculoVagaTitulo;
+  document.getElementById("chat-vaga-empresa").textContent          = _curriculoVagaEmpresa;
   document.getElementById("curriculos-vaga-info").textContent       = info;
   document.getElementById("curriculos-texto").value                 = ultimo.conteudo;
   document.getElementById("curriculos-texto-display").textContent   = ultimo.conteudo;
+
+  // Restaura histórico do chat e score em background
+  if (_curriculoVagaId) {
+    const conv = await SarAPI.vagas.carregarConversa(_curriculoVagaId);
+    if (conv.ok && conv.dados && conv.dados.historico && conv.dados.historico.length) {
+      _renderizarHistorico(conv.dados.historico);
+      _atualizarScore(conv.dados.score_estimado || 0);
+    }
+  }
+
   _mostrarEstadoCurriculo("resultado");
   return true;
 }
@@ -318,8 +331,12 @@ document.getElementById("chat-arquivo-input").addEventListener("change", async f
   }
 });
 
+function _obterTextoCurriculo() {
+  return document.getElementById("curriculos-texto-display").innerText || "";
+}
+
 document.getElementById("btn-curriculo-copiar").addEventListener("click", function () {
-  const texto = document.getElementById("curriculos-texto").value;
+  const texto = _obterTextoCurriculo();
   if (!texto) return;
   navigator.clipboard.writeText(texto).then(() => {
     this.textContent = "Copiado ✓";
@@ -330,7 +347,7 @@ document.getElementById("btn-curriculo-copiar").addEventListener("click", functi
 });
 
 document.getElementById("btn-curriculo-pdf").addEventListener("click", function () {
-  const texto = document.getElementById("curriculos-texto").value;
+  const texto = _obterTextoCurriculo();
   if (!texto) return;
 
   const titulo = _curriculoVagaTitulo ? "Currículo — " + _curriculoVagaTitulo : "Currículo";
@@ -373,6 +390,10 @@ document.getElementById("btn-curriculo-pdf").addEventListener("click", function 
 });
 
 document.getElementById("btn-curriculo-regerar").addEventListener("click", _gerarCurriculo);
+
+document.getElementById("btn-ver-entrevista").addEventListener("click", function () {
+  _mostrarEstadoCurriculo("chat");
+});
 
 /* ----------------------------------------------------------
    ESTADO INICIAL

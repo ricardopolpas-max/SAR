@@ -470,6 +470,11 @@
         <span class="page-titulo">Currículos</span>
       </div>
 
+      <!-- Aviso não-bloqueante: vaga indisponível na plataforma -->
+      <div id="curriculos-aviso-indisponivel" class="aviso-indisponivel hidden">
+        ⚠️ Esta vaga pode não estar mais disponível na plataforma de origem. Você pode continuar a preparação normalmente — o currículo gerado continuará sendo seu ativo.
+      </div>
+
       <!-- Estado 1: vazio — instrução inicial -->
       <div id="curriculos-vazio" class="content-scroll">
         <div class="estado-container">
@@ -562,10 +567,11 @@
               <button id="btn-curriculo-regerar" class="btn btn-ghost">Gerar novamente</button>
             </div>
           </div>
-          <div style="font-size:var(--fonte-sm);color:#22c55e;margin-bottom:var(--esp-md);">
-            ✓ Salvo automaticamente no seu perfil como documento reutilizável
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:var(--esp-sm);margin-bottom:var(--esp-md);">
+            <span style="font-size:var(--fonte-sm);color:#22c55e;">✓ Salvo automaticamente no seu perfil como documento reutilizável</span>
+            <button id="btn-ver-entrevista" class="btn btn-ghost" style="font-size:var(--fonte-sm);">↩ Ver entrevista</button>
           </div>
-          <div id="curriculos-texto-display" class="curriculo-display"></div>
+          <div id="curriculos-texto-display" class="curriculo-display" contenteditable="true" spellcheck="false"></div>
           <textarea id="curriculos-texto" style="display:none;"></textarea>
         </div>
       </div>

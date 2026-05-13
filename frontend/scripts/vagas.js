@@ -432,6 +432,25 @@ function _fecharModal() {
   document.body.style.overflow = "";
 }
 
+function _prepararCandidatura(id) {
+  const v = _todasVagas.find(x => x.id === id);
+  if (!v) return;
+
+  document.querySelector('[data-secao="curriculos"]').click();
+
+  if (!v.disponivel_plataforma) {
+    const aviso = document.getElementById("curriculos-aviso-indisponivel");
+    if (aviso) aviso.classList.remove("hidden");
+  } else {
+    const aviso = document.getElementById("curriculos-aviso-indisponivel");
+    if (aviso) aviso.classList.add("hidden");
+  }
+
+  if (typeof iniciarGeracaoCurriculo === "function") {
+    iniciarGeracaoCurriculo(id, v.titulo, v.empresa);
+  }
+}
+
 function _inicializarModal() {
   document.getElementById("modal-fechar").addEventListener("click", _fecharModal);
   document.getElementById("modal-vaga").addEventListener("click", function (e) {
@@ -450,22 +469,14 @@ function _inicializarModal() {
     const btnPreparar = e.target.closest(".btn-preparar");
     if (btnPreparar) {
       const id = parseInt(btnPreparar.dataset.id);
-      const v  = _todasVagas.find(x => x.id === id);
-      document.querySelector('[data-secao="curriculos"]').click();
-      if (v && typeof iniciarGeracaoCurriculo === "function") {
-        iniciarGeracaoCurriculo(id, v.titulo, v.empresa);
-      }
+      _prepararCandidatura(id);
     }
   });
 
   document.getElementById("modal-preparar").addEventListener("click", function () {
     const id = _vagaModalId;
-    const v  = _todasVagas.find(x => x.id === id);
     _fecharModal();
-    document.querySelector('[data-secao="curriculos"]').click();
-    if (v && typeof iniciarGeracaoCurriculo === "function") {
-      iniciarGeracaoCurriculo(id, v.titulo, v.empresa);
-    }
+    _prepararCandidatura(id);
   });
 
   document.getElementById("modal-score-btn").addEventListener("click", async function () {
