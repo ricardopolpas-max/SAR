@@ -6,6 +6,35 @@ Garante rastreabilidade, legado e prevenção de recorrência de erros.
 
 ---
 
+## 2026-05-13 — Ponto de parada — agenda da próxima sessão
+
+**Implementado hoje (pendente teste físico — NÃO commitar antes de validar):**
+- Restauração do histórico de chat e score ao retornar à seção Currículo Premium
+  - Corrigido double-wrap: `conv.dados.dados.historico` (era `conv.dados.historico`)
+  - Flag `_curriculoGerado` controla estado: entrevista em andamento ≠ currículo já gerado
+  - Botão "← Voltar ao currículo" no chat quando há currículo gerado
+- Editor de texto: `contenteditable="true"` no `div#curriculos-texto-display`
+  - Copiar e PDF leem via `innerText` (refletem edições do candidato)
+  - CSS: cursor `text`, borda azul no foco
+- Aviso não-bloqueante de vaga indisponível (banner amarelo)
+- `_prepararCandidatura()` centraliza lógica dos dois pontos de entrada (card + modal)
+
+**Testes obrigatórios antes de commitar:**
+1. Restauração: sair do sistema, voltar, verificar se histórico e score aparecem corretamente
+2. Editor: gerar currículo, editar o texto, verificar se "Copiar" e "PDF" refletem as edições
+3. Aviso: clicar "Preparar" em vaga com `disponivel_plataforma = 0` e verificar banner
+
+**Agenda da próxima sessão — executar nesta ordem:**
+1. Validar os testes acima e commitar
+2. Prompts agnósticos — `_PROMPT_RECRUTADOR` e `_PROMPT_CURRICULO` sem referência a área jurídica
+3. Tom adaptativo — Recrutador identifica perfil (sênior / jovem aprendiz) e ajusta linguagem e perguntas
+4. Carta de apresentação — gerada pela IA junto com o currículo, personalizada para a vaga
+5. Pacote ZIP — currículo PDF + carta + documentos apensos, salvo no Desktop
+6. Link externo (DA-03) — botão "Candidatar-me" liberado após pacote gerado
+7. Certificação end-to-end — teste completo do fluxo importação → entrevista → score 75% → geração → edição → PDF → candidatura
+
+---
+
 ## 2026-05-11 — Motor 4 Blocos 3–6: Entrevista IA, Score, Currículo Premium, Restauração de Sessão (Implementado)
 
 **Ações:**
