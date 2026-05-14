@@ -80,16 +80,45 @@ Cada pasta tem responsabilidade única e exclusiva. Nenhum arquivo deve residir 
 - **Paths proibidos:** É terminantemente proibido usar paths relativos para dados críticos (banco, certificados, uploads). Todo path deve ser resolvido via variável de ambiente (`os.environ["APPDATA"]`) ou constante absoluta definida em `genericas.py`.
 - **Sem duplicidade:** O sistema opera com um único arquivo de banco. A existência de múltiplos arquivos `.db` é falha arquitetural grave que compromete integridade dos dados.
 
-## 4. Segurança e Certificação SSL
+## 4. Controle de Repositório — Regra Pétrea
 
-### 4.1 Proibições — Regras Invioláveis
+**Somente arquivos estritamente necessários ao funcionamento do sistema são versionados no repositório git.**
+
+### 4.1 O que PODE ir ao repositório
+- Código-fonte do sistema (`backend/`, `frontend/`, `integracao/`)
+- Documentação do projeto (`documentacao/`)
+- Configurações de ambiente genéricas (`.gitignore`, `dependencias.txt`)
+- Certificado SSL público (`certificado/publico/sar.crt`)
+- Scripts de inicialização (`iniciar_servidor.bat`, `finalizar_servidor.bat`)
+
+### 4.2 O que NUNCA vai ao repositório — proibição absoluta
+- **Dados pessoais** de qualquer pessoa — currículos, documentos, certificados, fotografias
+- **Arquivos gerados em runtime** — currículos premium gerados, uploads de candidatos (`apoio/uploads/`)
+- **Credenciais e segredos** — `.env`, chave privada SSL (`sar.key`), tokens de API, senhas
+- **Arquivos de processo** — `sar.pid`, `datetime` e similares gerados em execução
+- **Banco de dados** — `*.db`, `*.sqlite` (a Verdade Absoluta nunca sai da máquina local)
+
+### 4.3 Verificação obrigatória antes de todo commit
+Antes de qualquer `git add` ou `git commit`, verificar:
+1. Nenhum arquivo de `apoio/uploads/` está staged
+2. Nenhum `.env` ou chave privada está staged
+3. Nenhum `.db` ou `.sqlite` está staged
+4. Nenhum arquivo com dado pessoal identificável está staged
+
+**Em caso de dúvida sobre se um arquivo deve ou não ir ao repositório — não commitar e consultar.**
+
+---
+
+## 5. Segurança e Certificação SSL
+
+### 5.1 Proibições — Regras Invioláveis
 - **É terminantemente proibido** iniciar o servidor sem certificado SSL ativo.
 - **É terminantemente proibido** expor qualquer rota da API em protocolo `http://` em qualquer ambiente.
 - **É terminantemente proibido** commitar a chave privada (`sar.key`), o arquivo `.env` ou o arquivo `sar.pid` no repositório.
 - **É terminantemente proibido** compartilhar ou transmitir a chave privada por qualquer meio (e-mail, chat, repositório, nuvem).
 - **É terminantemente proibido** iniciar o servidor diretamente pelo Uvicorn — o ponto de entrada obrigatório é sempre o `servidor.py`.
 
-### 4.2 Localização dos Certificados
+### 5.2 Localização dos Certificados
 ```
 certificado/
   publico/
@@ -98,7 +127,7 @@ certificado/
     sar.key       → chave privada (NUNCA vai ao git — protegida no .gitignore)
 ```
 
-### 4.3 Variáveis de Ambiente
+### 5.3 Variáveis de Ambiente
 Caminhos referenciados exclusivamente via `.env` na raiz do projeto:
 ```
 SSL_CERTFILE=certificado/publico/sar.crt
@@ -107,7 +136,7 @@ HOST=127.0.0.1
 PORT=8000
 ```
 
-### 4.4 Inicialização Obrigatória do Servidor
+### 5.4 Inicialização Obrigatória do Servidor
 O servidor é sempre iniciado pelo orquestrador `servidor.py`, que lê o `.env` e configura SSL automaticamente:
 ```bash
 cd backend
@@ -115,12 +144,12 @@ python servidor.py
 ```
 Nunca iniciar com Uvicorn diretamente na linha de comando.
 
-### 4.5 Renovação do Certificado
+### 5.5 Renovação do Certificado
 - Certificado atual expira em **27/07/2028**.
 - Ao renovar: executar `mkcert` nas mesmas pastas e reiniciar o servidor.
 - Em máquina nova: executar `mkcert -install` para registrar a CA local no sistema antes de gerar o certificado.
 
-## 5. Protocolo de Qualidade
+## 6. Protocolo de Qualidade
 
 Fluxo obrigatório para toda e qualquer entrega. Nenhuma etapa pode ser pulada.
 
