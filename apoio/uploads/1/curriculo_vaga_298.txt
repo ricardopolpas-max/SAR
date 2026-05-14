@@ -1,0 +1,25 @@
+DADOS PESSOAIS
+Nome: Ricardo Alisson Dantas Macedo
+Localização: Campina Grande, PB
+
+OBJETIVO PROFISSIONAL
+Busco uma oportunidade como Desenvolvedor Front-End (Vue.js) onde possa aplicar minhas habilidades em desenvolvimento de sistemas e organização de dados, com foco em integridade, rastreabilidade e confiabilidade, e contribuir para a construção de interfaces modernas e eficientes.
+
+FORMAÇÃO
+Bacharelado em Direito — UNINASSAU (graduação em progresso)
+Programador Delphi — Senai (técnico)
+
+EXPERIÊNCIA
+Funcionário Público em Governo da Paraíba (atual)
+  Atuação em ambiente institucional com foco em organização e processos administrativos.
+Empresário em Distribuidora própria até 2018-12-31
+  Gestão completa do negócio, incluindo operações, logística e decisões estratégicas.
+
+HABILIDADES
+Python, Delphi, MySQL, Firebird, WebSocket, APIs, Arquitetura modular, Sistemas distribuídos, Controle de acesso (ACL), Criptografia (Bcrypt), Auditoria e logs, Capacidade analítica, Visão estratégica, Gestão, JavaScript, HTML/CSS, SQLite, Integração com IA/Gemini, REST APIs
+
+IDIOMAS
+Não informado
+
+CERTIFICAÇÕES
+Não informado

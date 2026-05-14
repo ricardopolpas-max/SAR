@@ -67,8 +67,7 @@
 ├── .env                         ← variáveis de ambiente (nunca no git) ✅
 ├── sar.pid                      ← PID do processo ativo (nunca no git) ✅
 ├── .gitignore                   ✅
-├── dependencias.txt             ✅
-└── .devcontainer/               ✅
+└── dependencias.txt             ✅
 ```
 
 ---

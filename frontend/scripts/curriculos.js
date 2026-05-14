@@ -7,6 +7,7 @@
 let _curriculoVagaId     = null;
 let _curriculoVagaTitulo  = "";
 let _curriculoVagaEmpresa = "";
+let _curriculoGerado      = false; // true após geração bem-sucedida; false ao iniciar nova entrevista
 
 const _VAZIO_HTML_ORIGINAL = document.getElementById("curriculos-vazio").innerHTML;
 
@@ -129,6 +130,7 @@ async function _iniciarChat() {
   document.getElementById("chat-vaga-empresa").textContent = _curriculoVagaEmpresa;
   document.getElementById("chat-mensagens").innerHTML      = "";
   document.getElementById("chat-input").value              = "";
+  _curriculoGerado = false;
   _atualizarScore(0);
   _mostrarEstadoCurriculo("chat");
 
@@ -207,6 +209,7 @@ async function _gerarCurriculo() {
   document.getElementById("curriculos-vaga-info").textContent  = info;
   document.getElementById("curriculos-texto").value            = textoCurriculo;
   document.getElementById("curriculos-texto-display").textContent = textoCurriculo;
+  _curriculoGerado = true;
   _mostrarEstadoCurriculo("resultado");
 }
 
@@ -237,11 +240,13 @@ async function _restaurarUltimoCurriculo() {
   // Restaura histórico do chat e score em background
   if (_curriculoVagaId) {
     const conv = await SarAPI.vagas.carregarConversa(_curriculoVagaId);
-    if (conv.ok && conv.dados && conv.dados.historico && conv.dados.historico.length) {
-      _renderizarHistorico(conv.dados.historico);
-      _atualizarScore(conv.dados.score_estimado || 0);
+    const convDados = conv.ok && conv.dados && conv.dados.dados; // double-wrap: _requisitar envolve a resposta
+    if (convDados && convDados.historico && convDados.historico.length) {
+      _renderizarHistorico(convDados.historico);
+      _atualizarScore(convDados.score_estimado || 0);
     }
   }
+  _curriculoGerado = true;
 
   _mostrarEstadoCurriculo("resultado");
   return true;
@@ -257,9 +262,16 @@ function iniciarGeracaoCurriculo(vagaId, vagaTitulo, vagaEmpresa) {
   _iniciarChat();
 }
 
-/* Chamada quando o usuário navega para a seção sem ter selecionado vaga */
+/* Chamada quando o usuário navega para a seção */
 async function entrarSecaoCurriculos() {
-  if (_curriculoVagaId) return; // já tem vaga ativa, não interfere
+  // Entrevista em andamento (sem currículo gerado ainda) — não interfere
+  if (_curriculoVagaId && !_curriculoGerado) return;
+  // Currículo já gerado nesta sessão — só re-exibe resultado
+  if (_curriculoGerado) {
+    _mostrarEstadoCurriculo("resultado");
+    return;
+  }
+  // Primeira entrada ou nova sessão — tenta restaurar do backend
   const restaurado = await _restaurarUltimoCurriculo();
   if (!restaurado) _mostrarEstadoCurriculo("vazio");
 }
@@ -392,7 +404,12 @@ document.getElementById("btn-curriculo-pdf").addEventListener("click", function 
 document.getElementById("btn-curriculo-regerar").addEventListener("click", _gerarCurriculo);
 
 document.getElementById("btn-ver-entrevista").addEventListener("click", function () {
+  document.getElementById("btn-chat-voltar-curriculo").classList.remove("hidden");
   _mostrarEstadoCurriculo("chat");
+});
+
+document.getElementById("btn-chat-voltar-curriculo").addEventListener("click", function () {
+  _mostrarEstadoCurriculo("resultado");
 });
 
 /* ----------------------------------------------------------

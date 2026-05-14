@@ -139,7 +139,6 @@ Garante rastreabilidade, legado e prevenção de recorrência de erros.
 **Ações:**
 - Inicialização do repositório git local e sincronização com `github.com/ricardopolpas-max/SAR`
 - Instalação do Python 3.12 e dependências na máquina (pós-formatação)
-- Criação do `.devcontainer/devcontainer.json` para GitHub Codespaces
 - Criação do `.gitignore` protegendo banco de dados, `.env` e chave privada
 
 **Bugs corrigidos:**
@@ -209,7 +208,6 @@ Garante rastreabilidade, legado e prevenção de recorrência de erros.
 - Adicionada rota `GET /favicon.ico` retornando SVG inline (elimina 404)
 - Atualizado `SAR.html` com caminhos absolutos compatíveis com FastAPI
 - Governança Seções 2–5 corrigidas e atualizadas
-- `.devcontainer/devcontainer.json` atualizado para usar `dependencias.txt`
 
 **Bugs corrigidos:**
 - `reload=True` no `uvicorn.run()` → removido (incompatível com SSL no Windows, SSL não era aplicado)

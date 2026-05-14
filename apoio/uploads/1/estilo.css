@@ -1,0 +1,131 @@
+/* frontend/css/estilo.css */
+/* Reset e base - ajuste para tela de login limpa e profissional */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --btn-active-bg: #2563eb;
+    --btn-active-hover-bg: #1d4ed8;
+    --btn-active-text: #ffffff;
+    --btn-inactive-bg: #cbd5e1;
+    --btn-inactive-text: #64748b;
+}
+
+body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background-color: #f0f2f5;
+    /* Remove altura forçada, deixa o conteúdo ditar o tamanho */
+    min-height: 0;
+    height: auto;
+    display: block;  /* Remove flex desnecessário do body */
+}
+
+/* Container principal - usado APENAS para carregar as telas */
+#container-principal {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;   /* Centraliza horizontalmente */
+    padding: 0;       /* Remove padding extra */
+    display: block;
+}
+
+/* --- ESTILOS ESPECÍFICOS PARA TELA DE LOGIN --- */
+/* A classe .login-container é adicionada ao div que envolve o formulário no login.html */
+.login-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;      /* Centraliza horizontalmente */
+    justify-content: flex-start; /* Alinha ao topo */
+    width: 100%;
+    padding-top: 60px;        /* Espaçamento do topo (ajustável) */
+}
+
+/* Card do formulário */
+.login-card {
+    width: 100%;
+    max-width: 400px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    padding: 30px;
+}
+
+.login-card h2 {
+    text-align: center;
+    margin-bottom: 24px;
+    color: #2c3e50;
+    font-weight: 500;
+    font-size: 1.8rem;
+}
+
+.login-card label {
+    display: block;
+    margin-bottom: 6px;
+    color: #34495e;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.login-card input {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #dcdcdc;
+    border-radius: 6px;
+    font-size: 16px;
+    transition: border 0.2s;
+}
+
+.login-card input:focus {
+    border-color: #3498db;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(52,152,219,0.2);
+}
+
+.login-card button {
+    width: 100%;
+    padding: 12px;
+    background: var(--btn-active-bg);
+    color: var(--btn-active-text);
+    border: none;
+    border-radius: 6px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+    margin-top: 8px;
+}
+
+.login-card button:hover {
+    background: var(--btn-active-hover-bg);
+}
+
+.login-card button:disabled {
+    background: var(--btn-inactive-bg);
+    color: var(--btn-inactive-text);
+    cursor: not-allowed;
+}
+
+/* Mensagem de feedback */
+#mensagem-primeiro-acesso {
+    margin-top: 20px;
+    text-align: center;
+    font-size: 14px;
+    min-height: 20px;
+}
+
+/* --- ESTILOS PARA DEMAIS TELAS (DASHBOARD, CADASTROS) --- */
+/* Painéis e rodapé - já existem, mantemos como estão */
+#painel-superior, #painel-lateral, #rodape-status {
+    /* Estilos atuais permanecem */
+    /* Não alteramos aqui para não impactar outras telas */
+}
+
+/* Ajuste fino: remove scroll desnecessário no body */
+html, body {
+    overflow-x: hidden;
+    overflow-y: auto;  /* Scroll só aparece se necessário */
+}
