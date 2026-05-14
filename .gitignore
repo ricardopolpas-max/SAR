@@ -30,3 +30,9 @@ Thumbs.db
 
 # Processo
 sar.pid
+
+# Uploads de candidatos — dados pessoais, nunca no repositório
+apoio/uploads/
+
+# Arquivo de data/hora gerado pelo sistema
+datetime
