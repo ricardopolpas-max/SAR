@@ -389,11 +389,20 @@ document.getElementById("btn-curriculo-pdf").addEventListener("click", function 
     "text-align:left}" +
     "p{margin:0.15em 0;text-align:justify}" +
     "br{display:block;margin:0.5em 0}" +
+    ".aviso-impressao{background:#fef9c3;border:1px solid #fde047;border-radius:6px;" +
+    "padding:10px 16px;margin-bottom:20px;font-family:Arial,sans-serif;font-size:11pt;color:#713f12;}" +
+    ".aviso-impressao strong{display:block;margin-bottom:4px;}" +
+    "@media print{.aviso-impressao{display:none}}" +
     "@media print{" +
     "html,body{margin:0;padding:0}" +
     "body{padding:0}" +
     "}" +
     "</style></head><body>" +
+    "<div class='aviso-impressao'>" +
+    "<strong>⚙️ Antes de imprimir:</strong>" +
+    "No diálogo de impressão, desmarque a opção <strong>\"Cabeçalhos e rodapés\"</strong> " +
+    "(ou <strong>\"Headers and footers\"</strong>) para um PDF limpo sem data e URL." +
+    "</div>" +
     linhas +
     "<script>window.onload=function(){window.print()}<\/script>" +
     "</body></html>"

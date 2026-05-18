@@ -83,9 +83,9 @@ def extrair_texto_docx(conteudo: bytes) -> str:
     return "\n".join(p.text for p in doc.paragraphs if p.text.strip())
 
 
-_PROMPT_CURRICULO = """Você é um especialista sênior em recrutamento brasileiro e redação estratégica de currículos.
-Sua missão é produzir um currículo PREMIUM, altamente personalizado para a vaga abaixo,
-seguindo rigorosamente o padrão ABNT NBR 9050 adaptado ao mercado de trabalho brasileiro.
+_PROMPT_CURRICULO = """Você é um especialista sênior em recrutamento brasileiro e redação estratégica de currículos, com domínio em todas as áreas de atuação profissional.
+Sua missão é produzir um currículo PREMIUM, altamente personalizado para a vaga abaixo, destacando exclusivamente as competências, experiências e diferenciais que impactam diretamente essa candidatura — independente da área de formação do candidato.
+Siga rigorosamente o padrão ABNT NBR 9050 adaptado ao mercado de trabalho brasileiro.
 
 DIRETRIZ PRINCIPAL: Este não é um exercício de transcrição. Você deve ANALISAR, SELECIONAR e TRANSFORMAR
 estrategicamente as informações, apresentando o candidato da forma mais competitiva possível para ESTA vaga.
@@ -103,18 +103,27 @@ ESTRATÉGIAS OBRIGATÓRIAS:
 - DOCUMENTOS: Se o candidato enviou arquivos complementares, use o conteúdo para fortalecer com evidências
 
 FORMATAÇÃO ABNT OBRIGATÓRIA — siga EXATAMENTE este modelo:
-- Cabeçalho: NOME COMPLETO EM MAIÚSCULO (sem cargo, sem data, sem foto)
-- Linha de contato: telefone | e-mail | cidade, UF (apenas o que estiver disponível)
-- Cada seção com título em MAIÚSCULAS e sublinhado com traços (ex: FORMAÇÃO ACADÊMICA)
-- Experiências: cargo em negrito textual (sem asterisco), seguido de nome da empresa e período no formato Mês/AAAA – Mês/AAAA (ou "atual")
-- Datas APENAS dentro de cada item de experiência/formação, NUNCA nos cabeçalhos de seção
+
+Linha 1: NOME COMPLETO EM MAIÚSCULO
+Linha 2: cidade, UF | telefone | e-mail (apenas os dados disponíveis, separados por |)
+Linha 3: em branco
+Linha 4: NOME DA SEÇÃO (ex: OBJETIVO PROFISSIONAL)
+Linha 5: texto da seção
+
+REGRAS DE FORMATAÇÃO — cada uma é inviolável:
+- Títulos de seção: apenas texto em MAIÚSCULAS, sem qualquer caractere decorativo antes ou depois
+- PROIBIDO usar traços ou hifens como separadores de seção (---------------) — o título em maiúsculo já delimita
+- Cargos e empresas: escreva o nome diretamente, sem nenhum asterisco
+  CORRETO:   Funcionário Público – Governo da Paraíba
+  ERRADO:    **Funcionário Público** – Governo da Paraíba
+- Datas no formato Mês/AAAA – Mês/AAAA (ou "atual"), apenas dentro de cada item
 - Bullet points com hífen (-) para responsabilidades e habilidades
 - Uma linha em branco entre seções
-- Linguagem objetiva, sem adjetivos vazios (não use "dinâmico", "proativo", "dedicado")
-- NÃO inclua CPF, RG, endereço completo, foto, idade ou estado civil
-- NÃO use markdown (sem **, sem ##, sem *)
-- NÃO inclua data de geração, rodapé ou cabeçalho com data
-- Retorne APENAS o texto puro do currículo, começando pelo nome do candidato
+- Linguagem objetiva, sem adjetivos vazios ("dinâmico", "proativo", "dedicado" são proibidos)
+- PROIBIDO: **, *, ##, _sublinhado_, ~~tachado~~ ou qualquer outra sintaxe markdown
+- PROIBIDO: CPF, RG, endereço completo, foto, idade, estado civil
+- PROIBIDO: data de geração, rodapé, cabeçalho com data ou hora
+- Retorne APENAS o texto puro do currículo, começando pelo nome do candidato — nada mais
 
 ESTRUTURA DAS SEÇÕES (nesta ordem, inclua apenas as que tiverem dados):
 DADOS DE CONTATO → OBJETIVO PROFISSIONAL → FORMAÇÃO ACADÊMICA → EXPERIÊNCIA PROFISSIONAL → HABILIDADES → IDIOMAS → CERTIFICAÇÕES E CURSOS
@@ -130,8 +139,8 @@ INFORMAÇÕES ADICIONAIS DA ENTREVISTA (use se disponíveis):
 {historico}
 """
 
-_PROMPT_SCORE = """Você é um especialista em recrutamento jurídico brasileiro.
-Analise a compatibilidade entre o candidato e a vaga abaixo.
+_PROMPT_SCORE = """Você é um especialista sênior em recrutamento brasileiro, com domínio em todas as áreas de atuação profissional.
+Analise a compatibilidade entre o candidato e a vaga abaixo, avaliando exclusivamente os critérios exigidos pela vaga — considerando que lacunas aparentes no currículo podem ser ausência de informação, não de capacidade.
 Retorne APENAS um JSON válido, sem markdown, sem explicações.
 
 Estrutura esperada:
@@ -186,8 +195,8 @@ def gerar_curriculo_com_ia(titulo: str, descricao: str, perfil: str, historico: 
     return gerar_conteudo(prompt)
 
 
-_PROMPT_RECRUTADOR = """Você é um recrutador especializado em Direito brasileiro, conduzindo uma entrevista estruturada.
-Seu objetivo é conhecer o candidato profundamente para a vaga abaixo, identificando e preenchendo lacunas do currículo.
+_PROMPT_RECRUTADOR = """Você é um recrutador sênior brasileiro, especialista na área exigida pela vaga abaixo, conduzindo uma entrevista estruturada.
+Seu objetivo é avaliar com precisão a aderência do candidato à vaga, aprofundando especificamente nos requisitos que o currículo atual aponta como lacunas — orientando o candidato a esclarecer se possui elementos adicionais pertinentes (competências técnicas, experiências relevantes, arquivos complementares ou diferenciais competitivos) que ainda não constam no perfil. A premissa é que uma lacuna pode ser ausência de informação, não de capacidade. Preencha apenas o que impacta diretamente essa candidatura.
 
 INSTRUÇÕES:
 - Faça APENAS UMA pergunta por vez — seja objetivo, profissional e cordial

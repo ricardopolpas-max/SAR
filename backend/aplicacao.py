@@ -875,31 +875,37 @@ async def importar_curriculo(
         perfil_dados["id_candidato"] = id_candidato
         db_inserir("perfil_candidato", perfil_dados)
 
-    # Substitui dados filhos — limpa e reinsere
-    with _obter_conexao() as conn:
-        for tabela in ["experiencias", "formacoes", "habilidades", "idiomas", "certificacoes"]:
-            conn.execute(f"DELETE FROM {tabela} WHERE id_candidato = ?", (id_candidato,))
-        conn.commit()
+    # Merge incremental — insere apenas registros novos, preserva os existentes
+    existentes_exp  = {(r["cargo"], r["empresa"]) for r in db_selecionar("experiencias",  condicao={"id_candidato": id_candidato}) or []}
+    existentes_form = {(r["curso"], r["instituicao"]) for r in db_selecionar("formacoes",  condicao={"id_candidato": id_candidato}) or []}
+    existentes_hab  = {r["nome"] for r in db_selecionar("habilidades",   condicao={"id_candidato": id_candidato}) or []}
+    existentes_idm  = {r["nome"] for r in db_selecionar("idiomas",       condicao={"id_candidato": id_candidato}) or []}
+    existentes_cert = {r["nome"] for r in db_selecionar("certificacoes", condicao={"id_candidato": id_candidato}) or []}
 
     for exp in dados.get("experiencias") or []:
-        exp["id_candidato"] = id_candidato
-        db_inserir("experiencias", exp)
+        if (exp.get("cargo"), exp.get("empresa")) not in existentes_exp:
+            exp["id_candidato"] = id_candidato
+            db_inserir("experiencias", exp)
 
     for form in dados.get("formacoes") or []:
-        form["id_candidato"] = id_candidato
-        db_inserir("formacoes", form)
+        if (form.get("curso"), form.get("instituicao")) not in existentes_form:
+            form["id_candidato"] = id_candidato
+            db_inserir("formacoes", form)
 
     for hab in dados.get("habilidades") or []:
-        hab["id_candidato"] = id_candidato
-        db_inserir("habilidades", hab)
+        if hab.get("nome") not in existentes_hab:
+            hab["id_candidato"] = id_candidato
+            db_inserir("habilidades", hab)
 
     for idm in dados.get("idiomas") or []:
-        idm["id_candidato"] = id_candidato
-        db_inserir("idiomas", idm)
+        if idm.get("nome") not in existentes_idm:
+            idm["id_candidato"] = id_candidato
+            db_inserir("idiomas", idm)
 
     for cert in dados.get("certificacoes") or []:
-        cert["id_candidato"] = id_candidato
-        db_inserir("certificacoes", cert)
+        if cert.get("nome") not in existentes_cert:
+            cert["id_candidato"] = id_candidato
+            db_inserir("certificacoes", cert)
 
     # Upsert contatos
     contatos = dados.get("contatos") or {}
@@ -1031,31 +1037,8 @@ def _montar_perfil_texto(id_candidato: int) -> str:
 
 
 def _obter_base_perfil(id_candidato: int) -> str:
-    """Combina todos os currículos premium gerados pelo candidato como base de contexto.
-    Cada currículo representa uma faceta do perfil multidisciplinar.
-    Se nenhum existir, usa o perfil estruturado extraído do currículo importado."""
-    docs = db_selecionar("documentos", condicao={"id_candidato": id_candidato}) or []
-    gerados = sorted(
-        [d for d in docs if d.get("tipo") == "curriculo_gerado"],
-        key=lambda d: d.get("id", 0),
-    )
-    secoes = []
-    for doc in gerados:
-        caminho = doc.get("caminho_disco", "")
-        try:
-            with open(caminho, "r", encoding="utf-8") as f:
-                conteudo = f.read().strip()
-            if conteudo:
-                descricao = doc.get("descricao") or f"Currículo #{doc.get('id', '')}"
-                secoes.append(f"=== {descricao} ===\n{conteudo}")
-        except Exception:
-            pass
-    if secoes:
-        return (
-            "CURRÍCULOS PREMIUM DO CANDIDATO (perfil multidisciplinar completo — "
-            "use o conjunto para conhecer toda a trajetória do candidato):\n\n"
-            + "\n\n".join(secoes)
-        )
+    """Base de análise é sempre o perfil estruturado do banco (fonte de verdade).
+    Currículos premium gerados são produto final — nunca fonte de análise."""
     return _montar_perfil_texto(id_candidato)
 
 
