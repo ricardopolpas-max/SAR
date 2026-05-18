@@ -451,12 +451,15 @@
             <div id="lista-documentos"></div>
           </div>
 
-          <!-- Reimportar -->
-          <div class="perfil-bloco" style="text-align:center;">
-            <input type="file" id="input-reimportar" accept=".pdf,.docx" style="display:none">
-            <button id="btn-reimportar" class="btn btn-ghost">↻ Reimportar currículo</button>
-            <p style="font-size:var(--fonte-sm);color:var(--texto-sec);margin-top:var(--esp-sm);">Substituirá todos os dados do perfil atual</p>
+          <!-- Ações do perfil -->
+          <div class="perfil-bloco" style="text-align:center; display:flex; gap:var(--esp-md); justify-content:center; flex-wrap:wrap; align-items:center;">
+            <button id="btn-salvar-perfil" class="btn btn-primario">💾 Salvar alterações</button>
+            <input type="file" id="input-adicionar-curriculo" accept=".pdf,.docx" style="display:none">
+            <button id="btn-adicionar-curriculo" class="btn btn-ghost">📄 Adicionar currículo</button>
           </div>
+          <p style="font-size:var(--fonte-sm);color:var(--texto-sec);margin-top:var(--esp-sm);text-align:center;">
+            Novos currículos complementam o perfil existente sem substituir dados já cadastrados
+          </p>
 
         </div>
       </div>
@@ -633,11 +636,11 @@
             </div>
             <div class="academico-item">
               <span class="academico-label">Professora da Disciplina</span>
-              <span class="academico-valor academico-placeholder">A confirmar</span>
+              <span class="academico-valor">Waleria Medeiros Lima</span>
             </div>
             <div class="academico-item">
               <span class="academico-label">Coordenadora do Curso</span>
-              <span class="academico-valor academico-placeholder">A confirmar</span>
+              <span class="academico-valor">Waleria Medeiros Lima</span>
             </div>
           </div>
         </div>
@@ -648,62 +651,52 @@
           <div class="equipe-grid">
             <div class="equipe-card">
               <div class="equipe-avatar">01</div>
-              <div class="equipe-nome">Integrante 01</div>
+              <div class="equipe-nome">Décio Geovânio da Silva Filho</div>
               <div class="equipe-funcao">Estudante de Direito</div>
             </div>
             <div class="equipe-card">
               <div class="equipe-avatar">02</div>
-              <div class="equipe-nome">Integrante 02</div>
+              <div class="equipe-nome">Erinalda Vitoria de Sousa</div>
               <div class="equipe-funcao">Estudante de Direito</div>
             </div>
             <div class="equipe-card">
               <div class="equipe-avatar">03</div>
-              <div class="equipe-nome">Integrante 03</div>
+              <div class="equipe-nome">Gustavo Pereira da Silva</div>
               <div class="equipe-funcao">Estudante de Direito</div>
             </div>
             <div class="equipe-card">
               <div class="equipe-avatar">04</div>
-              <div class="equipe-nome">Integrante 04</div>
+              <div class="equipe-nome">Jacqueline Costa de Oliveira</div>
               <div class="equipe-funcao">Estudante de Direito</div>
             </div>
             <div class="equipe-card">
               <div class="equipe-avatar">05</div>
-              <div class="equipe-nome">Integrante 05</div>
+              <div class="equipe-nome">José Daniel Bezerra Henrique</div>
               <div class="equipe-funcao">Estudante de Direito</div>
             </div>
             <div class="equipe-card">
               <div class="equipe-avatar">06</div>
-              <div class="equipe-nome">Integrante 06</div>
+              <div class="equipe-nome">Junior Cezar da Silva</div>
               <div class="equipe-funcao">Estudante de Direito</div>
             </div>
             <div class="equipe-card">
               <div class="equipe-avatar">07</div>
-              <div class="equipe-nome">Integrante 07</div>
+              <div class="equipe-nome">Maria Menina Feliciano do Nascimento</div>
               <div class="equipe-funcao">Estudante de Direito</div>
             </div>
             <div class="equipe-card">
               <div class="equipe-avatar">08</div>
-              <div class="equipe-nome">Integrante 08</div>
+              <div class="equipe-nome">Mário Ferreira Costa Júnior</div>
               <div class="equipe-funcao">Estudante de Direito</div>
             </div>
             <div class="equipe-card">
               <div class="equipe-avatar">09</div>
-              <div class="equipe-nome">Integrante 09</div>
+              <div class="equipe-nome">Ricardo Alisson Dantas Macedo</div>
               <div class="equipe-funcao">Estudante de Direito</div>
             </div>
             <div class="equipe-card">
               <div class="equipe-avatar">10</div>
-              <div class="equipe-nome">Integrante 10</div>
-              <div class="equipe-funcao">Estudante de Direito</div>
-            </div>
-            <div class="equipe-card">
-              <div class="equipe-avatar">11</div>
-              <div class="equipe-nome">Integrante 11</div>
-              <div class="equipe-funcao">Estudante de Direito</div>
-            </div>
-            <div class="equipe-card">
-              <div class="equipe-avatar">12</div>
-              <div class="equipe-nome">Integrante 12</div>
+              <div class="equipe-nome">Ricardo Alexandre Matias Bezerra</div>
               <div class="equipe-funcao">Estudante de Direito</div>
             </div>
           </div>
@@ -712,17 +705,17 @@
         <!-- Card do Desenvolvedor -->
         <div class="dev-footer">
           <div class="dev-card">
-            <div class="dev-avatar">RP</div>
+            <div class="dev-avatar">RA</div>
             <div class="dev-info">
-              <div class="dev-nome">Ricardo Polpas</div>
+              <div class="dev-nome">Ricardo Alisson Dantas Macedo</div>
               <div class="dev-cargo">Desenvolvedor Full-Stack</div>
               <p class="dev-descricao">
                 Especialista em sistemas web, automação e integração de inteligência artificial.
                 Disponível para novos projetos e oportunidades de colaboração.
               </p>
               <div class="dev-links">
-                <a href="#" target="_blank" class="dev-link">💼 LinkedIn</a>
-                <a href="#" target="_blank" class="dev-link">💻 GitHub</a>
+                <a href="https://www.linkedin.com/in/ricardo-alisson-macedo" target="_blank" class="dev-link">💼 LinkedIn</a>
+                <a href="https://github.com/ricardopolpas-max" target="_blank" class="dev-link">💻 GitHub</a>
                 <a href="mailto:ricardopolpas@gmail.com" class="dev-link">✉️ E-mail</a>
               </div>
             </div>

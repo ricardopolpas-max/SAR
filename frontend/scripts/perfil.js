@@ -452,15 +452,22 @@ document.addEventListener("change", async (e) => {
   }
 });
 
-document.getElementById("btn-reimportar").addEventListener("click", () => {
-  document.getElementById("input-reimportar").click();
+document.getElementById("btn-salvar-perfil").addEventListener("click", async () => {
+  const btn = document.getElementById("btn-salvar-perfil");
+  btn.disabled = true;
+  btn.textContent = "Salvando…";
+  await carregarPerfil();
+  btn.textContent = "✓ Salvo";
+  setTimeout(() => { btn.disabled = false; btn.textContent = "💾 Salvar alterações"; }, 2000);
 });
 
-document.getElementById("input-reimportar").addEventListener("change", async (e) => {
+document.getElementById("btn-adicionar-curriculo").addEventListener("click", () => {
+  document.getElementById("input-adicionar-curriculo").click();
+});
+
+document.getElementById("input-adicionar-curriculo").addEventListener("change", async (e) => {
   const arquivo = e.target.files[0];
-  if (arquivo && confirm("Reimportar substituirá todos os dados do perfil atual. Continuar?")) {
-    await _processarImportacao(arquivo);
-  }
+  if (arquivo) await _processarImportacao(arquivo);
   e.target.value = "";
 });
 

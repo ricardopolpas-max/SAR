@@ -32,8 +32,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.mount("/frontend",   StaticFiles(directory=PASTA_FRONTEND),   name="frontend")
-app.mount("/integracao", StaticFiles(directory=PASTA_INTEGRACAO), name="integracao")
+class _SemCache(StaticFiles):
+    async def get_response(self, path, scope):
+        resposta = await super().get_response(path, scope)
+        resposta.headers["Cache-Control"] = "no-store"
+        return resposta
+
+app.mount("/frontend",   _SemCache(directory=PASTA_FRONTEND),   name="frontend")
+app.mount("/integracao", _SemCache(directory=PASTA_INTEGRACAO), name="integracao")
 
 # ------------------------------------------------------------
 # LOOP — suprime ConnectionResetError (ruído Windows/ProactorEventLoop)
