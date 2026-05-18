@@ -36,3 +36,6 @@ apoio/uploads/
 
 # Arquivo de data/hora gerado pelo sistema
 datetime
+
+# Instalação — contém URLs sensíveis, nunca no repositório
+instalacao/instalacao.dat

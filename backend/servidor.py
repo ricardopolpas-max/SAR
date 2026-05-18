@@ -1,21 +1,75 @@
 # backend/servidor.py
 # Orquestrador central do SAR.
 # Ponto de entrada único — nunca iniciar pelo Uvicorn diretamente.
-# Fluxo: porta → .env → api.js → SSL → servidor
+# Fluxo: expiração → instalacao.dat → Drive → .env → api.js → SSL → servidor
 
 import os
 import re
 import sys
 import signal
 import socket
+import tempfile
+import urllib.request
 import uvicorn
+from datetime import date
 from dotenv import load_dotenv, set_key
+
+# ------------------------------------------------------------
+# 0. TRAVA DE EXPIRAÇÃO
+# ------------------------------------------------------------
+if date.today() > date(2026, 6, 30):
+    print("[SAR] Esta versão expirou em 30/06/2026. Contate o desenvolvedor.")
+    sys.exit(1)
+
+# ------------------------------------------------------------
+# 1. LEITURA DO INSTALACAO.DAT — URLs do Drive compartilhado
+# ------------------------------------------------------------
+_APPDATA  = os.environ.get("APPDATA", "")
+_DAT_PATH = os.path.join(_APPDATA, "SAR", "instalacao.dat")
+
+_URL_ENV = ""
+_URL_KEY = ""
+
+if os.path.isfile(_DAT_PATH):
+    with open(_DAT_PATH, "r", encoding="utf-8") as _f:
+        _linhas = [l.strip() for l in _f.readlines() if l.strip()]
+    if len(_linhas) >= 2:
+        _URL_ENV = _linhas[0]
+        _URL_KEY = _linhas[1]
+
+# ------------------------------------------------------------
+# 2. DOWNLOAD EM MEMÓRIA — .env e sar.key do Drive
+# ------------------------------------------------------------
+_ENV_TEMP  = None
+_KEY_TEMP  = None
+
+def _baixar(url: str, sufixo: str) -> str:
+    try:
+        with urllib.request.urlopen(url, timeout=10) as r:
+            conteudo = r.read()
+        fd, caminho = tempfile.mkstemp(suffix=sufixo)
+        with os.fdopen(fd, "wb") as f:
+            f.write(conteudo)
+        return caminho
+    except Exception as e:
+        print(f"[ERRO] Falha ao baixar {sufixo}: {e}")
+        return ""
+
+if _URL_ENV and _URL_KEY:
+    print("[SAR] Carregando configuração remota...")
+    _ENV_TEMP = _baixar(_URL_ENV, ".env")
+    _KEY_TEMP = _baixar(_URL_KEY, ".key")
+    if not _ENV_TEMP or not _KEY_TEMP:
+        print("[BLOQUEIO] Não foi possível acessar a configuração remota.")
+        print("[AÇÃO] Verifique sua conexão com a internet e tente novamente.")
+        sys.exit(1)
+    print("[SAR] Configuração remota carregada.")
 
 # ------------------------------------------------------------
 # CAMINHOS
 # ------------------------------------------------------------
 RAIZ        = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-ENV_PATH    = os.path.join(RAIZ, ".env")
+ENV_PATH    = _ENV_TEMP if _ENV_TEMP else os.path.join(RAIZ, ".env")
 API_JS_PATH = os.path.join(RAIZ, "integracao", "rotas", "api.js")
 PID_PATH    = os.path.join(RAIZ, "sar.pid")
 
@@ -24,7 +78,7 @@ load_dotenv(ENV_PATH)
 HOST          = os.getenv("HOST", "127.0.0.1")
 PORTA_DEFAULT = int(os.getenv("PORTA_DEFAULT", "8000"))
 SSL_CERTFILE  = os.path.join(RAIZ, os.getenv("SSL_CERTFILE", ""))
-SSL_KEYFILE   = os.path.join(RAIZ, os.getenv("SSL_KEYFILE", ""))
+SSL_KEYFILE   = _KEY_TEMP if _KEY_TEMP else os.path.join(RAIZ, os.getenv("SSL_KEYFILE", ""))
 
 # ------------------------------------------------------------
 # 1. CAPTURA DE PORTA INTELIGENTE
@@ -138,3 +192,6 @@ if __name__ == "__main__":
         )
     finally:
         remover_pid()
+        for _tmp in [_ENV_TEMP, _KEY_TEMP]:
+            if _tmp and os.path.isfile(_tmp):
+                os.remove(_tmp)
