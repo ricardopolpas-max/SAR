@@ -9,13 +9,19 @@ import json
 import os
 import shutil
 
+import sys
 from rotinas.genericas import DB_PATH, _obter_conexao, db_selecionar, db_inserir, db_atualizar, db_excluir
 from rotinas.sincronizacao import sincronizar
 from rotinas.autenticacao import (
     hash_senha, verificar_senha, criar_token, validar_token, revogar_token
 )
 
-RAIZ              = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+def _raiz():
+    if getattr(sys, "frozen", False):
+        return sys._MEIPASS
+    return os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+
+RAIZ              = _raiz()
 PASTA_FRONTEND    = os.path.join(RAIZ, "frontend")
 PASTA_INTEGRACAO  = os.path.join(RAIZ, "integracao")
 PASTA_UPLOADS     = os.path.join(RAIZ, "apoio", "uploads")

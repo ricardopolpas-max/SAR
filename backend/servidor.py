@@ -9,10 +9,14 @@ import sys
 import signal
 import socket
 import tempfile
+import threading
+import time
+import webbrowser
 import urllib.request
 import uvicorn
 from datetime import date
 from dotenv import load_dotenv, set_key
+from aplicacao import app
 
 # ------------------------------------------------------------
 # 0. TRAVA DE EXPIRAÇÃO
@@ -68,16 +72,23 @@ if _URL_ENV and _URL_KEY:
 # ------------------------------------------------------------
 # CAMINHOS
 # ------------------------------------------------------------
-RAIZ        = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+_FROZEN = getattr(sys, "frozen", False)
+
+def _raiz():
+    if _FROZEN:
+        return sys._MEIPASS
+    return os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+
+RAIZ        = _raiz()
 ENV_PATH    = _ENV_TEMP if _ENV_TEMP else os.path.join(RAIZ, ".env")
 API_JS_PATH = os.path.join(RAIZ, "integracao", "rotas", "api.js")
-PID_PATH    = os.path.join(RAIZ, "sar.pid")
+PID_PATH    = os.path.join(os.environ.get("APPDATA", ""), "SAR", "sar.pid") if _FROZEN else os.path.join(RAIZ, "sar.pid")
 
 load_dotenv(ENV_PATH)
 
 HOST          = os.getenv("HOST", "127.0.0.1")
 PORTA_DEFAULT = int(os.getenv("PORTA_DEFAULT", "8000"))
-SSL_CERTFILE  = os.path.join(RAIZ, os.getenv("SSL_CERTFILE", ""))
+SSL_CERTFILE  = os.path.join(RAIZ, "certificado", "publico", "sar.crt") if _FROZEN else os.path.join(RAIZ, os.getenv("SSL_CERTFILE", ""))
 SSL_KEYFILE   = _KEY_TEMP if _KEY_TEMP else os.path.join(RAIZ, os.getenv("SSL_KEYFILE", ""))
 
 # ------------------------------------------------------------
@@ -173,8 +184,9 @@ if __name__ == "__main__":
 
     encerrar_instancia_anterior()
     porta_atual = encontrar_porta()
-    gravar_porta_atual(porta_atual)
-    atualizar_api_js(porta_atual)
+    if not _FROZEN:
+        gravar_porta_atual(porta_atual)
+        atualizar_api_js(porta_atual)
     validar_certificados()
     gravar_pid()
 
@@ -182,9 +194,15 @@ if __name__ == "__main__":
     print(f"[SAR] Certificado: {SSL_CERTFILE}")
     print(f"[SAR] Pressione Ctrl+C para encerrar.\n")
 
+    if _FROZEN:
+        def _abrir_browser():
+            time.sleep(2)
+            webbrowser.open(f"https://{HOST}:{porta_atual}/login")
+        threading.Thread(target=_abrir_browser, daemon=True).start()
+
     try:
         uvicorn.run(
-            "aplicacao:app",
+            app,
             host=HOST,
             port=porta_atual,
             ssl_certfile=SSL_CERTFILE,
