@@ -6,6 +6,40 @@ Garante rastreabilidade, legado e prevenção de recorrência de erros.
 
 ---
 
+## 2026-05-18 — Sessão de correções críticas, agnóstico e empacotamento
+
+**Correções críticas validadas:**
+- Base de análise corrigida: `_obter_base_perfil()` passa a usar sempre `_montar_perfil_texto()` — currículos premium gerados são produto final, nunca fonte de análise. Eliminava score 0% para vagas fora da área jurídica
+- Merge incremental na importação: substituído DELETE + INSERT por lógica de deduplicação por chave natural — dados existentes preservados, apenas novos registros inseridos
+- Prompts totalmente agnósticos: `_PROMPT_SCORE`, `_PROMPT_RECRUTADOR` e `_PROMPT_CURRICULO` removem referência a "Direito brasileiro" — sistema avalia qualquer área profissional
+- `_PROMPT_RECRUTADOR` reformulado: recrutador orientado a identificar lacunas de informação (não de capacidade), aprofundando especificamente nos requisitos da vaga
+
+**Melhorias de perfil e UI:**
+- Botão "Adicionar currículo" substitui "Reimportar" — semântica correta, sem risco de sobrescrita
+- Botão "Salvar alterações" adicionado ao perfil
+- `Cache-Control: no-store` em todos os arquivos estáticos — elimina necessidade de Ctrl+Shift+R
+- Tela Sobre atualizada: professora/coordenadora Waleria Medeiros Lima, 10 membros em ordem alfabética, card do desenvolvedor com nome e links corretos
+
+**Distribuição — versão demo acadêmica:**
+- `servidor.py`: trava de expiração em 30/06/2026
+- `servidor.py`: leitura de `.env` e `sar.key` remotamente via URLs no `instalacao.dat` (`%APPDATA%\SAR\`)
+- Modo dev (sem `instalacao.dat`) usa `.env` local — sem regressão no ambiente de desenvolvimento
+- `instalar.bat`: copia `instalacao.dat` para `%APPDATA%\SAR\` e cria atalho na área de trabalho
+- `modo_dev.bat`: remove `instalacao.dat` reativando modo desenvolvimento
+- PyInstaller: `SAR.exe` autocontido com Python, frontend, integracao e certificado SSL embutidos
+- Abertura automática do browser em `https://127.0.0.1:8000/login` no modo frozen
+- `sys._MEIPASS` usado como RAIZ no modo frozen em `servidor.py` e `aplicacao.py`
+
+**Pendente:**
+- Inno Setup: geração de `SAR_Setup.exe` instalador profissional
+- Múltiplos currículos base por candidato (arquitetura discutida — implementação futura)
+- Tom adaptativo do Recrutador IA (sênior vs. jovem aprendiz)
+- Carta de apresentação gerada pela IA
+- Pacote ZIP (currículo + carta + documentos)
+- Link externo (DA-03) após ciclo completo
+
+---
+
 ## 2026-05-13 — Ponto de parada — agenda da próxima sessão
 
 **Implementado hoje (pendente teste físico — NÃO commitar antes de validar):**

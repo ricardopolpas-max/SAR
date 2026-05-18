@@ -2,7 +2,7 @@
 
 **Objetivo:** Plataforma inteligente para automação da jornada de recolocação profissional — captura de vagas, geração de currículo personalizado via IA e otimização para sistemas ATS de recrutamento.
 
-**Última atualização:** 2026-05-11 (Motor 4 implementado — pendente teste end-to-end e refinamentos)
+**Última atualização:** 2026-05-18 (Motor 4 validado — distribuição demo acadêmica implementada)
 
 ---
 
@@ -39,33 +39,40 @@
 ```
 /
 ├── backend/
-│   ├── servidor.py              ← orquestrador central + PID management ✅
+│   ├── servidor.py              ← orquestrador central + trava expiração + leitura remota ✅
 │   ├── aplicacao.py             ← rotas FastAPI + inicialização do banco ✅
 │   └── rotinas/
 │       ├── genericas.py         ← CRUD agnóstico SQLite ✅
-│       ├── sincronizacao.py     ← motor de sync com Peixe 30 (Fase 2)
-│       └── ia.py                ← abstração de chamadas Gemini (Fase 3)
+│       ├── sincronizacao.py     ← motor de sync com Peixe 30 ✅
+│       ├── ia.py                ← abstração Gemini + Groq fallback ✅
+│       ├── autenticacao.py      ← hash, token, validação ✅
+│       └── importacao.py        ← prompts IA agnósticos + extração PDF/DOCX ✅
 ├── frontend/
 │   ├── telas/
-│   │   ├── SAR.html             ← tela principal ✅
-│   │   ├── candidatos.html      ← cadastro e perfil do candidato (Fase 3)
-│   │   └── curriculos.html      ← geração e histórico de currículos (Fase 4)
+│   │   ├── SAR.html             ← tela principal (SPA completo) ✅
+│   │   ├── login.html           ← tela de login ✅
+│   │   └── cadastro.html        ← tela de cadastro ✅
 │   ├── estilos/
 │   │   └── visual.css           ← design system global ✅
 │   └── scripts/
-│       ├── vagas.js             ← lógica da tela de vagas ✅
-│       ├── candidatos.js        ← lógica da tela de candidatos (Fase 3)
-│       └── curriculos.js        ← lógica da tela de geração (Fase 4)
+│       ├── vagas.js             ← lógica de vagas e candidatura ✅
+│       ├── perfil.js            ← lógica de perfil e importação ✅
+│       └── curriculos.js        ← lógica de entrevista e currículo premium ✅
 ├── integracao/
 │   └── rotas/
 │       └── api.js               ← transporte HTTP centralizado ✅
+├── instalacao/
+│   ├── SAR.exe                  ← executável autocontido (PyInstaller) ✅
+│   ├── instalar.bat             ← ativa modo produção ✅
+│   ├── modo_dev.bat             ← ativa modo desenvolvimento ✅
+│   └── instalacao.dat           ← URLs do Drive (nunca no git) ✅
 ├── certificado/
 │   ├── publico/sar.crt          ← certificado SSL ✅
 │   └── privado/sar.key          ← chave privada (nunca no git) ✅
 ├── documentacao/                ← governança, plano, fluxograma, diário ✅
-├── apoio/                       ← testes, logs, scripts de suporte
+├── apoio/                       ← uploads de candidatos (nunca no git)
+├── SAR.spec                     ← configuração PyInstaller ✅
 ├── .env                         ← variáveis de ambiente (nunca no git) ✅
-├── sar.pid                      ← PID do processo ativo (nunca no git) ✅
 ├── .gitignore                   ✅
 └── dependencias.txt             ✅
 ```
