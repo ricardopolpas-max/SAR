@@ -39,3 +39,12 @@ datetime
 
 # Instalação — contém URLs sensíveis, nunca no repositório
 instalacao/instalacao.dat
+
+# PyInstaller — artefatos de build
+build/
+dist/
+
+# Binários de distribuição — gerados, nunca no repositório
+instalacao/SAR.exe
+instalacao/SAR/
+instalacao/SAR_Setup.exe
