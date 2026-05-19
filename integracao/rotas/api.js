@@ -34,7 +34,7 @@ const SarAPI = (() => {
   /* ----------------------------------------------------------
      NÚCLEO — fetch centralizado com tratamento de erros
   ---------------------------------------------------------- */
-  async function _requisitar(metodo, rota, corpo = null) {
+  async function _requisitar(metodo, rota, corpo = null, signal = null) {
     const cabecalhos = {
       "Content-Type": "application/json",
       "Accept":       "application/json",
@@ -52,6 +52,10 @@ const SarAPI = (() => {
 
     if (corpo !== null) {
       opcoes.body = JSON.stringify(corpo);
+    }
+
+    if (signal) {
+      opcoes.signal = signal;
     }
 
     try {
@@ -94,8 +98,8 @@ const SarAPI = (() => {
     },
 
     /** Autentica candidato existente e abre sessão. */
-    async entrar(email, senha) {
-      const resultado = await _requisitar("POST", "/auth/login", { email, senha });
+    async entrar(email, senha, signal = null) {
+      const resultado = await _requisitar("POST", "/auth/login", { email, senha }, signal);
       if (resultado.ok) {
         _salvarSessao(resultado.dados.token, resultado.dados.nome);
       }
@@ -187,6 +191,11 @@ const SarAPI = (() => {
     /** Gera currículo personalizado para a vaga via IA (DA-02: salvo automaticamente). */
     async gerarCurriculo(id) {
       return _requisitar("POST", `/vagas/${id}/gerar-curriculo`);
+    },
+
+    /** Gera carta de apresentação personalizada para a vaga via IA. */
+    async gerarCarta(id) {
+      return _requisitar("POST", `/vagas/${id}/gerar-carta`);
     },
 
     /** Retorna a conversa (histórico + score) do candidato para uma vaga. */

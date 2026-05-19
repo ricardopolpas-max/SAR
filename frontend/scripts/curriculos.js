@@ -7,6 +7,7 @@
 let _curriculoVagaId     = null;
 let _curriculoVagaTitulo  = "";
 let _curriculoVagaEmpresa = "";
+let _curriculoVagaLink    = "";
 let _curriculoGerado      = false; // true após geração bem-sucedida; false ao iniciar nova entrevista
 
 const _VAZIO_HTML_ORIGINAL = document.getElementById("curriculos-vazio").innerHTML;
@@ -206,9 +207,12 @@ async function _gerarCurriculo() {
   const vaga = dados.vaga || {};
   const info = vaga.titulo + (vaga.empresa ? " · " + vaga.empresa : "");
   const textoCurriculo = dados.curriculo || "";
-  document.getElementById("curriculos-vaga-info").textContent  = info;
-  document.getElementById("curriculos-texto").value            = textoCurriculo;
+  _curriculoVagaLink = vaga.link || "";
+  document.getElementById("curriculos-vaga-info").textContent     = info;
+  document.getElementById("curriculos-texto").value               = textoCurriculo;
   document.getElementById("curriculos-texto-display").textContent = textoCurriculo;
+  _atualizarBotaoCandidatar();
+  _resetarCarta();
   _curriculoGerado = true;
   _mostrarEstadoCurriculo("resultado");
 }
@@ -228,6 +232,7 @@ async function _restaurarUltimoCurriculo() {
   _curriculoVagaId      = vaga.id    || null;
   _curriculoVagaTitulo  = vaga.titulo  || "";
   _curriculoVagaEmpresa = vaga.empresa || "";
+  _curriculoVagaLink    = vaga.link   || "";
 
   // Popula cabeçalho do chat e o resultado
   const info = ultimo.descricao || (vaga.titulo + (vaga.empresa ? " · " + vaga.empresa : ""));
@@ -247,6 +252,7 @@ async function _restaurarUltimoCurriculo() {
     }
   }
   _curriculoGerado = true;
+  _atualizarBotaoCandidatar();
 
   _mostrarEstadoCurriculo("resultado");
   return true;
@@ -264,11 +270,15 @@ function iniciarGeracaoCurriculo(vagaId, vagaTitulo, vagaEmpresa) {
 
 /* Chamada quando o usuário navega para a seção */
 async function entrarSecaoCurriculos() {
-  // Entrevista em andamento (sem currículo gerado ainda) — não interfere
-  if (_curriculoVagaId && !_curriculoGerado) return;
   // Currículo já gerado nesta sessão — só re-exibe resultado
   if (_curriculoGerado) {
     _mostrarEstadoCurriculo("resultado");
+    return;
+  }
+  // Entrevista em andamento para uma vaga específica — recarrega do backend
+  // para garantir que o histórico reflita a vaga atual (não uma anterior)
+  if (_curriculoVagaId) {
+    await _iniciarChat();
     return;
   }
   // Primeira entrada ou nova sessão — tenta restaurar do backend
@@ -410,7 +420,104 @@ document.getElementById("btn-curriculo-pdf").addEventListener("click", function 
   janela.document.close();
 });
 
-document.getElementById("btn-curriculo-regerar").addEventListener("click", _gerarCurriculo);
+document.getElementById("btn-curriculo-regerar").addEventListener("click", function () {
+  _resetarCarta();
+  _gerarCurriculo();
+});
+
+/* ----------------------------------------------------------
+   CARTA DE APRESENTAÇÃO
+---------------------------------------------------------- */
+function _atualizarBotaoCandidatar() {
+  const btn = document.getElementById("btn-candidatar");
+  if (_curriculoVagaLink) {
+    btn.href = _curriculoVagaLink;
+    btn.classList.remove("hidden");
+  } else {
+    btn.classList.add("hidden");
+  }
+}
+
+function _resetarCarta() {
+  document.getElementById("curriculos-carta-area").classList.add("hidden");
+  document.getElementById("curriculos-carta-gerando").classList.add("hidden");
+  document.getElementById("curriculos-carta-display").textContent = "";
+  document.getElementById("btn-gerar-carta").disabled = false;
+  document.getElementById("btn-gerar-carta").textContent = "📝 Gerar carta de apresentação";
+}
+
+document.getElementById("btn-gerar-carta").addEventListener("click", async function () {
+  if (!_curriculoVagaId) return;
+
+  this.disabled = true;
+  this.textContent = "Gerando…";
+  document.getElementById("curriculos-carta-area").classList.add("hidden");
+  document.getElementById("curriculos-carta-gerando").classList.remove("hidden");
+
+  const { ok, dados, erro } = await SarAPI.vagas.gerarCarta(_curriculoVagaId);
+
+  document.getElementById("curriculos-carta-gerando").classList.add("hidden");
+
+  if (!ok) {
+    this.disabled = false;
+    this.textContent = "📝 Gerar carta de apresentação";
+    alert("Erro ao gerar carta:\n" + erro);
+    return;
+  }
+
+  const textoCarta = dados.carta || "";
+  document.getElementById("curriculos-carta-display").textContent = textoCarta;
+  document.getElementById("curriculos-carta-area").classList.remove("hidden");
+  this.textContent = "🔄 Regerar carta";
+  this.disabled = false;
+});
+
+document.getElementById("btn-carta-copiar").addEventListener("click", function () {
+  const texto = document.getElementById("curriculos-carta-display").innerText || "";
+  if (!texto) return;
+  navigator.clipboard.writeText(texto).then(() => {
+    this.textContent = "Copiado ✓";
+    setTimeout(() => { this.textContent = "Copiar texto"; }, 2000);
+  }).catch(function () {
+    alert("Não foi possível copiar automaticamente. Selecione o texto manualmente.");
+  });
+});
+
+document.getElementById("btn-carta-pdf").addEventListener("click", function () {
+  const texto = document.getElementById("curriculos-carta-display").innerText || "";
+  if (!texto) return;
+
+  const titulo = _curriculoVagaTitulo ? "Carta — " + _curriculoVagaTitulo : "Carta de Apresentação";
+  const linhas = texto.split("\n").map(function (linha) {
+    const esc = linha.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    return linha.trim() === "" ? "<br>" : "<p>" + esc + "</p>";
+  }).join("");
+
+  const janela = window.open("", "_blank");
+  janela.document.write(
+    "<!DOCTYPE html><html lang='pt-BR'><head><meta charset='UTF-8'>" +
+    "<title>" + titulo + "</title>" +
+    "<style>" +
+    "@page{size:A4;margin:2cm;}" +
+    "html,body{margin:0;padding:0}" +
+    "body{font-family:'Times New Roman',Georgia,serif;font-size:12pt;line-height:1.8;color:#111;padding:2cm;text-align:justify}" +
+    "p{margin:0.2em 0;text-align:justify}" +
+    "br{display:block;margin:0.6em 0}" +
+    ".aviso-impressao{background:#fef9c3;border:1px solid #fde047;border-radius:6px;" +
+    "padding:10px 16px;margin-bottom:20px;font-family:Arial,sans-serif;font-size:11pt;color:#713f12;}" +
+    ".aviso-impressao strong{display:block;margin-bottom:4px;}" +
+    "@media print{.aviso-impressao{display:none}}" +
+    "</style></head><body>" +
+    "<div class='aviso-impressao'>" +
+    "<strong>⚙️ Antes de imprimir:</strong>" +
+    "Desmarque <strong>\"Cabeçalhos e rodapés\"</strong> para um PDF limpo." +
+    "</div>" +
+    linhas +
+    "<script>window.onload=function(){window.print()}<\/script>" +
+    "</body></html>"
+  );
+  janela.document.close();
+});
 
 document.getElementById("btn-ver-entrevista").addEventListener("click", function () {
   document.getElementById("btn-chat-voltar-curriculo").classList.remove("hidden");

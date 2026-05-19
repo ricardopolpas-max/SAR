@@ -580,6 +580,28 @@
           </div>
           <div id="curriculos-texto-display" class="curriculo-display" contenteditable="true" spellcheck="false"></div>
           <textarea id="curriculos-texto" style="display:none;"></textarea>
+
+          <!-- Ações pós-currículo -->
+          <div style="display:flex;gap:var(--esp-sm);flex-wrap:wrap;margin-top:var(--esp-md);justify-content:flex-end;">
+            <button id="btn-gerar-carta" class="btn btn-secundario">📝 Gerar carta de apresentação</button>
+            <a id="btn-candidatar" class="btn btn-primario hidden" target="_blank" rel="noopener noreferrer">🔗 Candidatar-me</a>
+          </div>
+
+          <!-- Área da carta de apresentação -->
+          <div id="curriculos-carta-area" class="hidden" style="margin-top:var(--esp-lg);">
+            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:var(--esp-sm);margin-bottom:var(--esp-md);">
+              <h2 class="perfil-bloco-titulo" style="margin-bottom:0;">Carta de apresentação</h2>
+              <div style="display:flex;gap:var(--esp-sm);">
+                <button id="btn-carta-copiar" class="btn btn-secundario">Copiar texto</button>
+                <button id="btn-carta-pdf" class="btn btn-secundario">Baixar PDF</button>
+              </div>
+            </div>
+            <div id="curriculos-carta-display" class="curriculo-display" contenteditable="true" spellcheck="false"></div>
+          </div>
+
+          <div id="curriculos-carta-gerando" class="hidden" style="margin-top:var(--esp-lg);text-align:center;color:var(--texto-sec);font-size:var(--fonte-sm);">
+            ✍️ Gerando carta de apresentação...
+          </div>
         </div>
       </div>
 
@@ -844,6 +866,7 @@
             <ul id="modal-score-lacunas" class="score-lista score-lista-lacuna"></ul>
           </div>
         </div>
+        <p class="score-aviso">* Scores de IA são estimativas e podem variar levemente a cada cálculo. Use como referência, não como nota exata.</p>
       </div>
     </div>
     <div class="modal-rodape">

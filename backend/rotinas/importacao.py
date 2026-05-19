@@ -161,13 +161,44 @@ CANDIDATO:
 
 
 def _extrair_json(texto: str) -> dict:
-    if texto.startswith("```"):
-        linhas = texto.split("\n")
-        texto = "\n".join(linhas[1:-1])
-    match = re.search(r'\{[\s\S]*\}', texto)
-    if match:
-        return json.loads(match.group())
-    return json.loads(texto)
+    # Remove bloco markdown ```json ... ``` ou ``` ... ```
+    texto = re.sub(r'^```[^\n]*\n', '', texto.strip())
+    texto = re.sub(r'\n```$', '', texto.strip())
+
+    # Tenta parse direto primeiro (caminho feliz)
+    try:
+        return json.loads(texto)
+    except json.JSONDecodeError:
+        pass
+
+    # Extrai o primeiro objeto JSON balanceado
+    inicio = texto.find('{')
+    if inicio == -1:
+        raise ValueError(f"Nenhum objeto JSON encontrado na resposta: {texto[:200]!r}")
+
+    depth = 0
+    in_string = False
+    escape = False
+    for i, ch in enumerate(texto[inicio:], start=inicio):
+        if escape:
+            escape = False
+            continue
+        if ch == '\\' and in_string:
+            escape = True
+            continue
+        if ch == '"':
+            in_string = not in_string
+            continue
+        if in_string:
+            continue
+        if ch == '{':
+            depth += 1
+        elif ch == '}':
+            depth -= 1
+            if depth == 0:
+                return json.loads(texto[inicio:i + 1])
+
+    raise ValueError(f"JSON mal-formado na resposta: {texto[:200]!r}")
 
 
 def processar_score_com_ia(titulo: str, descricao: str, perfil: str) -> dict:
@@ -200,11 +231,12 @@ Seu objetivo é avaliar com precisão a aderência do candidato à vaga, aprofun
 
 INSTRUÇÕES:
 - Faça APENAS UMA pergunta por vez — seja objetivo, profissional e cordial
+- Analise o perfil completo do candidato contra os requisitos da vaga e calcule o score de aderência (0 a 100) — da mesma forma que um especialista faria numa triagem técnica
+- O score parte do perfil atual e só sobe conforme o candidato esclarece lacunas durante a entrevista
 - Foque nas lacunas entre o perfil do candidato e os requisitos da vaga
 - Leve em conta tudo que o candidato já respondeu no histórico da conversa
-- Estime internamente o score de aderência do candidato à vaga (0 a 100)
-- Quando o score estimado atingir 75 ou mais, defina "pronto": true e informe ao candidato
-- Se o histórico estiver vazio, apresente-se brevemente e faça a primeira pergunta relevante
+- Quando o score atingir 75 ou mais, defina "pronto": true e informe ao candidato
+- Se o histórico estiver vazio, apresente-se apenas como "Recrutador SAR" sem inventar nome próprio ou empresa, e faça a primeira pergunta relevante
 - Em momento oportuno da entrevista (após cobrir experiência e formação, antes de encerrar),
   pergunte ao candidato se ele possui documentos complementares que gostaria de compartilhar —
   como certificados, declarações, portfólio ou comprovantes de cursos. Deixe claro que é opcional
@@ -229,6 +261,43 @@ Retorne APENAS um JSON válido, sem markdown, sem explicações:
 """
 
 
+_PROMPT_CARTA = """Você é um especialista sênior em recrutamento brasileiro e comunicação profissional.
+Redija uma carta de apresentação PREMIUM, personalizada para a vaga abaixo, com base no perfil e no histórico da entrevista do candidato.
+
+REGRAS INVIOLÁVEIS:
+- Extensão: 3 parágrafos (abertura, corpo, fechamento) — máximo 250 palavras
+- Tom: profissional, direto, sem adjetivos vazios ("dinâmico", "proativo", "dedicado")
+- Conecte explicitamente a trajetória do candidato aos requisitos da vaga
+- Primeiro parágrafo: apresentação e intenção (mencione o cargo pelo nome)
+- Segundo parágrafo: 2-3 diferenciais concretos do candidato para esta vaga
+- Terceiro parágrafo: chamada para ação (disponibilidade para entrevista)
+- PROIBIDO: markdown, asteriscos, títulos em maiúsculo, bullet points, data, rodapé
+- PROIBIDO: CPF, RG, endereço, idade, estado civil
+- Retorne APENAS o texto puro da carta, começando pela saudação — nada mais
+
+VAGA:
+Título: {titulo}
+Descrição: {descricao}
+
+PERFIL DO CANDIDATO:
+{perfil}
+
+INFORMAÇÕES ADICIONAIS DA ENTREVISTA:
+{historico}
+"""
+
+
+def gerar_carta_com_ia(titulo: str, descricao: str, perfil: str, historico: str = "") -> str:
+    prompt = (
+        _PROMPT_CARTA
+        .replace("{titulo}", titulo)
+        .replace("{descricao}", descricao or "Não informada")
+        .replace("{perfil}", perfil)
+        .replace("{historico}", historico or "(sem informações adicionais da entrevista)")
+    )
+    return gerar_conteudo(prompt)
+
+
 def conduzir_entrevista(titulo: str, descricao: str, perfil: str, historico: list) -> dict:
     hist_texto = "\n".join(
         f"{h['role'].upper()}: {h['conteudo']}" for h in historico
@@ -244,7 +313,8 @@ def conduzir_entrevista(titulo: str, descricao: str, perfil: str, historico: lis
 
     try:
         return _extrair_json(gerar_conteudo(prompt))
-    except Exception:
+    except Exception as e:
+        print(f"[ERRO conduzir_entrevista] {type(e).__name__}: {e}")
         return {
             "mensagem": "Desculpe, tive um problema ao processar. Pode repetir sua resposta?",
             "pronto": False,

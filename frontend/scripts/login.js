@@ -70,6 +70,8 @@
   /* ----------------------------------------------------------
      Submissão
   ---------------------------------------------------------- */
+  let _abortController = null;
+
   formLogin.addEventListener("submit", async function (evento) {
     evento.preventDefault();
     limparErros();
@@ -79,10 +81,15 @@
 
     if (!validar(email, senha)) return;
 
+    if (_abortController) _abortController.abort();
+    _abortController = new AbortController();
+
     definirCarregando(true);
 
-    const resultado = await SarAPI.autenticacao.entrar(email, senha);
+    const resultado = await SarAPI.autenticacao.entrar(email, senha, _abortController.signal);
 
+    if (_abortController.signal.aborted) return;
+    _abortController = null;
     definirCarregando(false);
 
     if (resultado.ok) {

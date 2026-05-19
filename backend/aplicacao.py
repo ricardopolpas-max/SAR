@@ -1308,8 +1308,88 @@ async def gerar_curriculo_vaga(id: int, id_candidato: int = Depends(autenticar))
     return {
         "ok": True,
         "curriculo": texto,
-        "vaga": {"id": id, "titulo": vaga.get("titulo", ""), "empresa": vaga.get("empresa", "")},
+        "vaga": {"id": id, "titulo": vaga.get("titulo", ""), "empresa": vaga.get("empresa", ""), "link": vaga.get("link", "")},
     }
+
+
+@app.post("/vagas/{id}/gerar-carta")
+async def gerar_carta_vaga(id: int, id_candidato: int = Depends(autenticar)):
+    vaga = db_selecionar("vagas", condicao={"id": id}, unico=True)
+    if not vaga:
+        raise HTTPException(404, "Vaga não encontrada.")
+
+    perfil = db_selecionar("perfil_candidato", condicao={"id_candidato": id_candidato}, unico=True)
+    if not perfil:
+        raise HTTPException(422, "Importe seu currículo antes de gerar.")
+
+    candidato = db_selecionar("candidatos", condicao={"id": id_candidato}, unico=True)
+    contatos  = db_selecionar("contatos",   condicao={"id_candidato": id_candidato}, unico=True)
+
+    linhas = [f"Nome: {candidato.get('nome', '')}"]
+    if contatos:
+        itens = [
+            f"Telefone: {contatos['telefone']}" if contatos.get("telefone") else None,
+            f"LinkedIn: {contatos['linkedin']}"  if contatos.get("linkedin")  else None,
+        ]
+        itens = [i for i in itens if i]
+        if itens:
+            linhas.append("Contatos: " + " | ".join(itens))
+
+    if perfil.get("localizacao"):
+        linhas.append(f"Localização: {perfil['localizacao']}")
+    if perfil.get("resumo_profissional"):
+        linhas.append(f"\nResumo: {perfil['resumo_profissional']}")
+
+    experiencias = db_selecionar("experiencias", condicao={"id_candidato": id_candidato}) or []
+    if experiencias:
+        linhas.append("\nExperiências:")
+        for e in experiencias:
+            periodo = " (atual)" if e.get("em_atual") else (f" até {e['data_fim']}" if e.get("data_fim") else "")
+            linhas.append(f"  - {e.get('cargo')} em {e.get('empresa')}{periodo}")
+
+    formacoes = db_selecionar("formacoes", condicao={"id_candidato": id_candidato}) or []
+    if formacoes:
+        linhas.append("\nFormação:")
+        for f in formacoes:
+            linhas.append(f"  - {f.get('curso')} — {f.get('instituicao')}")
+
+    habilidades = db_selecionar("habilidades", condicao={"id_candidato": id_candidato}) or []
+    if habilidades:
+        linhas.append(f"\nHabilidades: {', '.join(h.get('nome', '') for h in habilidades)}")
+
+    perfil_texto = "\n".join(linhas)
+
+    with _obter_conexao() as conn:
+        row_conv = conn.execute(
+            "SELECT historico FROM conversas WHERE id_candidato = ? AND id_vaga = ?",
+            (id_candidato, id)
+        ).fetchone()
+    historico_entrevista = ""
+    if row_conv:
+        try:
+            msgs = json.loads(row_conv["historico"])
+            historico_entrevista = "\n".join(
+                f"{m['role'].upper()}: {m['conteudo']}"
+                for m in msgs if m.get("conteudo", "").strip()
+            )
+        except Exception:
+            pass
+
+    from rotinas.importacao import gerar_carta_com_ia
+    try:
+        texto = gerar_carta_com_ia(
+            titulo=vaga.get("titulo", ""),
+            descricao=vaga.get("descricao", ""),
+            perfil=perfil_texto,
+            historico=historico_entrevista,
+        )
+    except Exception as e:
+        msg = str(e).lower()
+        if "quota" in msg or "insufficient" in msg or "429" in msg or "rate" in msg:
+            raise HTTPException(503, "Cota de IA esgotada. Tente novamente mais tarde.")
+        raise HTTPException(500, f"Erro ao processar com IA: {str(e)}")
+
+    return {"ok": True, "carta": texto}
 
 
 @app.get("/perfil-candidato/curriculos-gerados")
@@ -1340,6 +1420,7 @@ async def listar_curriculos_gerados(id_candidato: int = Depends(autenticar)):
                 "id": vaga_id,
                 "titulo": vaga_row.get("titulo", "") if vaga_row else "",
                 "empresa": vaga_row.get("empresa", "") if vaga_row else "",
+                "link": vaga_row.get("link", "") if vaga_row else "",
             }
         resultado.append({
             "id_documento": doc.get("id"),

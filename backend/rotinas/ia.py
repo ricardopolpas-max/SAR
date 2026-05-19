@@ -6,13 +6,14 @@ load_dotenv(Path(__file__).resolve().parent.parent.parent / ".env")
 
 
 def _gerar_gemini(prompt: str) -> str:
-    import google.generativeai as genai
+    from google import genai
     api_key = os.getenv("GEMINI_API_KEY", "").strip()
     if not api_key:
         raise ValueError("GEMINI_API_KEY não configurada.")
-    genai.configure(api_key=api_key)
-    modelo = genai.GenerativeModel(os.getenv("GEMINI_MODEL", "gemini-2.5-flash"))
-    return modelo.generate_content(prompt).text.strip()
+    client = genai.Client(api_key=api_key)
+    modelo = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+    response = client.models.generate_content(model=modelo, contents=prompt)
+    return response.text.strip()
 
 
 def _gerar_groq(prompt: str) -> str:

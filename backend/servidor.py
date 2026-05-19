@@ -82,7 +82,11 @@ def _raiz():
 RAIZ        = _raiz()
 ENV_PATH    = _ENV_TEMP if _ENV_TEMP else os.path.join(RAIZ, ".env")
 API_JS_PATH = os.path.join(RAIZ, "integracao", "rotas", "api.js")
-PID_PATH    = os.path.join(os.environ.get("APPDATA", ""), "SAR", "sar.pid") if _FROZEN else os.path.join(RAIZ, "sar.pid")
+def _pid_dir():
+    if os.name == "nt":
+        return os.path.join(os.environ.get("APPDATA", ""), "SAR")
+    return os.path.join(os.path.expanduser("~"), ".local", "share", "SAR")
+PID_PATH = os.path.join(_pid_dir(), "sar.pid") if _FROZEN else os.path.join(RAIZ, "sar.pid")
 
 load_dotenv(ENV_PATH)
 
