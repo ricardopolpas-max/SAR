@@ -46,7 +46,7 @@ async function _processarImportacao(arquivo) {
   _mostrarEstado("processando");
   const { ok, erro } = await SarAPI.perfil.importar(arquivo);
   if (!ok) {
-    _mostrarEstado("vazio");
+    _mostrarEstado("completo");
     alert("Erro ao importar currículo:\n" + erro);
     return;
   }
@@ -215,7 +215,8 @@ async function carregarPerfil() {
     _renderizarLista(complementares, elPerfil.listaDocsComplementares, _templateDocComplementar);
   }
 
-  _mostrarEstado(dados.perfil ? "completo" : "vazio");
+  // Sempre exibe os formulários — candidato pode preencher manualmente ou importar
+  _mostrarEstado("completo");
 }
 
 /* ----------------------------------------------------------

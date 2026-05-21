@@ -62,13 +62,14 @@ const SarAPI = (() => {
       const resposta = await fetch(`${BASE_URL}${rota}`, opcoes);
 
       if (!resposta.ok) {
-        const detalhe = await resposta.text();
-        return {
-          ok:     false,
-          status: resposta.status,
-          erro:   detalhe || `Erro HTTP ${resposta.status}`,
-          dados:  null,
-        };
+        let detalhe = `Erro HTTP ${resposta.status}`;
+        try {
+          const corpo = await resposta.json();
+          detalhe = corpo.detail || corpo.mensagem || corpo.erro || JSON.stringify(corpo);
+        } catch (_) {
+          detalhe = (await resposta.text()) || detalhe;
+        }
+        return { ok: false, status: resposta.status, erro: detalhe, dados: null };
       }
 
       const dados = await resposta.json();
@@ -110,6 +111,13 @@ const SarAPI = (() => {
     async encerrar() {
       const resultado = await _requisitar("POST", "/auth/logout");
       _limparSessao();
+      return resultado;
+    },
+
+    /** Exclui permanentemente a conta e todos os dados do candidato. */
+    async excluirConta(senha) {
+      const resultado = await _requisitar("DELETE", "/candidatos/minha-conta", { senha });
+      if (resultado.ok) _limparSessao();
       return resultado;
     },
 

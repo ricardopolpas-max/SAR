@@ -181,6 +181,7 @@ button { cursor: pointer; font-family: var(--fonte); border: none; background: n
   flex-shrink: 0;
 }
 .onboarding-aviso-icone { font-size: 1.4rem; flex-shrink: 0; line-height: 1.4; }
+.onboarding-aviso-parcial { background: #fefce8; border-bottom-color: var(--aviso); font-size: 14px; color: #78350f; font-weight: 500; }
 
 .sidebar-footer {
   padding: var(--esp-md) var(--esp-lg) 0;
@@ -1355,7 +1356,7 @@ button { cursor: pointer; font-family: var(--fonte); border: none; background: n
   align-items: center;
   justify-content: center;
   z-index: 1000;
-  padding: var(--esp-lg);
+  padding: var(--esp-md);
 }
 .modal-box {
   background: var(--superficie);
@@ -1363,7 +1364,7 @@ button { cursor: pointer; font-family: var(--fonte); border: none; background: n
   border-radius: var(--raio-lg);
   max-width: 680px;
   width: 100%;
-  max-height: 80vh;
+  max-height: 90vh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -1693,4 +1694,11 @@ button { cursor: pointer; font-family: var(--fonte); border: none; background: n
   .perfil-abas     { gap: var(--esp-xs); }
   .aba-btn         { padding: var(--esp-md) var(--esp-sm); font-size: var(--fonte-sm); }
   .form-row        { grid-template-columns: 1fr; }
+
+  .modal-overlay   { padding: var(--esp-sm); align-items: flex-end; }
+  .modal-box       { max-height: 95vh; border-radius: var(--raio-lg) var(--raio-lg) 0 0; }
+  .modal-corpo     { padding: var(--esp-md); }
+  .modal-cabecalho { padding: var(--esp-md); }
+  .modal-badges    { padding: var(--esp-sm) var(--esp-md); }
+  .modal-rodape    { padding: var(--esp-md); flex-wrap: wrap; }
 }

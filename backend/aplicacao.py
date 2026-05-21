@@ -355,8 +355,10 @@ async def entrar(dados: dict):
     email = (dados.get("email") or "").strip().lower()
     senha = (dados.get("senha") or "")
     candidato = db_selecionar("candidatos", condicao={"email": email}, unico=True)
-    if not candidato or not verificar_senha(senha, candidato["senha_hash"]):
-        raise HTTPException(401, "E-mail ou senha incorretos.")
+    if not candidato:
+        raise HTTPException(401, "E-mail não encontrado.")
+    if not verificar_senha(senha, candidato["senha_hash"]):
+        raise HTTPException(401, "Senha incorreta.")
     if candidato["status"] != "ATIVO":
         raise HTTPException(403, "Conta inativa.")
     db_atualizar("candidatos",
@@ -374,6 +376,48 @@ async def encerrar_sessao(
     return {"mensagem": "Sessão encerrada."}
 
 # ------------------------------------------------------------
+# EXCLUSÃO DE CONTA — GDPR / titular dos dados
+# ------------------------------------------------------------
+@app.delete("/candidatos/minha-conta")
+async def excluir_minha_conta(
+    dados: dict,
+    id_candidato: int = Depends(autenticar),
+    authorization: str = Header(None),
+):
+    candidato = db_selecionar("candidatos", condicao={"id": id_candidato}, unico=True)
+    if not candidato:
+        raise HTTPException(404, "Candidato não encontrado.")
+
+    from rotinas.autenticacao import verificar_senha
+    if not verificar_senha(dados.get("senha", ""), candidato["senha_hash"]):
+        raise HTTPException(401, "Senha incorreta. Exclusão cancelada.")
+
+    tabelas = [
+        "conversas", "documentos", "certificacoes", "idiomas",
+        "habilidades", "formacoes", "experiencias", "contatos",
+        "perfil_candidato", "vagas",
+    ]
+    with _obter_conexao() as conn:
+        for tabela in tabelas:
+            try:
+                conn.execute(f"DELETE FROM {tabela} WHERE id_candidato = ?", (id_candidato,))
+            except Exception:
+                pass
+        conn.execute("DELETE FROM candidatos WHERE id = ?", (id_candidato,))
+        conn.commit()
+
+    # Arquivos de upload do candidato
+    pasta = os.path.join(PASTA_UPLOADS, str(id_candidato))
+    if os.path.isdir(pasta):
+        shutil.rmtree(pasta, ignore_errors=True)
+
+    # Revoga token
+    if authorization and authorization.startswith("Bearer "):
+        revogar_token(authorization[7:])
+
+    return {"ok": True, "mensagem": "Conta e todos os dados excluídos com sucesso."}
+
+# ------------------------------------------------------------
 # PERFIL DO CANDIDATO AUTENTICADO
 # ------------------------------------------------------------
 @app.get("/candidatos/meu-perfil")
@@ -388,10 +432,16 @@ async def meu_perfil(id_candidato: int = Depends(autenticar)):
 # ------------------------------------------------------------
 @app.get("/perfil-candidato")
 async def carregar_perfil(id_candidato: int = Depends(autenticar)):
-    perfil = db_selecionar("perfil_candidato", condicao={"id_candidato": id_candidato}, unico=True)
-    if not perfil:
-        return {"ok": True, "dados": None}
-    return {"ok": True, "dados": perfil}
+    perfil        = db_selecionar("perfil_candidato", condicao={"id_candidato": id_candidato}, unico=True)
+    vagas         = db_selecionar("vagas",        condicao={"id_candidato": id_candidato}) or []
+    experiencias  = db_selecionar("experiencias", condicao={"id_candidato": id_candidato}) or []
+    formacoes     = db_selecionar("formacoes",    condicao={"id_candidato": id_candidato}) or []
+    primeiro_acesso = not perfil and len(vagas) == 0
+    dados = dict(perfil) if perfil else {}
+    dados["experiencias"]   = experiencias
+    dados["formacoes"]      = formacoes
+    dados["primeiro_acesso"] = primeiro_acesso
+    return {"ok": True, "dados": dados if (perfil or experiencias or formacoes) else None, "primeiro_acesso": primeiro_acesso}
 
 @app.get("/perfil-candidato/completo")
 async def carregar_perfil_completo(id_candidato: int = Depends(autenticar)):
@@ -872,19 +922,25 @@ async def importar_curriculo(
     })
 
     # Upsert perfil_candidato
+    perfil_existente = db_selecionar("perfil_candidato", condicao={"id_candidato": id_candidato}, unico=True)
     perfil_dados = {
         "tipo_importacao": "arquivo",
         "arquivo_nome": nome_arquivo,
         "resumo_profissional": dados.get("resumo_profissional"),
         "localizacao": dados.get("localizacao"),
-        "pretensao_salarial": dados.get("pretensao_salarial") or 0,
         "data_atualizacao": datetime.now(timezone.utc).isoformat(),
     }
-    perfil_existente = db_selecionar("perfil_candidato", condicao={"id_candidato": id_candidato}, unico=True)
+    # Só sobrescreve pretensao_salarial se a IA extraiu um valor válido,
+    # preservando o que o candidato preencheu manualmente
+    pretensao_ia = dados.get("pretensao_salarial") or 0
+    if pretensao_ia > 0 or not perfil_existente:
+        perfil_dados["pretensao_salarial"] = pretensao_ia
+
     if perfil_existente:
         db_atualizar("perfil_candidato", perfil_dados, {"id_candidato": id_candidato})
     else:
         perfil_dados["id_candidato"] = id_candidato
+        perfil_dados.setdefault("pretensao_salarial", 0)
         db_inserir("perfil_candidato", perfil_dados)
 
     # Merge incremental — insere apenas registros novos, preserva os existentes

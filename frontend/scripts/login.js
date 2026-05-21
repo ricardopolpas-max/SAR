@@ -102,7 +102,7 @@
       return;
     }
 
-    exibirAviso("E-mail ou senha incorretos.");
+    exibirAviso(resultado.erro || "E-mail ou senha incorretos.");
   });
 
 })();
