@@ -91,6 +91,7 @@ PID_PATH = os.path.join(_pid_dir(), "sar.pid") if _FROZEN else os.path.join(RAIZ
 load_dotenv(ENV_PATH)
 
 HOST          = os.getenv("HOST", "127.0.0.1")
+DOMINIO       = os.getenv("DOMINIO", "")
 PORTA_DEFAULT = int(os.getenv("PORTA_DEFAULT", "8000"))
 SSL_CERTFILE  = os.path.join(RAIZ, "certificado", "publico", "sar.crt") if _FROZEN else os.path.join(RAIZ, os.getenv("SSL_CERTFILE", ""))
 SSL_KEYFILE   = _KEY_TEMP if _KEY_TEMP else os.path.join(RAIZ, os.getenv("SSL_KEYFILE", ""))
@@ -124,19 +125,21 @@ def gravar_porta_atual(porta: int):
 # 3. ATUALIZAÇÃO DA BASE_URL NO API.JS
 # ------------------------------------------------------------
 def atualizar_api_js(porta: int):
+    base_url = f"https://{DOMINIO}" if DOMINIO else f"https://{HOST}:{porta}"
+
     with open(API_JS_PATH, "r", encoding="utf-8") as f:
         conteudo = f.read()
 
     novo_conteudo = re.sub(
         r'const BASE_URL\s*=\s*["\']https?://[^"\']+["\'];',
-        f'const BASE_URL = "https://{HOST}:{porta}";',
+        f'const BASE_URL = "{base_url}";',
         conteudo
     )
 
     with open(API_JS_PATH, "w", encoding="utf-8") as f:
         f.write(novo_conteudo)
 
-    print(f"[SAR] BASE_URL atualizada em api.js → https://{HOST}:{porta}")
+    print(f"[SAR] BASE_URL atualizada em api.js → {base_url}")
 
 # ------------------------------------------------------------
 # 4. GERENCIAMENTO DE PID — previne instâncias fantasmas
