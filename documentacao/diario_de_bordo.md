@@ -723,9 +723,7 @@ Banco reside em `%APPDATA%\SAR\sar_repositorio.db`. Padrão Windows para dados d
 
 **Motor 4 — Geração de Currículo Premium:**
 - Endpoint GET/POST com Gemini IA (extração de currículo do arquivo + scoring de aderência)
-- SaveDialog nativo Windows (usuário escolhe pasta)
-- Geração de PDF com weasyprint
-- Empacotamento ZIP (currículo + documentos selecionados)
+- PDF via `window.print()` com formatação ABNT (solução definitiva — sistema 100% web)
 
 **Motor 5 (futuro):**
 - Integração com plataformas de recrutamento
@@ -879,7 +877,7 @@ Ordem de execução:
 3. Modal "Ver descrição" + botão "Preparar candidatura" no card de vagas
 4. Verificação periódica de disponibilidade de vagas (ciclo 20 min)
 5. Score de aderência + geração do currículo personalizado
-6. Exportação PDF + ZIP no Desktop
+6. Exportação PDF via `window.print()` com formatação ABNT
 
 ---
 

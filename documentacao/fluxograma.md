@@ -76,11 +76,8 @@
 - [x] `instalar.bat` e `modo_dev.bat`
 
 ### Pendências — próximas sessões
-- [ ] Inno Setup — instalador profissional `SAR_Setup.exe`
 - [ ] Múltiplos currículos base por candidato (arquitetura discutida)
 - [ ] Tom adaptativo do Recrutador IA (sênior vs. jovem aprendiz)
-- [ ] Pacote ZIP no Desktop (PDF + carta + documentos)
-- [ ] weasyprint para PDF WYSIWYG (substitui `window.print()`)
 - [ ] Certificação end-to-end completa
 - [ ] Deploy na VM (pendente testes locais finais)
 
@@ -126,10 +123,7 @@
 
 ## 6. Próximos Passos (ordem de execução)
 
-1. Inno Setup — instalador profissional `SAR_Setup.exe` para distribuição
-2. Múltiplos currículos base — candidato importa bases por área, IA seleciona o mais aderente
-3. Tom adaptativo — Recrutador IA ajusta linguagem ao perfil (sênior vs. jovem aprendiz)
-4. Carta de apresentação gerada pela IA junto com o currículo premium
-5. Pacote ZIP no Desktop (PDF + carta + documentos apensos)
-6. Link externo (DA-03) liberado após pacote gerado
-7. Certificação end-to-end do fluxo completo
+1. Múltiplos currículos base — candidato importa bases por área, IA seleciona o mais aderente
+2. Tom adaptativo — Recrutador IA ajusta linguagem ao perfil (sênior vs. jovem aprendiz)
+3. Certificação end-to-end do fluxo completo
+4. Deploy na VM

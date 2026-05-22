@@ -124,9 +124,7 @@ O SAR é composto por quatro motores funcionais independentes e interdependentes
 - Edição em texto livre (`contenteditable`) — candidato tem autonomia total antes do PDF
 - **Salvar como base:** currículo em qualquer estágio pode ser salvo desvinculado da vaga para reaproveitamento futuro (ver DA-02)
 - **Carregar base:** ao iniciar nova candidatura, sistema oferece bases salvas como ponto de partida
-- PDF gerado por `weasyprint` — WYSIWYG, o que o candidato vê é o que sai no arquivo
-- Pacote ZIP salvo no Desktop do usuário (`~/Desktop`) — sem problemas de permissão ou BitLocker
-- ZIP contém: currículo PDF + carta de apresentação + documentos apensos selecionados
+- PDF via `window.print()` com formatação ABNT — solução definitiva para o escopo web
 - **Link externo liberado somente aqui** — após ciclo completo, candidato acessa a vaga na plataforma para candidatura
 - Histórico de currículos: `status` = `rascunho` | `base_salva` | `finalizado`
 - Rastreamento externo: nenhum — o sistema é facilitador, não integrado aos portais
@@ -413,8 +411,6 @@ Itens identificados para completar antes da certificação final:
 | **Carta de apresentação** | Gerar junto com o currículo, personalizada para a vaga | Baixa | ✅ |
 | **Aviso de vaga indisponível** | Usar `GET /vagas/verificar-disponibilidade` para avisar o candidato ao entrar no ciclo se a vaga sumiu | Média | ✅ |
 | **Tom adaptativo** | IA ajusta linguagem ao perfil do candidato (jovem aprendiz ≠ sênior experiente) | Baixa | ⏳ Pendente |
-| **Pacote ZIP no Desktop** | Empacotar PDF + carta de apresentação + documentos apensos em ZIP salvo no Desktop | Baixa | ⏳ Pendente |
-| **weasyprint para PDF** | Substituir `window.print()` por PDF WYSIWYG via weasyprint (sem dependência do browser) | Baixa | ⏳ Pendente |
 | **Teste end-to-end** | Importação → complementação → entrevista → score 75% → geração → edição → PDF → candidatura | Obrigatório | ⏳ Pendente |
 
 ---
