@@ -1035,7 +1035,7 @@
   }
 
   // Tenta carregar foto existente ao iniciar
-  fetch(BASE_URL + "/dev/foto")
+  fetch(window.location.origin + "/dev/foto")
     .then(function (r) { if (r.ok) return r.blob(); throw new Error(); })
     .then(function (blob) { _exibirFoto(URL.createObjectURL(blob)); })
     .catch(_exibirIniciais);
@@ -1047,7 +1047,7 @@
     if (!arquivo) return;
     const form = new FormData();
     form.append("arquivo", arquivo);
-    const resp = await fetch(BASE_URL + "/dev/foto", { method: "POST", body: form });
+    const resp = await fetch(window.location.origin + "/dev/foto", { method: "POST", body: form });
     if (resp.ok) {
       _exibirFoto(URL.createObjectURL(arquivo));
     } else {
