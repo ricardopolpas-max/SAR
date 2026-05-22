@@ -436,19 +436,15 @@ function _prepararCandidatura(id) {
   const v = _todasVagas.find(x => x.id === id);
   if (!v) return;
 
-  document.querySelector('[data-secao="curriculos"]').click();
-
-  if (!v.disponivel_plataforma) {
-    const aviso = document.getElementById("curriculos-aviso-indisponivel");
-    if (aviso) aviso.classList.remove("hidden");
-  } else {
-    const aviso = document.getElementById("curriculos-aviso-indisponivel");
-    if (aviso) aviso.classList.add("hidden");
-  }
-
+  // Reseta estado antes do nav click para que entrarSecaoCurriculos encontre estado correto
   if (typeof iniciarGeracaoCurriculo === "function") {
     iniciarGeracaoCurriculo(id, v.titulo, v.empresa);
   }
+
+  document.querySelector('[data-secao="curriculos"]').click();
+
+  const aviso = document.getElementById("curriculos-aviso-indisponivel");
+  if (aviso) aviso.classList.toggle("hidden", !!v.disponivel_plataforma);
 }
 
 function _inicializarModal() {

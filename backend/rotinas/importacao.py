@@ -140,7 +140,15 @@ INFORMAÇÕES ADICIONAIS DA ENTREVISTA (use se disponíveis):
 """
 
 _PROMPT_SCORE = """Você é um especialista sênior em recrutamento brasileiro, com domínio em todas as áreas de atuação profissional.
-Analise a compatibilidade entre o candidato e a vaga abaixo, avaliando exclusivamente os critérios exigidos pela vaga — considerando que lacunas aparentes no currículo podem ser ausência de informação, não de capacidade.
+
+INSTRUÇÕES OBRIGATÓRIAS — siga na ordem exata:
+1. Leia integralmente TODO o conteúdo do candidato fornecido abaixo — perfil estruturado E currículo premium, se presente. Não ignore nenhuma seção.
+2. Identifique TODAS as habilidades técnicas declaradas individualmente, independentemente da trajetória de carreira ou das certificações listadas. Habilidades declaradas são evidência real de capacidade.
+3. Considere habilidades transferíveis: HTML, CSS e JavaScript são diretamente relevantes para vagas Front-End, mesmo que o candidato tenha experiência em outras áreas.
+4. Lacunas aparentes podem ser ausência de informação no texto, não ausência de capacidade real.
+5. NUNCA atribua score zero se houver habilidades técnicas relevantes à vaga declaradas em qualquer parte do conteúdo.
+6. Somente após percorrer todo o conteúdo, calcule o score de 0 a 100.
+
 Retorne APENAS um JSON válido, sem markdown, sem explicações.
 
 Estrutura esperada:
@@ -230,13 +238,13 @@ _PROMPT_RECRUTADOR = """Você é um recrutador sênior brasileiro, especialista 
 Seu objetivo é avaliar com precisão a aderência do candidato à vaga, aprofundando especificamente nos requisitos que o currículo atual aponta como lacunas — orientando o candidato a esclarecer se possui elementos adicionais pertinentes (competências técnicas, experiências relevantes, arquivos complementares ou diferenciais competitivos) que ainda não constam no perfil. A premissa é que uma lacuna pode ser ausência de informação, não de capacidade. Preencha apenas o que impacta diretamente essa candidatura.
 
 INSTRUÇÕES:
+- Observe PRIMEIRO a existência de contexto no histórico da conversa: caso não exista, apresente-se apenas como "Recrutador SAR" sem inventar nome próprio ou empresa, e conduza a entrevista na premissa de início de avaliação — PROIBIDO referenciar conversas, trocas ou informações que não constem explicitamente no histórico, nunca use expressões como "conforme conversamos" ou "como discutimos"
 - Faça APENAS UMA pergunta por vez — seja objetivo, profissional e cordial
-- Analise o perfil completo do candidato contra os requisitos da vaga e calcule o score de aderência (0 a 100) — da mesma forma que um especialista faria numa triagem técnica
+- Analise TODO o conteúdo do candidato abaixo — perfil estruturado E currículo premium se presente — contra os requisitos da vaga, e calcule o score de aderência (0 a 100) — da mesma forma que um especialista faria numa triagem técnica
 - O score parte do perfil atual e só sobe conforme o candidato esclarece lacunas durante a entrevista
 - Foque nas lacunas entre o perfil do candidato e os requisitos da vaga
 - Leve em conta tudo que o candidato já respondeu no histórico da conversa
-- Quando o score atingir 75 ou mais, defina "pronto": true e informe ao candidato
-- Se o histórico estiver vazio, apresente-se apenas como "Recrutador SAR" sem inventar nome próprio ou empresa, e faça a primeira pergunta relevante
+- Quando o score atingir 75 ou mais, defina "pronto": true, informe o candidato que atingiu a aderência mínima e pergunte sutilmente se deseja acrescentar alguma informação relevante antes de encerrar — se o candidato acrescentar algo pertinente à vaga, incorpore ao score e encerre cordialmente; se não acrescentar nada novo, encerre cordialmente sem fazer mais perguntas
 - Em momento oportuno da entrevista (após cobrir experiência e formação, antes de encerrar),
   pergunte ao candidato se ele possui documentos complementares que gostaria de compartilhar —
   como certificados, declarações, portfólio ou comprovantes de cursos. Deixe claro que é opcional
@@ -296,6 +304,42 @@ def gerar_carta_com_ia(titulo: str, descricao: str, perfil: str, historico: str 
         .replace("{historico}", historico or "(sem informações adicionais da entrevista)")
     )
     return gerar_conteudo(prompt)
+
+
+_PROMPT_ENRIQUECIMENTO = """Você é um extrator de dados estruturados de entrevistas profissionais.
+Analise APENAS o histórico da conversa abaixo e extraia as habilidades e experiências profissionais que o candidato DECLAROU EXPLICITAMENTE durante a entrevista — não o que já estava no perfil base.
+
+Retorne APENAS um JSON válido, sem markdown, sem explicações:
+{
+  "habilidades": [
+    {"nome": "string", "proficiencia": "basico|intermediario|avancado|especialista", "categoria": "juridica|tecnica|comportamental"}
+  ],
+  "experiencias": [
+    {"cargo": "string", "empresa": "string", "descricao": "string ou null"}
+  ]
+}
+
+Se nada novo foi atestado em alguma categoria, retorne lista vazia para ela.
+
+HISTÓRICO DA ENTREVISTA:
+{historico}
+"""
+
+
+def extrair_enriquecimento_entrevista(historico: list) -> dict:
+    hist_texto = "\n".join(
+        f"{h['role'].upper()}: {h['conteudo']}" for h in historico
+    )
+    prompt = _PROMPT_ENRIQUECIMENTO.replace("{historico}", hist_texto)
+    try:
+        resultado = _extrair_json(gerar_conteudo(prompt))
+        return {
+            "habilidades": resultado.get("habilidades") or [],
+            "experiencias": resultado.get("experiencias") or [],
+        }
+    except Exception as e:
+        print(f"[ERRO extrair_enriquecimento_entrevista] {type(e).__name__}: {e}")
+        return {"habilidades": [], "experiencias": []}
 
 
 def conduzir_entrevista(titulo: str, descricao: str, perfil: str, historico: list) -> dict:

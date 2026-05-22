@@ -739,7 +739,11 @@
         <!-- Card do Desenvolvedor -->
         <div class="dev-footer">
           <div class="dev-card">
-            <div class="dev-avatar">RA</div>
+            <div class="dev-avatar" id="dev-avatar" title="Clique para alterar a foto" style="cursor:pointer;overflow:hidden;position:relative;">
+              <img id="dev-foto" src="" alt="Foto" style="display:none;width:100%;height:100%;object-fit:cover;border-radius:50%;">
+              <span id="dev-iniciais">RA</span>
+              <input type="file" id="dev-foto-input" accept="image/jpeg,image/png,image/webp" style="display:none;">
+            </div>
             <div class="dev-info">
               <div class="dev-nome">Ricardo Alisson Dantas Macedo</div>
               <div class="dev-cargo">Desenvolvedor Full-Stack</div>
@@ -1012,6 +1016,47 @@
   });
 </script>
 
+<script>
+(function () {
+  const avatar  = document.getElementById("dev-avatar");
+  const foto    = document.getElementById("dev-foto");
+  const iniciais = document.getElementById("dev-iniciais");
+  const input   = document.getElementById("dev-foto-input");
+
+  function _exibirFoto(url) {
+    foto.src = url;
+    foto.style.display = "block";
+    iniciais.style.display = "none";
+  }
+
+  function _exibirIniciais() {
+    foto.style.display = "none";
+    iniciais.style.display = "";
+  }
+
+  // Tenta carregar foto existente ao iniciar
+  fetch(BASE_URL + "/dev/foto")
+    .then(function (r) { if (r.ok) return r.blob(); throw new Error(); })
+    .then(function (blob) { _exibirFoto(URL.createObjectURL(blob)); })
+    .catch(_exibirIniciais);
+
+  avatar.addEventListener("click", function () { input.click(); });
+
+  input.addEventListener("change", async function () {
+    const arquivo = input.files[0];
+    if (!arquivo) return;
+    const form = new FormData();
+    form.append("arquivo", arquivo);
+    const resp = await fetch(BASE_URL + "/dev/foto", { method: "POST", body: form });
+    if (resp.ok) {
+      _exibirFoto(URL.createObjectURL(arquivo));
+    } else {
+      alert("Erro ao salvar a foto.");
+    }
+    input.value = "";
+  });
+})();
+</script>
 
 </body>
 </html>

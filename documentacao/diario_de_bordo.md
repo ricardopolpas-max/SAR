@@ -883,4 +883,42 @@ Ordem de execução:
 
 ---
 
+---
+
+## 2026-05-21 — Refinamentos Motor 4: Robustez de IA, Enriquecimento Incremental e Restauração de Sessão
+
+### Correções e implementações aplicadas
+
+**Fix fallback de IA (`rotinas/ia.py`):**
+Qualquer exceção em qualquer provedor agora aciona o próximo — anteriormente apenas erros de cota/rate disparavam o fallback. Erros como `503 UNAVAILABLE` e `ConnectError` eram propagados imediatamente, bloqueando o sistema mesmo com provedores alternativos disponíveis.
+
+**Fix score 0% para candidatos com habilidades técnicas (`rotinas/importacao.py`):**
+`_PROMPT_SCORE` reescrito com 6 instruções obrigatórias: percorre perfil estruturado E currículo premium antes de calcular o score; proíbe score zero se houver habilidades técnicas relevantes declaradas; considera habilidades transferíveis (HTML/CSS/JS relevantes para vagas Front-End).
+
+**Fix "Preparar candidatura" abrindo currículo de vaga anterior (`frontend/scripts/curriculos.js`, `vagas.js`):**
+`iniciarGeracaoCurriculo` reseta `_curriculoGerado=false` de forma síncrona antes do nav click. `_prepararCandidatura` chama `iniciarGeracaoCurriculo` antes do `.click()`.
+
+**Fix modal `addEventListener` em null (`frontend/telas/SAR.html`):**
+Modais movidos para antes das tags `<script>` — scripts executavam antes dos elementos existirem no DOM.
+
+**Fix BASE_URL sobrescrita na VM (`backend/servidor.py`):**
+Variável `DOMINIO` no `.env` — quando definida, `atualizar_api_js` usa `https://{DOMINIO}` em vez de `https://{HOST}:{porta}`. Elimina sobrescrita com `0.0.0.0:1024` a cada startup.
+
+**Enriquecimento incremental pós-entrevista (`rotinas/importacao.py`, `aplicacao.py`):**
+Quando `pronto=True`, novo hook extrai via IA habilidades e experiências declaradas pelo candidato durante a entrevista e insere nas tabelas `habilidades` e `experiencias` — sem deletar, sem sobrescrever. Checagem de duplicatas por `nome` (habilidades) e `cargo+empresa` (experiências).
+
+**Prompt do Recrutador IA refatorado (`rotinas/importacao.py`):**
+- Verificação de contexto do histórico como primeira instrução (não no meio das regras)
+- PROIBIDO inventar referências a conversas anteriores não registradas no histórico
+- Instrução explícita de encerramento cordial pós-75%: pergunta sutil se candidato deseja acrescentar algo; se acrescentar algo pertinente, incorpora ao score e encerra; se não, encerra sem novas perguntas
+- Instrução de leitura de perfil estruturado + currículo premium antes do cálculo de score
+
+**Restauração de histórico ao retornar à seção (`curriculos.js`):**
+Corrigido double-wrap: `dados.dados.historico` em vez de `dados.historico`. Ao restaurar conversa com `status=pronto`, reativa automaticamente o botão "Gerar Currículo Final" e restaura o score correto.
+
+**Foto do desenvolvedor na página Sobre (`aplicacao.py`, `SAR.html`):**
+Endpoints `GET /dev/foto` e `POST /dev/foto` — públicos, sem autenticação. Foto salva em `apoio/imagens/dev_foto.{ext}`. Avatar na página Sobre clicável: exibe foto se existir, fallback para iniciais "RA". Upload via `input[type=file]`, substituição automática de foto anterior.
+
+---
+
 *Documento mantido pela equipe de desenvolvimento. Atualização obrigatória a cada turno de trabalho concluído.*

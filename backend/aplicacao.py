@@ -25,6 +25,7 @@ RAIZ              = _raiz()
 PASTA_FRONTEND    = os.path.join(RAIZ, "frontend")
 PASTA_INTEGRACAO  = os.path.join(RAIZ, "integracao")
 PASTA_UPLOADS     = os.path.join(RAIZ, "apoio", "uploads")
+PASTA_IMAGENS     = os.path.join(RAIZ, "apoio", "imagens")
 SAR_HTML          = os.path.join(PASTA_FRONTEND, "telas", "SAR.html")
 TELA_ACESSO_HTML  = os.path.join(PASTA_FRONTEND, "telas", "login.html")
 TELA_CADASTRO_HTML = os.path.join(PASTA_FRONTEND, "telas", "cadastro.html")
@@ -314,6 +315,38 @@ async def icone_sistema():
 @app.get("/")
 async def raiz():
     return {"projeto": "SAR", "status": "operacional"}
+
+
+@app.get("/dev/foto", include_in_schema=False)
+async def obter_foto_dev():
+    os.makedirs(PASTA_IMAGENS, exist_ok=True)
+    for ext in ("jpg", "jpeg", "png", "webp"):
+        caminho = os.path.join(PASTA_IMAGENS, f"dev_foto.{ext}")
+        if os.path.isfile(caminho):
+            return FileResponse(caminho)
+    raise HTTPException(404, "Foto não encontrada.")
+
+
+@app.post("/dev/foto", include_in_schema=False)
+async def salvar_foto_dev(arquivo: UploadFile = File(...)):
+    tipos_permitidos = {"image/jpeg", "image/png", "image/webp"}
+    if arquivo.content_type not in tipos_permitidos:
+        raise HTTPException(400, "Tipo não permitido. Use JPG, PNG ou WEBP.")
+    conteudo = await arquivo.read()
+    if len(conteudo) > 5 * 1024 * 1024:
+        raise HTTPException(400, "Imagem muito grande. Máximo 5MB.")
+    os.makedirs(PASTA_IMAGENS, exist_ok=True)
+    # Remove foto anterior independente da extensão
+    for ext in ("jpg", "jpeg", "png", "webp"):
+        antigo = os.path.join(PASTA_IMAGENS, f"dev_foto.{ext}")
+        if os.path.isfile(antigo):
+            os.remove(antigo)
+    ext = arquivo.content_type.split("/")[-1].replace("jpeg", "jpg")
+    caminho = os.path.join(PASTA_IMAGENS, f"dev_foto.{ext}")
+    with open(caminho, "wb") as f:
+        f.write(conteudo)
+    return {"ok": True}
+
 
 # ------------------------------------------------------------
 # TELAS — rotas públicas de navegação
@@ -1105,9 +1138,22 @@ def _montar_perfil_texto(id_candidato: int) -> str:
 
 
 def _obter_base_perfil(id_candidato: int) -> str:
-    """Base de análise é sempre o perfil estruturado do banco (fonte de verdade).
-    Currículos premium gerados são produto final — nunca fonte de análise."""
-    return _montar_perfil_texto(id_candidato)
+    """Combina perfil estruturado + currículo premium mais recente para análise completa."""
+    partes = [_montar_perfil_texto(id_candidato)]
+
+    docs = db_selecionar("documentos", condicao={"id_candidato": id_candidato}) or []
+    curriculos = [d for d in docs if d.get("tipo") == "curriculo_gerado" and d.get("caminho_disco")]
+    if curriculos:
+        mais_recente = curriculos[-1]
+        try:
+            with open(mais_recente["caminho_disco"], "r", encoding="utf-8") as f:
+                texto = f.read().strip()
+            if texto:
+                partes.append("\n\nCURRÍCULO PREMIUM GERADO (conteúdo completo — use como referência adicional):\n" + texto)
+        except Exception:
+            pass
+
+    return "\n".join(partes)
 
 
 @app.get("/vagas/{id}/conversa")
@@ -1193,6 +1239,42 @@ async def conversar(id: int, corpo: dict, id_candidato: int = Depends(autenticar
                 (id_candidato, id, hist_json, score, status)
             )
         conn.commit()
+
+    if pronto:
+        from rotinas.importacao import extrair_enriquecimento_entrevista
+        novos = extrair_enriquecimento_entrevista(historico)
+
+        hab_existentes = {
+            h["nome"].lower()
+            for h in (db_selecionar("habilidades", condicao={"id_candidato": id_candidato}) or [])
+        }
+        for hab in novos.get("habilidades", []):
+            if hab.get("nome") and hab["nome"].lower() not in hab_existentes:
+                db_inserir("habilidades", {
+                    "id_candidato": id_candidato,
+                    "nome": hab["nome"],
+                    "proficiencia": hab.get("proficiencia") or "intermediario",
+                    "categoria": hab.get("categoria"),
+                })
+                hab_existentes.add(hab["nome"].lower())
+
+        exp_existentes = {
+            (e["cargo"].lower(), e["empresa"].lower())
+            for e in (db_selecionar("experiencias", condicao={"id_candidato": id_candidato}) or [])
+        }
+        for exp in novos.get("experiencias", []):
+            chave = (
+                (exp.get("cargo") or "").lower(),
+                (exp.get("empresa") or "").lower(),
+            )
+            if chave[0] and chave not in exp_existentes:
+                db_inserir("experiencias", {
+                    "id_candidato": id_candidato,
+                    "cargo": exp["cargo"],
+                    "empresa": exp.get("empresa") or "Não informada",
+                    "descricao": exp.get("descricao"),
+                })
+                exp_existentes.add(chave)
 
     return {
         "ok": True,

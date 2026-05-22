@@ -21,9 +21,9 @@
 
 ---
 
-## 3. Status Atual — 2026-05-18
+## 3. Status Atual — 2026-05-21
 
-**Fase ativa:** Refinamentos pós-Motor 4 — sistema em uso, distribuição demo concluída
+**Fase ativa:** Refinamentos pós-Motor 4 — enriquecimento incremental, robustez de IA e restauração de sessão validados
 
 ### Certificado
 - [x] Estrutura de pastas do projeto e governança completa
@@ -47,18 +47,25 @@
 - [x] Prompts totalmente agnósticos — qualquer área profissional (não só jurídico)
 - [x] `_obter_base_perfil` usa perfil estruturado do banco (fonte de verdade) — não currículos gerados
 - [x] Recrutador IA orientado a lacunas de informação, não de capacidade
+- [x] Prompt do Recrutador: verificação de contexto primeiro, proibição de inventar histórico, encerramento cordial pós-75%
 - [x] Entrevista guiada com Recrutador IA — pergunta a pergunta, histórico persistido
+- [x] Enriquecimento incremental pós-entrevista: habilidades e experiências atestadas inseridas nas tabelas do perfil (não-destrutivo)
 - [x] Score de aderência com barra visual e marco de 75%
+- [x] `_PROMPT_SCORE`: percorre perfil estruturado + currículo premium antes de calcular score
+- [x] Fallback de IA total: qualquer exceção aciona próximo provedor, não só erros de cota
 - [x] Upload de documentos complementares durante entrevista (📎)
+- [x] Carta de apresentação personalizada por vaga gerada pela IA
 - [x] Geração de currículo premium ABNT — sem markdown, sem viés de área
 - [x] Editor `contenteditable` — candidato edita o currículo antes de exportar
 - [x] DA-02: cada geração salva como ativo independente com timestamp
 - [x] Onboarding gate: menus bloqueados até importar currículo
-- [x] Restauração de sessão: último currículo + histórico de chat ao retornar
+- [x] Restauração de sessão: último currículo + histórico de chat completo + score + botão "Gerar Currículo Final"
 - [x] PDF com formatação ABNT via `window.print()`
 - [x] Aviso não-bloqueante de vaga indisponível
+- [x] Fix BASE_URL: variável `DOMINIO` no `.env` evita sobrescrita com `0.0.0.0` na VM
 - [x] Cache-Control: no-store em arquivos estáticos
 - [x] Tela Sobre: equipe completa, professora/coordenadora, links do desenvolvedor
+- [x] Foto do desenvolvedor na página Sobre — upload clicável, persiste em `apoio/imagens/`, fallback para iniciais
 
 ### Distribuição demo acadêmica — Concluída
 - [x] Trava de expiração: 30/06/2026
@@ -72,10 +79,10 @@
 - [ ] Inno Setup — instalador profissional `SAR_Setup.exe`
 - [ ] Múltiplos currículos base por candidato (arquitetura discutida)
 - [ ] Tom adaptativo do Recrutador IA (sênior vs. jovem aprendiz)
-- [ ] Carta de apresentação gerada pela IA
 - [ ] Pacote ZIP no Desktop (PDF + carta + documentos)
-- [ ] Link externo (DA-03) após ciclo completo
+- [ ] weasyprint para PDF WYSIWYG (substitui `window.print()`)
 - [ ] Certificação end-to-end completa
+- [ ] Deploy na VM (pendente testes locais finais)
 
 ---
 

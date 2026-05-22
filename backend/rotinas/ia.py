@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 load_dotenv(Path(__file__).resolve().parent.parent.parent / ".env")
 
 # Erros que indicam cota/rate-limit esgotados — tenta próximo provedor
-_ERROS_COTA = ("429", "quota", "limit", "rate", "insufficient", "exhausted")
+_ERROS_COTA = ("429", "503", "quota", "limit", "rate", "insufficient", "exhausted", "unavailable", "overloaded")
 
 
 def _cota_esgotada(msg: str) -> bool:
@@ -101,11 +101,8 @@ def gerar_conteudo(prompt: str) -> str:
             return fn(api_key, prompt)
         except Exception as e:
             ultimo_erro = e
-            if _cota_esgotada(str(e)):
-                print(f"[IA] {nome} — cota esgotada, tentando próximo...")
-                continue
-            # Erro não relacionado a cota — propaga imediatamente
-            raise
+            print(f"[IA] {nome} — falhou ({type(e).__name__}: {e}), tentando próximo...")
+            continue
 
     raise RuntimeError(
         f"Todos os provedores esgotaram a cota. Último erro: {ultimo_erro}"

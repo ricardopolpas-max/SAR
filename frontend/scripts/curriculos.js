@@ -136,10 +136,15 @@ async function _iniciarChat() {
   _mostrarEstadoCurriculo("chat");
 
   const { ok, dados } = await SarAPI.vagas.carregarConversa(_curriculoVagaId);
+  const conv = ok && dados && dados.dados;
 
-  if (ok && dados && dados.historico && dados.historico.length) {
-    _renderizarHistorico(dados.historico);
-    _atualizarScore(dados.score_estimado || 0);
+  if (conv && conv.historico && conv.historico.length) {
+    _renderizarHistorico(conv.historico);
+    _atualizarScore(conv.score_estimado || 0);
+    if (conv.status === "pronto") {
+      _curriculoGerado = false;
+      _atualizarBotaoCandidatar();
+    }
     return;
   }
 
@@ -265,7 +270,8 @@ function iniciarGeracaoCurriculo(vagaId, vagaTitulo, vagaEmpresa) {
   _curriculoVagaId      = vagaId;
   _curriculoVagaTitulo  = vagaTitulo  || "";
   _curriculoVagaEmpresa = vagaEmpresa || "";
-  _iniciarChat();
+  _curriculoGerado      = false; // reset síncrono antes do nav click disparar entrarSecaoCurriculos
+  // _iniciarChat será chamado por entrarSecaoCurriculos via nav click
 }
 
 /* Chamada quando o usuário navega para a seção */

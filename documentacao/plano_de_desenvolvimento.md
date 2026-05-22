@@ -2,7 +2,7 @@
 
 **Objetivo:** Plataforma inteligente para automação da jornada de recolocação profissional — captura de vagas, geração de currículo personalizado via IA e otimização para sistemas ATS de recrutamento.
 
-**Última atualização:** 2026-05-18 (Motor 4 validado — distribuição demo acadêmica implementada)
+**Última atualização:** 2026-05-21 (refinamentos Motor 4: enriquecimento incremental pós-entrevista, fallback IA, restauração de histórico, foto do desenvolvedor)
 
 ---
 
@@ -378,16 +378,24 @@ Card de vaga
 | Botão "Preparar candidatura" no card de vagas — entrada exclusiva no ciclo Motor 4 | ✅ |
 | Endpoint `GET /vagas/verificar-disponibilidade` — aviso não-bloqueante | ✅ |
 | Camada IA abstrata `rotinas/ia.py` — Gemini primário + Groq fallback automático | ✅ |
+| Fallback de IA cobre qualquer exceção (não só erros de cota) — tenta todos os provedores antes de falhar | ✅ |
 | Score de aderência candidato × vaga via IA — barra visual com marco de 75% | ✅ |
+| `_PROMPT_SCORE`: percorre perfil estruturado + currículo premium antes de calcular score | ✅ |
 | Entrevista guiada com Recrutador IA — uma pergunta por vez, histórico persistido em `conversas` | ✅ |
+| Prompt do Recrutador IA: verificação de contexto primeiro, proibição de inventar histórico, encerramento cordial pós-75% | ✅ |
+| Enriquecimento incremental pós-entrevista: habilidades e experiências atestadas inseridas nas tabelas do perfil (não-destrutivo) | ✅ |
 | Upload de documentos complementares durante entrevista (📎) — conteúdo enviado à IA como contexto | ✅ |
+| Carta de apresentação personalizada por vaga — gerada pela IA via `_PROMPT_CARTA` | ✅ |
 | Geração de currículo personalizado por vaga — prompt ABNT, candidato multidisciplinar | ✅ |
 | DA-02: cada geração salva como arquivo independente com timestamp — nunca sobrescreve | ✅ |
-| `_obter_base_perfil`: combina TODOS os currículos gerados como contexto multidisciplinar | ✅ |
+| `_obter_base_perfil`: combina perfil estruturado + currículo premium como contexto completo para IA | ✅ |
 | Onboarding gate: menus bloqueados até importar currículo — desbloqueio automático | ✅ |
-| Restauração de sessão: último currículo exibido ao retornar ao sistema | ✅ |
+| Restauração de sessão: último currículo + histórico de chat completo ao retornar à seção | ✅ |
+| Restauração de `status=pronto`: botão "Gerar Currículo Final" reativado automaticamente ao retornar | ✅ |
 | PDF via `window.print()` com formatação ABNT — sem cabeçalho/rodapé do browser | ✅ |
 | Texto do currículo justificado com `div.curriculo-display` | ✅ |
+| Foto do desenvolvedor na página Sobre — clicável, persiste em `apoio/imagens/`, fallback para iniciais | ✅ |
+| Fix BASE_URL: variável `DOMINIO` no `.env` evita sobrescrita com `0.0.0.0` na VM | ✅ |
 | `dependencias.txt`: pdfplumber, python-docx, google-generativeai, groq | ✅ |
 | **Certificação:** fluxo end-to-end validado fisicamente | ⏳ Pendente |
 
@@ -397,17 +405,17 @@ Card de vaga
 
 Itens identificados para completar antes da certificação final:
 
-| Item | Descrição | Prioridade |
-|---|---|---|
-| **Editor de texto** | Tornar o currículo gerado editável (`contenteditable`) antes de exportar — candidato ajusta livremente | Alta |
-| **Link externo pós-ciclo** | DA-03: após gerar currículo, exibir botão com link da vaga na plataforma para candidatura real | Alta |
-| **Restauração do histórico de chat** | Ao retornar à seção, restaurar também a conversa da entrevista (não só o currículo) | Média |
-| **Aviso de vaga indisponível** | Usar `GET /vagas/verificar-disponibilidade` para avisar o candidato ao entrar no ciclo se a vaga sumiu | Média |
-| **Tom adaptativo** | IA ajusta linguagem ao perfil do candidato (jovem aprendiz ≠ sênior experiente) | Baixa |
-| **Pacote ZIP no Desktop** | Empacotar PDF + carta de apresentação + documentos apensos em ZIP salvo no Desktop | Baixa |
-| **Carta de apresentação** | Gerar junto com o currículo, personalizada para a vaga | Baixa |
-| **weasyprint para PDF** | Substituir `window.print()` por PDF WYSIWYG via weasyprint (sem dependência do browser) | Baixa |
-| **Teste end-to-end** | Importação → complementação → entrevista → score 75% → geração → edição → PDF → candidatura | Obrigatório |
+| Item | Descrição | Prioridade | Status |
+|---|---|---|---|
+| **Editor de texto** | Tornar o currículo gerado editável (`contenteditable`) antes de exportar — candidato ajusta livremente | Alta | ✅ |
+| **Link externo pós-ciclo** | DA-03: após gerar currículo, exibir botão com link da vaga na plataforma para candidatura real | Alta | ✅ |
+| **Restauração do histórico de chat** | Ao retornar à seção, restaurar conversa da entrevista + score + botão "Gerar Currículo Final" | Média | ✅ |
+| **Carta de apresentação** | Gerar junto com o currículo, personalizada para a vaga | Baixa | ✅ |
+| **Aviso de vaga indisponível** | Usar `GET /vagas/verificar-disponibilidade` para avisar o candidato ao entrar no ciclo se a vaga sumiu | Média | ✅ |
+| **Tom adaptativo** | IA ajusta linguagem ao perfil do candidato (jovem aprendiz ≠ sênior experiente) | Baixa | ⏳ Pendente |
+| **Pacote ZIP no Desktop** | Empacotar PDF + carta de apresentação + documentos apensos em ZIP salvo no Desktop | Baixa | ⏳ Pendente |
+| **weasyprint para PDF** | Substituir `window.print()` por PDF WYSIWYG via weasyprint (sem dependência do browser) | Baixa | ⏳ Pendente |
+| **Teste end-to-end** | Importação → complementação → entrevista → score 75% → geração → edição → PDF → candidatura | Obrigatório | ⏳ Pendente |
 
 ---
 
