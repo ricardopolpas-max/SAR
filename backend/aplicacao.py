@@ -25,7 +25,7 @@ RAIZ              = _raiz()
 PASTA_FRONTEND    = os.path.join(RAIZ, "frontend")
 PASTA_INTEGRACAO  = os.path.join(RAIZ, "integracao")
 PASTA_UPLOADS     = os.path.join(RAIZ, "apoio", "uploads")
-PASTA_IMAGENS     = os.path.join(RAIZ, "apoio", "imagens")
+PASTA_IMAGENS     = os.path.join(RAIZ, "apoio", "Imagens")
 SAR_HTML          = os.path.join(PASTA_FRONTEND, "telas", "SAR.html")
 TELA_ACESSO_HTML  = os.path.join(PASTA_FRONTEND, "telas", "login.html")
 TELA_CADASTRO_HTML = os.path.join(PASTA_FRONTEND, "telas", "cadastro.html")
@@ -47,6 +47,7 @@ class _SemCache(StaticFiles):
 
 app.mount("/frontend",   _SemCache(directory=PASTA_FRONTEND),   name="frontend")
 app.mount("/integracao", _SemCache(directory=PASTA_INTEGRACAO), name="integracao")
+app.mount("/imagens",    StaticFiles(directory=PASTA_IMAGENS),  name="imagens")
 
 # ------------------------------------------------------------
 # LOOP — suprime ConnectionResetError (ruído Windows/ProactorEventLoop)

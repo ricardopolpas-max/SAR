@@ -25,6 +25,35 @@
     .btn-sair { font-size: var(--fonte-sm); padding: 4px var(--esp-sm); flex-shrink: 0; }
   </style>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%232d65e0'/><text x='50%25' y='54%25' dominant-baseline='middle' text-anchor='middle' font-family='system-ui,sans-serif' font-weight='700' font-size='14' fill='%23e8f0ff'>SAR</text></svg>">
+  <style>
+    /* Sidebar oculto — lógica JS preservada no DOM */
+    .sidebar { display: none !important; }
+
+    /* Barra de status no rodapé */
+    #barra-status {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 7px 24px;
+      background: var(--superficie);
+      border-top: 1px solid var(--borda);
+      font-size: 13px;
+      z-index: 200;
+      height: 38px;
+    }
+    /* Empurra o conteúdo para não ficar atrás da barra fixa */
+    .app-layout { padding-bottom: 38px; }
+    #barra-status .bs-esq { display: flex; align-items: center; gap: 10px; color: var(--texto-sec); }
+    #barra-status .bs-dir { display: flex; align-items: center; gap: 12px; }
+    #barra-status .bs-nome { color: var(--texto-sec); }
+    #barra-status .bs-status { display: flex; align-items: center; gap: 6px; color: var(--texto-des); font-size: 13px; }
+    #barra-status .bs-logo { font-weight: 800; color: var(--primario); font-size: 15px; letter-spacing: 0.5px; cursor: pointer; }
+
+    /* Botão voltar home nas seções */
+    .btn-home { font-size: 13px; padding: 5px 12px; }
+  </style>
 </head>
 <body>
 <div class="app-layout">
@@ -59,12 +88,12 @@
 
     <div class="sidebar-footer">
       <div class="sidebar-candidato">
-        <span id="candidato-nome" class="candidato-nome"></span>
-        <button id="btn-sair" class="btn btn-ghost btn-sair" title="Encerrar sessão">↪ Sair</button>
+        <span id="_sidebar-candidato-nome" class="candidato-nome"></span>
+        <button id="_sidebar-btn-sair" class="btn btn-ghost btn-sair">↪ Sair</button>
       </div>
       <div class="status-conexao">
-        <div id="status-ponto" class="status-ponto"></div>
-        <span id="status-texto">verificando...</span>
+        <div id="_sidebar-status-ponto" class="status-ponto"></div>
+        <span id="_sidebar-status-texto">verificando...</span>
       </div>
     </div>
   </aside>
@@ -75,13 +104,115 @@
   <main class="main-content">
 
     <!-- ----------------------------------------------------------
+         SEÇÃO: HOME
+    ---------------------------------------------------------- -->
+    <section id="secao-home" class="secao">
+      <div style="
+        flex: 1;
+        position: relative;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+      ">
+        <!-- Imagem de fundo -->
+        <div style="
+          position: absolute; inset: 0;
+          background: url('/imagens/tela_fundo.png') center center / cover no-repeat;
+          opacity: 0.35;
+        "></div>
+        <!-- Gradiente de suavização sobre a imagem -->
+        <div style="
+          position: absolute; inset: 0;
+          background: linear-gradient(90deg, rgba(13,22,50,0.92) 0%, rgba(13,22,50,0.65) 50%, rgba(13,22,50,0.2) 100%);
+        "></div>
+
+        <!-- Conteúdo sobreposto -->
+        <div style="position: relative; z-index: 2; padding: 48px 56px; max-width: 560px;">
+          <div style="font-size: 11px; font-weight: 700; letter-spacing: 3px; color: rgba(255,255,255,0.4); text-transform: uppercase; margin-bottom: 12px;">
+            Sistema de Automação de Recolocação
+          </div>
+          <div style="font-size: 42px; font-weight: 900; color: #ffffff; line-height: 1.1; margin-bottom: 8px;">
+            Bem-vindo ao <span style="color: #2d65e0;">SAR</span>
+          </div>
+          <div id="home-saudacao" style="font-size: 16px; color: rgba(255,255,255,0.55); margin-bottom: 32px; line-height: 1.5;">
+            Sua plataforma de recolocação profissional com Inteligência Artificial.
+          </div>
+
+          <!-- Cards de acesso rápido -->
+          <div style="display: flex; flex-direction: column; gap: 12px;">
+            <div class="home-quick-card" onclick="document.querySelector('.nav-item[data-secao=&quot;vagas&quot;]').click()" style="
+              background: rgba(45,101,224,0.15);
+              border: 1px solid rgba(45,101,224,0.35);
+              border-left: 4px solid #2d65e0;
+              border-radius: 12px; padding: 16px 20px;
+              cursor: pointer; display: flex; gap: 16px; align-items: center;
+              transition: background 0.2s;
+            " onmouseover="this.style.background='rgba(45,101,224,0.25)'" onmouseout="this.style.background='rgba(45,101,224,0.15)'">
+              <span style="font-size: 28px;">💼</span>
+              <div>
+                <div style="font-size: 14px; font-weight: 800; color: #fff;">Explorar Vagas</div>
+                <div style="font-size: 12px; color: rgba(255,255,255,0.45);">Veja as oportunidades disponíveis e avalie sua aderência</div>
+              </div>
+            </div>
+            <div class="home-quick-card" onclick="document.querySelector('.nav-item[data-secao=&quot;perfil&quot;]').click()" style="
+              background: rgba(240,165,0,0.1);
+              border: 1px solid rgba(240,165,0,0.3);
+              border-left: 4px solid #f0a500;
+              border-radius: 12px; padding: 16px 20px;
+              cursor: pointer; display: flex; gap: 16px; align-items: center;
+              transition: background 0.2s;
+            " onmouseover="this.style.background='rgba(240,165,0,0.2)'" onmouseout="this.style.background='rgba(240,165,0,0.1)'">
+              <span style="font-size: 28px;">👤</span>
+              <div>
+                <div style="font-size: 14px; font-weight: 800; color: #fff;">Meu Perfil</div>
+                <div style="font-size: 12px; color: rgba(255,255,255,0.45);">Complete suas informações para aumentar suas chances</div>
+              </div>
+            </div>
+            <div class="home-quick-card" onclick="document.querySelector('.nav-item[data-secao=&quot;curriculos&quot;]').click()" style="
+              background: rgba(255,255,255,0.05);
+              border: 1px solid rgba(255,255,255,0.1);
+              border-left: 4px solid rgba(255,255,255,0.3);
+              border-radius: 12px; padding: 16px 20px;
+              cursor: pointer; display: flex; gap: 16px; align-items: center;
+              transition: background 0.2s;
+            " onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='rgba(255,255,255,0.05)'">
+              <span style="font-size: 28px;">⭐</span>
+              <div>
+                <div style="font-size: 14px; font-weight: 800; color: #fff;">Currículo Premium</div>
+                <div style="font-size: 12px; color: rgba(255,255,255,0.45);">Gere um currículo personalizado com IA para cada vaga</div>
+              </div>
+            </div>
+            <div class="home-quick-card" onclick="document.querySelector('.nav-item[data-secao=&quot;sobre&quot;]').click()" style="
+              background: rgba(45,101,224,0.08);
+              border: 1px solid rgba(45,101,224,0.2);
+              border-left: 4px solid rgba(45,101,224,0.5);
+              border-radius: 12px; padding: 16px 20px;
+              cursor: pointer; display: flex; gap: 16px; align-items: center;
+              transition: background 0.2s;
+            " onmouseover="this.style.background='rgba(45,101,224,0.18)'" onmouseout="this.style.background='rgba(45,101,224,0.08)'">
+              <span style="font-size: 28px;">ℹ️</span>
+              <div>
+                <div style="font-size: 14px; font-weight: 800; color: #fff;">Sobre o SAR</div>
+                <div style="font-size: 12px; color: rgba(255,255,255,0.45);">Conheça o projeto, a equipe e a proposta acadêmica</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ----------------------------------------------------------
          SEÇÃO: VAGAS
     ---------------------------------------------------------- -->
     <section id="secao-vagas" class="secao hidden">
       <div class="page-header">
-        <div>
-          <span class="page-titulo">Vagas</span>
-          <span id="vagas-contagem" class="page-contagem"></span>
+        <div style="display:flex;align-items:center;gap:var(--esp-md);">
+          <button class="btn btn-ghost btn-home" onclick="_irHome()" title="Início">← Início</button>
+          <div>
+            <span class="page-titulo">Vagas</span>
+            <span id="vagas-contagem" class="page-contagem"></span>
+          </div>
         </div>
         <div class="page-acoes">
           <span id="sync-status" class="sync-status"></span>
@@ -135,7 +266,10 @@
     ---------------------------------------------------------- -->
     <section id="secao-perfil" class="secao hidden">
       <div class="page-header">
-        <span class="page-titulo">Meu Perfil</span>
+        <div style="display:flex;align-items:center;gap:var(--esp-md);">
+          <button class="btn btn-ghost btn-home" onclick="_irHome()" title="Início">← Início</button>
+          <span class="page-titulo">Meu Perfil</span>
+        </div>
       </div>
       <div id="onboarding-aviso" class="hidden"></div>
       <div id="onboarding-aviso-parcial" class="onboarding-aviso onboarding-aviso-parcial hidden">
@@ -482,7 +616,10 @@
     ---------------------------------------------------------- -->
     <section id="secao-curriculos" class="secao hidden">
       <div class="page-header">
-        <span class="page-titulo">Currículos</span>
+        <div style="display:flex;align-items:center;gap:var(--esp-md);">
+          <button class="btn btn-ghost btn-home" onclick="_irHome()" title="Início">← Início</button>
+          <span class="page-titulo">Currículos</span>
+        </div>
       </div>
 
       <!-- Aviso não-bloqueante: vaga indisponível na plataforma -->
@@ -624,7 +761,10 @@
     ---------------------------------------------------------- -->
     <section id="secao-sobre" class="secao hidden">
       <div class="page-header">
-        <span class="page-titulo">Sobre o SAR</span>
+        <div style="display:flex;align-items:center;gap:var(--esp-md);">
+          <button class="btn btn-ghost btn-home" onclick="_irHome()" title="Início">← Início</button>
+          <span class="page-titulo">Sobre o SAR</span>
+        </div>
       </div>
       <div class="content-scroll">
 
@@ -764,6 +904,24 @@
     </section>
 
   </main>
+
+
+</div>
+
+<!-- Barra de status fixa no rodapé -->
+<div id="barra-status">
+  <div class="bs-esq">
+    <span class="bs-logo" onclick="_irHome()">SAR</span>
+    <span style="color:var(--borda);">|</span>
+    <span class="bs-status">
+      <div id="status-ponto" class="status-ponto"></div>
+      <span id="status-texto">verificando...</span>
+    </span>
+  </div>
+  <div class="bs-dir">
+    <span id="candidato-nome" class="bs-nome"></span>
+    <button id="btn-sair" class="btn btn-ghost btn-sair" title="Encerrar sessão">↪ Sair</button>
+  </div>
 </div>
 
 <!-- Modal: Boas-vindas (splash primeiro acesso) -->
@@ -891,6 +1049,17 @@
   document.getElementById("candidato-nome").textContent = _nomeCandidato;
   document.getElementById("perfil-nome").textContent    = _nomeCandidato;
 
+  /* Saudação personalizada na home */
+  (function () {
+    const hora = new Date().getHours();
+    const saudacao = hora < 12 ? 'Bom dia' : hora < 18 ? 'Boa tarde' : 'Boa noite';
+    const primeiroNome = (_nomeCandidato || '').split(' ')[0];
+    const el = document.getElementById('home-saudacao');
+    if (el && primeiroNome) {
+      el.textContent = saudacao + ', ' + primeiroNome + '. Sua plataforma de recolocação profissional com Inteligência Artificial.';
+    }
+  })();
+
   /* E-mail do candidato — carregado do backend */
   SarAPI.candidato.meuPerfil().then(function (resultado) {
     const emailEl = document.getElementById("perfil-email");
@@ -922,6 +1091,8 @@
       }
     });
   });
+
+  /* Ao fechar o modal de boas-vindas via "ok", vai para perfil — home já é o padrão */
 
   /* Onboarding — três estados: primeiro acesso / parcial / completo */
   window.verificarOnboarding = async function () {
@@ -959,6 +1130,16 @@
   };
 
   verificarOnboarding();
+
+  /* Voltar à home — oculta todas as seções e exibe secao-home */
+  function _irHome() {
+    document.querySelectorAll('.nav-item').forEach(function(n) { n.classList.remove('ativo'); });
+    document.querySelectorAll('.secao').forEach(function(s) { s.classList.add('hidden'); });
+    document.getElementById('secao-home').classList.remove('hidden');
+  }
+
+  /* Clique no logo SAR da barra de status também volta à home */
+  /* (já tratado pelo onclick inline no elemento .bs-logo) */
 
   /* Splash boas-vindas — delegação para garantir que o elemento já existe */
   document.addEventListener('click', function (e) {
