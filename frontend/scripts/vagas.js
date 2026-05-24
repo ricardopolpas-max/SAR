@@ -270,8 +270,36 @@ function _inicializarFiltros() {
     _filtrosAtivos = {};
     el.filtroChips.forEach(c => c.classList.remove("ativo"));
     el.filtroLimpar.classList.add("hidden");
+    const mc = document.getElementById("filtro-mobile-contrato");
+    const mm = document.getElementById("filtro-mobile-modalidade");
+    if (mc) mc.value = "";
+    if (mm) mm.value = "";
     _renderizarVagas(_todasVagas);
   });
+
+  /* Filtros mobile — selects sincronizados com _filtrosAtivos */
+  const _filtroMobileContrato  = document.getElementById("filtro-mobile-contrato");
+  const _filtroMobileModalidade = document.getElementById("filtro-mobile-modalidade");
+
+  function _aplicarFiltroMobile(campo, valor) {
+    if (valor) {
+      _filtrosAtivos[campo] = valor;
+    } else {
+      delete _filtrosAtivos[campo];
+    }
+    _renderizarVagas(_todasVagas);
+  }
+
+  if (_filtroMobileContrato) {
+    _filtroMobileContrato.addEventListener("change", function () {
+      _aplicarFiltroMobile("tipo_contrato", this.value);
+    });
+  }
+  if (_filtroMobileModalidade) {
+    _filtroMobileModalidade.addEventListener("change", function () {
+      _aplicarFiltroMobile("modalidade", this.value);
+    });
+  }
 }
 
 /* ----------------------------------------------------------

@@ -106,99 +106,37 @@
     <!-- ----------------------------------------------------------
          SEÇÃO: HOME
     ---------------------------------------------------------- -->
-    <section id="secao-home" class="secao">
-      <div style="
-        flex: 1;
-        position: relative;
-        overflow: hidden;
-        display: flex;
-        align-items: center;
-        justify-content: flex-start;
-      ">
-        <!-- Imagem de fundo -->
-        <div style="
-          position: absolute; inset: 0;
-          background: url('/imagens/tela_fundo.png') center center / cover no-repeat;
-          opacity: 0.35;
-        "></div>
-        <!-- Gradiente de suavização sobre a imagem -->
-        <div style="
-          position: absolute; inset: 0;
-          background: linear-gradient(90deg, rgba(13,22,50,0.92) 0%, rgba(13,22,50,0.65) 50%, rgba(13,22,50,0.2) 100%);
-        "></div>
+    <section id="secao-home" class="secao home-secao">
+      <!-- Imagem de fundo fixa -->
+      <div class="home-bg"></div>
+      <!-- Gradiente sobre a imagem -->
+      <div class="home-gradiente"></div>
+      <!-- Conteúdo com scroll natural -->
+      <div class="home-corpo">
 
-        <!-- Conteúdo sobreposto -->
-        <div style="position: relative; z-index: 2; padding: 48px 56px; max-width: 560px;">
-          <div style="font-size: 11px; font-weight: 700; letter-spacing: 3px; color: rgba(255,255,255,0.4); text-transform: uppercase; margin-bottom: 12px;">
-            Sistema de Automação de Recolocação
-          </div>
-          <div style="font-size: 42px; font-weight: 900; color: #ffffff; line-height: 1.1; margin-bottom: 8px;">
-            Bem-vindo ao <span style="color: #2d65e0;">SAR</span>
-          </div>
-          <div id="home-saudacao" style="font-size: 16px; color: rgba(255,255,255,0.55); margin-bottom: 32px; line-height: 1.5;">
+        <div class="home-tag">Sistema de Automação de Recolocação</div>
+          <div class="home-titulo">Bem-vindo ao <span>SAR</span></div>
+          <div id="home-saudacao" class="home-saudacao">
             Sua plataforma de recolocação profissional com Inteligência Artificial.
           </div>
-
-          <!-- Cards de acesso rápido -->
-          <div style="display: flex; flex-direction: column; gap: 12px;">
-            <div class="home-quick-card" onclick="document.querySelector('.nav-item[data-secao=&quot;vagas&quot;]').click()" style="
-              background: rgba(45,101,224,0.15);
-              border: 1px solid rgba(45,101,224,0.35);
-              border-left: 4px solid #2d65e0;
-              border-radius: 12px; padding: 16px 20px;
-              cursor: pointer; display: flex; gap: 16px; align-items: center;
-              transition: background 0.2s;
-            " onmouseover="this.style.background='rgba(45,101,224,0.25)'" onmouseout="this.style.background='rgba(45,101,224,0.15)'">
-              <span style="font-size: 28px;">💼</span>
-              <div>
-                <div style="font-size: 14px; font-weight: 800; color: #fff;">Explorar Vagas</div>
-                <div style="font-size: 12px; color: rgba(255,255,255,0.45);">Veja as oportunidades disponíveis e avalie sua aderência</div>
-              </div>
+          <div class="home-cards">
+            <div class="home-card home-card--vagas" onclick="document.querySelector('.nav-item[data-secao=&quot;vagas&quot;]').click()">
+              <span class="home-card-icon">💼</span>
+              <div><div class="home-card-titulo">Explorar Vagas</div><div class="home-card-desc">Veja as oportunidades disponíveis e avalie sua aderência</div></div>
             </div>
-            <div class="home-quick-card" onclick="document.querySelector('.nav-item[data-secao=&quot;perfil&quot;]').click()" style="
-              background: rgba(240,165,0,0.1);
-              border: 1px solid rgba(240,165,0,0.3);
-              border-left: 4px solid #f0a500;
-              border-radius: 12px; padding: 16px 20px;
-              cursor: pointer; display: flex; gap: 16px; align-items: center;
-              transition: background 0.2s;
-            " onmouseover="this.style.background='rgba(240,165,0,0.2)'" onmouseout="this.style.background='rgba(240,165,0,0.1)'">
-              <span style="font-size: 28px;">👤</span>
-              <div>
-                <div style="font-size: 14px; font-weight: 800; color: #fff;">Meu Perfil</div>
-                <div style="font-size: 12px; color: rgba(255,255,255,0.45);">Complete suas informações para aumentar suas chances</div>
-              </div>
+            <div class="home-card home-card--perfil" onclick="document.querySelector('.nav-item[data-secao=&quot;perfil&quot;]').click()">
+              <span class="home-card-icon">👤</span>
+              <div><div class="home-card-titulo">Meu Perfil</div><div class="home-card-desc">Complete suas informações para aumentar suas chances</div></div>
             </div>
-            <div class="home-quick-card" onclick="document.querySelector('.nav-item[data-secao=&quot;curriculos&quot;]').click()" style="
-              background: rgba(255,255,255,0.05);
-              border: 1px solid rgba(255,255,255,0.1);
-              border-left: 4px solid rgba(255,255,255,0.3);
-              border-radius: 12px; padding: 16px 20px;
-              cursor: pointer; display: flex; gap: 16px; align-items: center;
-              transition: background 0.2s;
-            " onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='rgba(255,255,255,0.05)'">
-              <span style="font-size: 28px;">⭐</span>
-              <div>
-                <div style="font-size: 14px; font-weight: 800; color: #fff;">Currículo Premium</div>
-                <div style="font-size: 12px; color: rgba(255,255,255,0.45);">Gere um currículo personalizado com IA para cada vaga</div>
-              </div>
+            <div class="home-card home-card--curriculo" onclick="document.querySelector('.nav-item[data-secao=&quot;curriculos&quot;]').click()">
+              <span class="home-card-icon">⭐</span>
+              <div><div class="home-card-titulo">Currículo Premium</div><div class="home-card-desc">Gere um currículo personalizado com IA para cada vaga</div></div>
             </div>
-            <div class="home-quick-card" onclick="document.querySelector('.nav-item[data-secao=&quot;sobre&quot;]').click()" style="
-              background: rgba(45,101,224,0.08);
-              border: 1px solid rgba(45,101,224,0.2);
-              border-left: 4px solid rgba(45,101,224,0.5);
-              border-radius: 12px; padding: 16px 20px;
-              cursor: pointer; display: flex; gap: 16px; align-items: center;
-              transition: background 0.2s;
-            " onmouseover="this.style.background='rgba(45,101,224,0.18)'" onmouseout="this.style.background='rgba(45,101,224,0.08)'">
-              <span style="font-size: 28px;">ℹ️</span>
-              <div>
-                <div style="font-size: 14px; font-weight: 800; color: #fff;">Sobre o SAR</div>
-                <div style="font-size: 12px; color: rgba(255,255,255,0.45);">Conheça o projeto, a equipe e a proposta acadêmica</div>
-              </div>
+            <div class="home-card home-card--sobre" onclick="document.querySelector('.nav-item[data-secao=&quot;sobre&quot;]').click()">
+              <span class="home-card-icon">ℹ️</span>
+              <div><div class="home-card-titulo">Sobre o SAR</div><div class="home-card-desc">Conheça o projeto, a equipe e a proposta acadêmica</div></div>
             </div>
           </div>
-        </div>
       </div>
     </section>
 
@@ -241,7 +179,8 @@
         />
       </div>
 
-      <div class="filtros-bar">
+      <!-- Filtros desktop — chips -->
+      <div class="filtros-bar filtros-desktop">
         <span class="filtro-label">Contrato:</span>
         <div class="filtro-chip" data-filtro="tipo_contrato" data-valor="clt">CLT</div>
         <div class="filtro-chip" data-filtro="tipo_contrato" data-valor="pj">PJ</div>
@@ -254,6 +193,25 @@
         <div class="filtro-chip" data-filtro="modalidade" data-valor="remoto">Remoto</div>
         <div class="filtro-chip" data-filtro="modalidade" data-valor="hibrido">Híbrido</div>
         <span id="filtro-limpar" class="filtro-limpar hidden">✕ Limpar filtros</span>
+      </div>
+
+      <!-- Filtros mobile — selects -->
+      <div class="filtros-mobile">
+        <select id="filtro-mobile-contrato" class="select-ordenacao">
+          <option value="">Contrato: Todos</option>
+          <option value="clt">CLT</option>
+          <option value="pj">PJ</option>
+          <option value="estagio">Estágio</option>
+          <option value="jovemaprendiz">Jovem Aprendiz</option>
+          <option value="autonomo">Autônomo</option>
+          <option value="contratacaotemporaria">Temporário</option>
+        </select>
+        <select id="filtro-mobile-modalidade" class="select-ordenacao">
+          <option value="">Modalidade: Todas</option>
+          <option value="presencial">Presencial</option>
+          <option value="remoto">Remoto</option>
+          <option value="hibrido">Híbrido</option>
+        </select>
       </div>
 
       <div class="content-scroll">
@@ -1235,6 +1193,22 @@
       alert("Erro ao salvar a foto.");
     }
     input.value = "";
+  });
+})();
+</script>
+
+<script>
+/* Viewport real — corrige 100vh no mobile (Safari, Chrome Android)
+   Define --vh como 1% do innerHeight real, atualiza ao redimensionar */
+(function () {
+  function _atualizarVh() {
+    var vh = window.innerHeight * 0.01;
+    document.documentElement.style.setProperty('--vh', vh + 'px');
+  }
+  _atualizarVh();
+  window.addEventListener('resize', _atualizarVh);
+  window.addEventListener('orientationchange', function () {
+    setTimeout(_atualizarVh, 150); /* aguarda browser estabilizar após rotação */
   });
 })();
 </script>

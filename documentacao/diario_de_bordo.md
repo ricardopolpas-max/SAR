@@ -40,6 +40,38 @@ Garante rastreabilidade, legado e prevenção de recorrência de erros.
 
 ---
 
+## 2026-05-25 — Tela home, responsividade e card EXPODPT
+
+**Tela Home:**
+- Sidebar lateral removida (oculta via CSS — lógica JS preservada no DOM)
+- Nova `#secao-home` com imagem de fundo `tela_fundo.png` gerada por IA
+- 4 cards de acesso rápido: Explorar Vagas, Meu Perfil, Currículo Premium, Sobre
+- Barra de status fixa no rodapé: logo SAR (clicável → home), status de conexão, nome e logout
+- Botão `← Início` em todas as seções para retornar à home
+- Saudação dinâmica (Bom dia/tarde/noite + primeiro nome do candidato)
+- `app.mount("/imagens")` adicionado ao backend para servir `apoio/Imagens/` como estático
+
+**Responsividade — abordagem profissional:**
+- Variável `--vh` calculada via JS (`window.innerHeight * 0.01`) — corrige o bug de `100vh` no Safari/Chrome mobile que não desconta barras do browser
+- Atualizada em `resize` e `orientationchange` (com delay de 150ms para estabilizar após rotação)
+- `app-layout` usa `height: calc(var(--vh, 1vh) * 100)` em vez de `100vh` fixo
+- Home reescrita com classes semânticas (`home-secao`, `home-corpo`, `home-card--*`) — sem inline styles
+- Fundo e gradiente com `position: fixed` — cobrem a tela independente do tamanho do conteúdo
+- Home com `overflow-y: auto` — scroll nativo em qualquer resolução
+- Breakpoints: mobile ≤ 600px | tablet portrait 601–768px | tablet landscape 769–1024px | desktop ≥ 1025px
+- Cards de vaga no mobile: CSS Grid com áreas nomeadas (`info / meta / badges / acoes`) — sem cortes laterais
+- Avatar oculto no mobile (inicial da empresa sem contexto visual)
+- Filtros: chips no desktop, dois selects (Contrato + Modalidade) no mobile — sincronizados com `_filtrosAtivos`
+- Modais: bottom-sheet no mobile, centralizados no tablet/desktop
+
+**Card EXPODPT:**
+- `apoio/Imagens/card_expodpt.html` — card 1080×1080px para divulgação do evento acadêmico
+- Prompt gerado para IA de imagem (Gemini Nano Banana 2) — card final aprovado pela equipe em votação
+- `apoio/Imagens/tela_fundo.png` — imagem de fundo do sistema gerada com mesmo prompt (sem textos)
+- `apoio/Imagens/logo_nassao.png` — logo oficial UNINASSAU
+
+---
+
 ## 2026-05-13 — Ponto de parada — agenda da próxima sessão
 
 **Implementado hoje (pendente teste físico — NÃO commitar antes de validar):**
