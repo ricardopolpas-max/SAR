@@ -21,8 +21,8 @@ from aplicacao import app
 # ------------------------------------------------------------
 # 0. TRAVA DE EXPIRAÇÃO
 # ------------------------------------------------------------
-if date.today() > date(2026, 6, 30):
-    print("[SAR] Esta versão expirou em 30/06/2026. Contate o desenvolvedor.")
+if date.today() > date(2027, 6, 30):
+    print("[SAR] Esta versão expirou em 30/06/2027. Contate o desenvolvedor.")
     sys.exit(1)
 
 # ------------------------------------------------------------
