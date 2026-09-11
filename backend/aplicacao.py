@@ -251,6 +251,11 @@ def inicializar_banco():
         except Exception:
             pass
 
+        try:
+            cursor.execute("ALTER TABLE documentos ADD COLUMN conteudo_extraido TEXT")
+        except Exception:
+            pass
+
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS contatos (
                 id               INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -818,17 +823,8 @@ async def upload_documento_complementar(
     with open(caminho_destino, "wb") as f:
         f.write(conteudo)
 
-    resultado = db_inserir("documentos", {
-        "id_candidato": id_candidato,
-        "tipo": "complementar",
-        "nome_arquivo": nome_arquivo,
-        "caminho_disco": caminho_destino,
-        "descricao": descricao.strip() or nome_arquivo,
-    })
-
-    if resultado["status"] == "erro":
-        raise HTTPException(400, resultado["mensagem"])
-
+    # Extrai ANTES de gravar — o conteúdo precisa ser persistido, não só
+    # devolvido na resposta, senão nenhum prompt de IA volta a enxergá-lo.
     texto_extraido = None
     try:
         from rotinas.importacao import extrair_texto_pdf, extrair_texto_docx
@@ -839,6 +835,18 @@ async def upload_documento_complementar(
             texto_extraido = extrair_texto_docx(conteudo)
     except Exception:
         pass
+
+    resultado = db_inserir("documentos", {
+        "id_candidato": id_candidato,
+        "tipo": "complementar",
+        "nome_arquivo": nome_arquivo,
+        "caminho_disco": caminho_destino,
+        "descricao": descricao.strip() or nome_arquivo,
+        "conteudo_extraido": texto_extraido,
+    })
+
+    if resultado["status"] == "erro":
+        raise HTTPException(400, resultado["mensagem"])
 
     return {"ok": True, "dados": resultado, "texto_extraido": texto_extraido}
 
@@ -1088,6 +1096,7 @@ def _montar_perfil_texto(id_candidato: int) -> str:
     linhas = [f"Nome: {candidato.get('nome', '')}"]
 
     itens_contato = [
+        f"E-mail: {candidato['email']}"      if candidato.get("email")    else None,
         f"Telefone: {contatos['telefone']}" if contatos.get("telefone") else None,
         f"LinkedIn: {contatos['linkedin']}"  if contatos.get("linkedin")  else None,
         f"GitHub: {contatos['github']}"      if contatos.get("github")    else None,
@@ -1139,10 +1148,14 @@ def _montar_perfil_texto(id_candidato: int) -> str:
 
 
 def _obter_base_perfil(id_candidato: int) -> str:
-    """Combina perfil estruturado + currículo premium mais recente para análise completa."""
+    """Combina perfil estruturado + currículo premium mais recente + documentos
+    complementares (histórico acadêmico, certificados, portfólio etc.) para
+    análise completa. Documento anexado e nunca mais lido é informação
+    perdida — todo conteúdo extraído precisa voltar para o contexto da IA."""
     partes = [_montar_perfil_texto(id_candidato)]
 
     docs = db_selecionar("documentos", condicao={"id_candidato": id_candidato}) or []
+
     curriculos = [d for d in docs if d.get("tipo") == "curriculo_gerado" and d.get("caminho_disco")]
     if curriculos:
         mais_recente = curriculos[-1]
@@ -1153,6 +1166,16 @@ def _obter_base_perfil(id_candidato: int) -> str:
                 partes.append("\n\nCURRÍCULO PREMIUM GERADO (conteúdo completo — use como referência adicional):\n" + texto)
         except Exception:
             pass
+
+    complementares = [d for d in docs if d.get("tipo") == "complementar" and d.get("conteudo_extraido")]
+    for doc in complementares:
+        rotulo = doc.get("descricao") or doc.get("nome_arquivo") or "Documento complementar"
+        partes.append(
+            f"\n\nDOCUMENTO COMPLEMENTAR ANEXADO PELO CANDIDATO — \"{rotulo}\" "
+            f"(conteúdo extraído — analise com atenção: pode conter disciplinas, "
+            f"certificações ou conhecimentos específicos relevantes para a vaga "
+            f"que não foram mencionados na entrevista):\n" + doc["conteudo_extraido"].strip()
+        )
 
     return "\n".join(partes)
 

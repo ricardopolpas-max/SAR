@@ -132,7 +132,11 @@ ESTRATÉGIAS OBRIGATÓRIAS (sempre subordinadas à regra de veracidade acima):
   nisso e pensaria 'relevante'?" — se não, fica de fora
 - ENTREVISTA: use as informações coletadas para enriquecer com detalhes ESPECÍFICOS que o candidato de
   fato forneceu — nunca para preencher lacunas com suposições
-- DOCUMENTOS: se o candidato enviou arquivos complementares, use o conteúdo real deles para fortalecer com evidências
+- DOCUMENTOS COMPLEMENTARES: se houver seção "DOCUMENTO COMPLEMENTAR ANEXADO" no conteúdo do candidato,
+  garimpe-a ativamente — histórico acadêmico pode conter disciplinas relevantes à vaga, um certificado pode
+  justificar uma habilidade, um portfólio pode conter projetos concretos. Não basta ela existir no contexto:
+  extraia o que for pertinente a ESTA vaga e incorpore nas seções apropriadas (formação, habilidades,
+  certificações). Ignorar um documento anexado é desperdiçar informação real que o candidato forneceu
 
 FORMATAÇÃO ABNT OBRIGATÓRIA — siga EXATAMENTE este modelo:
 
