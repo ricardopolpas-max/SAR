@@ -1,4 +1,5 @@
 import os
+import re
 import time
 from pathlib import Path
 from dotenv import load_dotenv
@@ -110,21 +111,25 @@ _TIPO_FN = {
 }
 
 
-def _resolver_provedores() -> list[tuple[str, str]]:
+_ENTRADA_PROVEDOR = re.compile(r'^([a-z0-9]+?)(?:_(\d+))?$')
+
+
+def _resolver_provedores() -> list[tuple[str, str, str]]:
     """
-    Lê IA_PROVIDERS do .env e resolve cada entrada para (tipo, api_key).
+    Lê IA_PROVIDERS do .env e resolve cada entrada para (nome, tipo, api_key)
+    de forma agnóstica — sem nenhum provedor hardcoded aqui. A variável de
+    ambiente é DERIVADA do nome da entrada, nunca mapeada por if/elif.
 
-    Formato do .env:
-        IA_PROVIDERS=gemini,groq_1,groq_2,groq_3
+    Convenção do .env:
+        IA_PROVIDERS=gemini,gemini_2,groq_1,groq_2,groq_3
+        {TIPO}_API_KEY        → entrada sem número (ex.: "gemini" → GEMINI_API_KEY)
+        {TIPO}_API_KEY_{N}    → entrada numerada (ex.: "groq_2" → GROQ_API_KEY_2)
 
-    Chaves esperadas:
-        GEMINI_API_KEY        → para entradas do tipo "gemini"
-        GROQ_API_KEY_1        → para "groq_1"
-        GROQ_API_KEY_2        → para "groq_2"
-        GROQ_API_KEY          → para "groq" (compatibilidade legada)
-
-    Para adicionar mais um Groq: inclua "groq_4" em IA_PROVIDERS
-    e adicione GROQ_API_KEY_4 no .env — sem alterar o código.
+    Crescer capacidade de um provedor já suportado (mais chaves, mais contas)
+    é só editar o .env — nenhuma linha de código muda. Só é preciso mexer
+    aqui quando o TIPO em si é novo (SDK/API diferente): registrar a função
+    geradora em _TIPO_FN é a única parte irredutível — ninguém descobre
+    sozinho como falar com uma API que o sistema nunca viu.
     """
     lista_raw = os.getenv("IA_PROVIDERS", "gemini,groq").strip()
     provedores = []
@@ -134,21 +139,20 @@ def _resolver_provedores() -> list[tuple[str, str]]:
         if not entrada:
             continue
 
-        if entrada == "gemini":
-            api_key = os.getenv("GEMINI_API_KEY", "").strip()
-            tipo = "gemini"
-        elif entrada.startswith("groq"):
-            # groq → GROQ_API_KEY | groq_1 → GROQ_API_KEY_1
-            sufixo = entrada[4:]                          # "" | "_1" | "_2" …
-            var    = "GROQ_API_KEY" + sufixo.upper()
-            api_key = os.getenv(var, "").strip()
-            tipo = "groq"
-        else:
-            print(f"[IA] Tipo desconhecido ignorado: '{entrada}'")
+        m = _ENTRADA_PROVEDOR.match(entrada)
+        if not m:
+            print(f"[IA] Entrada inválida ignorada: '{entrada}'")
+            continue
+        tipo, numero = m.group(1), m.group(2)
+
+        if tipo not in _TIPO_FN:
+            print(f"[IA] Tipo '{tipo}' sem gerador registrado — ignorado ('{entrada}').")
             continue
 
+        var = f"{tipo.upper()}_API_KEY" + (f"_{numero}" if numero else "")
+        api_key = os.getenv(var, "").strip()
         if not api_key:
-            print(f"[IA] Chave não configurada para '{entrada}' — ignorado.")
+            print(f"[IA] Chave ausente para '{entrada}' (esperada em {var}) — ignorado.")
             continue
 
         provedores.append((entrada, tipo, api_key))
