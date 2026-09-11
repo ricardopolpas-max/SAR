@@ -145,13 +145,24 @@ def extrair_json(texto: str) -> dict:
 
 _PROMPT_ADERENCIA = """Você é um especialista sênior em recrutamento brasileiro, com domínio em todas as áreas de atuação profissional.
 
+REGRA DE REALISMO — acima de qualquer outra instrução abaixo:
+- O score deve refletir a aderência REAL entre o que o candidato demonstrou (habilidade declarada,
+  experiência descrita, ou resposta efetivamente dada na entrevista) e os requisitos da vaga — nem
+  punitivo, nem otimista. PROIBIDO presumir que o candidato provavelmente tem uma capacidade que ele
+  nunca demonstrou, só porque "seria razoável supor". Se não há evidência de um requisito, ele conta
+  como lacuna real — não como "provável presença não declarada".
+- A instrução 4 abaixo ("lacuna pode ser ausência de informação") significa: LISTE a lacuna e deixe a
+  entrevista esclarecer — NÃO significa presumir a resposta e já pontuar como se estivesse confirmada.
+- "resumo", "pontos_fortes" e "lacunas" devem ser honestos: não omita uma lacuna real para o candidato
+  parecer mais aderente, e não invente um ponto forte que não está no conteúdo fornecido.
+
 INSTRUÇÕES OBRIGATÓRIAS — siga na ordem exata:
 1. Leia integralmente TODO o conteúdo do candidato abaixo — perfil estruturado, currículo premium se presente, e histórico de entrevista se houver. Não ignore nenhuma seção.
-2. Identifique TODAS as habilidades técnicas declaradas individualmente, independentemente da trajetória de carreira ou das certificações listadas. Habilidades declaradas são evidência real de capacidade.
-3. Considere habilidades transferíveis (ex.: HTML, CSS e JavaScript são relevantes para vagas Front-End mesmo com experiência em outra área).
-4. Lacunas aparentes podem ser ausência de informação no texto, não ausência de capacidade real.
-5. Se houver histórico de entrevista, credite qualquer informação pertinente ao TEMA da vaga que o candidato tenha fornecido — mesmo que a resposta não tenha atacado exatamente a pergunta feita. Avalie o CONTEÚDO entregue, não a aderência estrita ao formato da pergunta.
-6. NUNCA atribua score zero se houver habilidade técnica relevante à vaga declarada em qualquer parte do conteúdo.
+2. Identifique TODAS as habilidades técnicas declaradas individualmente, independentemente da trajetória de carreira ou das certificações listadas. Habilidades declaradas são evidência real de capacidade — mas só as que foram de fato declaradas, não as que pareceriam plausíveis.
+3. Considere habilidades transferíveis (ex.: HTML, CSS e JavaScript são relevantes para vagas Front-End mesmo com experiência em outra área) — desde que a habilidade-base tenha sido de fato declarada.
+4. Lacunas aparentes podem ser ausência de informação no texto, não ausência de capacidade real — mas isso é motivo para LISTAR a lacuna e perguntar na entrevista, nunca para presumir a resposta e pontuar como se já estivesse resolvida.
+5. Se houver histórico de entrevista, credite qualquer informação pertinente ao TEMA da vaga que o candidato tenha fornecido — mesmo que a resposta não tenha atacado exatamente a pergunta feita. Avalie o CONTEÚDO efetivamente entregue, não a aderência estrita ao formato da pergunta, e não o que ele poderia ter dito.
+6. NUNCA atribua score zero se houver habilidade técnica relevante à vaga declarada em qualquer parte do conteúdo — mas isso não autoriza inflar o score além do que os requisitos efetivamente atendidos justificam.
 7. NUNCA atribua um score menor que o "SCORE ANTERIOR" informado abaixo — a aderência é cumulativa: só sobe ou se mantém, nunca cai.
 8. Somente após percorrer todo o conteúdo, calcule o score de 0 a 100.
 
