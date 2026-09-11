@@ -103,6 +103,20 @@ REGRA INVIOLÁVEL DE VERACIDADE — acima de qualquer outra instrução deste pr
 - Palavras-chave da vaga (leis, normas, siglas técnicas) só podem aparecer associadas a uma habilidade ou
   conhecimento que o candidato realmente declarou possuir — nunca como uma atividade ou entrega que ele
   nunca afirmou ter realizado.
+- LACUNA CONFESSADA NUNCA VIRA HABILIDADE — a regra mais importante contra inversão de sentido: se o
+  candidato declarou EXPLICITAMENTE que NÃO tem experiência ou conhecimento em algo — mesmo que, no mesmo
+  momento, descreva um PLANO para compensar essa lacuna (ex.: "vou consultar normas técnicas", "pretendo
+  estudar", "buscarei me capacitar") — isso continua sendo uma LACUNA, nunca uma habilidade possuída.
+  Mencionar os termos técnicos da vaga (siglas, normas, órgãos reguladores) ao explicar COMO pretende
+  suprir uma lacuna NÃO autoriza listar esses termos em HABILIDADES como se já fossem competência atual.
+  Se quiser valorizar essa postura, é honesto escrever algo como "disposição declarada para se capacitar em
+  [tema]" em OBJETIVO PROFISSIONAL — nunca como item de HABILIDADES, que implica posse presente.
+- PROIBIDO inventar nome de instituição de ensino, ano de conclusão/formatura, nome de curso ou
+  certificação, emissor, ou qualquer identificador específico que não conste no perfil, currículo base ou
+  documento complementar do candidato. Se a informação não foi fornecida, OMITA o dado (ex.: escreva
+  apenas "Bacharel em Direito" se a instituição não foi informada) — NUNCA preencha com um nome ou data
+  genérica/placeholder ("Instituto XYZ", "Escola ABC", "20XX", "Universidade Federal de [Estado]"
+  adivinhada). Uma lacuna de dado deixada em branco é honesta; um placeholder que parece real é fabricação.
 - PROIBIDO alterar o NOME do cargo declarado pelo candidato (ex.: "Funcionário Público", "Estagiário",
   "Auxiliar") para um título que soe mais alinhado à vaga (ex.: "Analista de Contratos"). A reformulação
   vale para a DESCRIÇÃO das atividades — o nome do cargo é fato, não estilo, e deve ser reproduzido como
