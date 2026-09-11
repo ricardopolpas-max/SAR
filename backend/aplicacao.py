@@ -266,6 +266,23 @@ def inicializar_banco():
         except Exception:
             pass
 
+        # Origem obrigatória e auditável de todo dado de carreira do candidato —
+        # só existem dois canais legítimos: "importado" (currículo/documento) ou
+        # "entrevista" (declarado pelo candidato ao Recrutador IA). Sem isso não
+        # dá para distinguir dado real de dado fantasma (achado real: extração
+        # repetida por bug inflou o perfil com reextrações e até alucinações de
+        # documento colado no chat, sem nenhum rastro de origem para investigar).
+        for _tabela in ("habilidades", "experiencias", "formacoes", "idiomas", "certificacoes"):
+            try:
+                cursor.execute(f"ALTER TABLE {_tabela} ADD COLUMN origem TEXT")
+            except Exception:
+                pass
+
+        try:
+            cursor.execute("ALTER TABLE logs_sistema ADD COLUMN id_candidato INTEGER")
+        except Exception:
+            pass
+
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS contatos (
                 id               INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -525,9 +542,12 @@ async def criar_experiencia(dados: dict, id_candidato: int = Depends(autenticar)
     if not cargo or not empresa:
         raise HTTPException(400, "Cargo e empresa são obrigatórios.")
     dados["id_candidato"] = id_candidato
+    dados["origem"] = "manual"
     resultado = db_inserir("experiencias", dados)
     if resultado["status"] == "erro":
         raise HTTPException(400, resultado["mensagem"])
+    from rotinas.genericas import registrar_auditoria
+    registrar_auditoria("CRIOU_EXPERIENCIA", json.dumps({"cargo": cargo, "empresa": empresa}, ensure_ascii=False), id_candidato=id_candidato)
     return resultado
 
 @app.put("/perfil-candidato/experiencias/{id}")
@@ -561,9 +581,12 @@ async def criar_formacao(dados: dict, id_candidato: int = Depends(autenticar)):
     if not instituicao or not curso or not nivel:
         raise HTTPException(400, "Instituição, curso e nível são obrigatórios.")
     dados["id_candidato"] = id_candidato
+    dados["origem"] = "manual"
     resultado = db_inserir("formacoes", dados)
     if resultado["status"] == "erro":
         raise HTTPException(400, resultado["mensagem"])
+    from rotinas.genericas import registrar_auditoria
+    registrar_auditoria("CRIOU_FORMACAO", json.dumps({"curso": curso, "instituicao": instituicao}, ensure_ascii=False), id_candidato=id_candidato)
     return resultado
 
 @app.put("/perfil-candidato/formacoes/{id}")
@@ -596,9 +619,12 @@ async def criar_habilidade(dados: dict, id_candidato: int = Depends(autenticar))
     if not nome or not proficiencia:
         raise HTTPException(400, "Nome e proficiência são obrigatórios.")
     dados["id_candidato"] = id_candidato
+    dados["origem"] = "manual"
     resultado = db_inserir("habilidades", dados)
     if resultado["status"] == "erro":
         raise HTTPException(400, resultado["mensagem"])
+    from rotinas.genericas import registrar_auditoria
+    registrar_auditoria("CRIOU_HABILIDADE", json.dumps({"nome": nome}, ensure_ascii=False), id_candidato=id_candidato)
     return resultado
 
 @app.put("/perfil-candidato/habilidades/{id}")
@@ -631,9 +657,12 @@ async def criar_idioma(dados: dict, id_candidato: int = Depends(autenticar)):
     if not nome or not proficiencia:
         raise HTTPException(400, "Nome e proficiência são obrigatórios.")
     dados["id_candidato"] = id_candidato
+    dados["origem"] = "manual"
     resultado = db_inserir("idiomas", dados)
     if resultado["status"] == "erro":
         raise HTTPException(400, resultado["mensagem"])
+    from rotinas.genericas import registrar_auditoria
+    registrar_auditoria("CRIOU_IDIOMA", json.dumps({"nome": nome}, ensure_ascii=False), id_candidato=id_candidato)
     return resultado
 
 @app.put("/perfil-candidato/idiomas/{id}")
@@ -666,9 +695,12 @@ async def criar_certificacao(dados: dict, id_candidato: int = Depends(autenticar
     if not nome or not emissor:
         raise HTTPException(400, "Nome e emissor são obrigatórios.")
     dados["id_candidato"] = id_candidato
+    dados["origem"] = "manual"
     resultado = db_inserir("certificacoes", dados)
     if resultado["status"] == "erro":
         raise HTTPException(400, resultado["mensagem"])
+    from rotinas.genericas import registrar_auditoria
+    registrar_auditoria("CRIOU_CERTIFICACAO", json.dumps({"nome": nome, "emissor": emissor}, ensure_ascii=False), id_candidato=id_candidato)
     return resultado
 
 @app.put("/perfil-candidato/certificacoes/{id}")
@@ -1005,37 +1037,56 @@ async def importar_curriculo(
     # garante o mesmo texto byte-a-byte a cada execução (maiúscula/minúscula,
     # espaço a mais) — comparar string crua deixava passar duplicata
     # quase-idêntica como se fosse registro novo (achado real em produção).
-    from rotinas.genericas import normalizar_para_comparacao as _norm
+    from rotinas.genericas import normalizar_para_comparacao as _norm, registrar_auditoria
     existentes_exp  = {(_norm(r["cargo"]), _norm(r["empresa"])) for r in db_selecionar("experiencias",  condicao={"id_candidato": id_candidato}) or []}
     existentes_form = {(_norm(r["curso"]), _norm(r["instituicao"])) for r in db_selecionar("formacoes",  condicao={"id_candidato": id_candidato}) or []}
     existentes_hab  = {_norm(r["nome"]) for r in db_selecionar("habilidades",   condicao={"id_candidato": id_candidato}) or []}
     existentes_idm  = {_norm(r["nome"]) for r in db_selecionar("idiomas",       condicao={"id_candidato": id_candidato}) or []}
     existentes_cert = {_norm(r["nome"]) for r in db_selecionar("certificacoes", condicao={"id_candidato": id_candidato}) or []}
 
+    inseridos = {"experiencias": [], "formacoes": [], "habilidades": [], "idiomas": [], "certificacoes": []}
+
     for exp in dados.get("experiencias") or []:
         if (_norm(exp.get("cargo")), _norm(exp.get("empresa"))) not in existentes_exp:
             exp["id_candidato"] = id_candidato
+            exp["origem"] = "importado"
             db_inserir("experiencias", exp)
+            inseridos["experiencias"].append(exp.get("cargo"))
 
     for form in dados.get("formacoes") or []:
         if (_norm(form.get("curso")), _norm(form.get("instituicao"))) not in existentes_form:
             form["id_candidato"] = id_candidato
+            form["origem"] = "importado"
             db_inserir("formacoes", form)
+            inseridos["formacoes"].append(form.get("curso"))
 
     for hab in dados.get("habilidades") or []:
         if _norm(hab.get("nome")) not in existentes_hab:
             hab["id_candidato"] = id_candidato
+            hab["origem"] = "importado"
             db_inserir("habilidades", hab)
+            inseridos["habilidades"].append(hab.get("nome"))
 
     for idm in dados.get("idiomas") or []:
         if _norm(idm.get("nome")) not in existentes_idm:
             idm["id_candidato"] = id_candidato
+            idm["origem"] = "importado"
             db_inserir("idiomas", idm)
+            inseridos["idiomas"].append(idm.get("nome"))
 
     for cert in dados.get("certificacoes") or []:
         if _norm(cert.get("nome")) not in existentes_cert:
             cert["id_candidato"] = id_candidato
+            cert["origem"] = "importado"
             db_inserir("certificacoes", cert)
+            inseridos["certificacoes"].append(cert.get("nome"))
+
+    if any(inseridos.values()):
+        registrar_auditoria(
+            "IMPORTOU_CURRICULO",
+            json.dumps({"arquivo": nome_arquivo, "inseridos": inseridos}, ensure_ascii=False),
+            id_candidato=id_candidato,
+        )
 
     # Upsert contatos
     contatos = dados.get("contatos") or {}
@@ -1366,11 +1417,12 @@ async def conversar(id: int, corpo: dict, id_candidato: int = Depends(autenticar
         # habilidade/experiência já cadastrada por variação trivial de
         # maiúscula/minúscula ou espaçamento na extração da IA. Também evita
         # crash quando "empresa" vem NULL do banco (r["empresa"].lower() antes).
-        from rotinas.genericas import normalizar_para_comparacao as _norm
+        from rotinas.genericas import normalizar_para_comparacao as _norm, registrar_auditoria
         hab_existentes = {
             _norm(h["nome"])
             for h in (db_selecionar("habilidades", condicao={"id_candidato": id_candidato}) or [])
         }
+        habilidades_inseridas = []
         for hab in novos.get("habilidades", []):
             if hab.get("nome") and _norm(hab["nome"]) not in hab_existentes:
                 db_inserir("habilidades", {
@@ -1378,13 +1430,16 @@ async def conversar(id: int, corpo: dict, id_candidato: int = Depends(autenticar
                     "nome": hab["nome"],
                     "proficiencia": hab.get("proficiencia") or "intermediario",
                     "categoria": hab.get("categoria"),
+                    "origem": "entrevista",
                 })
                 hab_existentes.add(_norm(hab["nome"]))
+                habilidades_inseridas.append(hab["nome"])
 
         exp_existentes = {
             (_norm(e["cargo"]), _norm(e["empresa"]))
             for e in (db_selecionar("experiencias", condicao={"id_candidato": id_candidato}) or [])
         }
+        experiencias_inseridas = []
         for exp in novos.get("experiencias", []):
             chave = (_norm(exp.get("cargo")), _norm(exp.get("empresa")))
             if chave[0] and chave not in exp_existentes:
@@ -1393,8 +1448,21 @@ async def conversar(id: int, corpo: dict, id_candidato: int = Depends(autenticar
                     "cargo": exp["cargo"],
                     "empresa": exp.get("empresa") or "Não informada",
                     "descricao": exp.get("descricao"),
+                    "origem": "entrevista",
                 })
                 exp_existentes.add(chave)
+                experiencias_inseridas.append(exp["cargo"])
+
+        if habilidades_inseridas or experiencias_inseridas:
+            registrar_auditoria(
+                "ENRIQUECEU_PERFIL_ENTREVISTA",
+                json.dumps({
+                    "id_vaga": id,
+                    "habilidades": habilidades_inseridas,
+                    "experiencias": experiencias_inseridas,
+                }, ensure_ascii=False),
+                id_candidato=id_candidato,
+            )
 
     return {
         "ok": True,

@@ -103,6 +103,15 @@ def db_excluir(tabela: str, condicao: Dict[str, Any]) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "erro", "mensagem": str(e)}
 
+def registrar_auditoria(acao: str, detalhes: str, id_candidato: int = None) -> None:
+    """Grava um registro em logs_sistema. Toda inserção de dado de carreira do
+    candidato (habilidade, experiência, formação, idioma, certificação) via
+    importação de currículo ou enriquecimento por entrevista deve passar por
+    aqui — é o que permite auditar de onde cada dado veio, e distinguir dado
+    real de dado fantasma (sem origem rastreável = não devia estar no perfil)."""
+    db_inserir("logs_sistema", {"acao": acao, "detalhes": detalhes, "id_candidato": id_candidato})
+
+
 def normalizar_para_comparacao(texto) -> str:
     """Normaliza uma string para comparação de duplicidade — minúsculas, sem
     espaços nas pontas, espaços internos colapsados. Usar SEMPRE que comparar
