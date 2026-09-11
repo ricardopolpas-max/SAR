@@ -883,17 +883,37 @@ async def upload_documento_complementar(
     except Exception:
         pass
 
-    resultado = db_inserir("documentos", {
-        "id_candidato": id_candidato,
-        "tipo": "complementar",
-        "nome_arquivo": nome_arquivo,
-        "caminho_disco": caminho_destino,
-        "descricao": descricao.strip() or nome_arquivo,
-        "conteudo_extraido": texto_extraido,
-    })
+    # Reenviar um arquivo com o mesmo nome atualiza o documento existente em vez
+    # de duplicar — sem isso, cada novo upload do "mesmo" documento (ex.: versão
+    # atualizada do histórico acadêmico) empilhava uma linha nova, cada uma
+    # entrando por inteiro em todo prompt de IA que lê os documentos do candidato.
+    from rotinas.genericas import normalizar_para_comparacao as _norm, registrar_auditoria
+    existentes = db_selecionar("documentos", condicao={"id_candidato": id_candidato, "tipo": "complementar"}) or []
+    duplicata = next((d for d in existentes if _norm(d["nome_arquivo"]) == _norm(nome_arquivo)), None)
+
+    if duplicata:
+        resultado = db_atualizar("documentos", {
+            "caminho_disco": caminho_destino,
+            "descricao": descricao.strip() or nome_arquivo,
+            "conteudo_extraido": texto_extraido,
+            "data_upload": datetime.now(timezone.utc).isoformat(),
+        }, {"id": duplicata["id"]})
+        acao_auditoria = "ATUALIZOU_DOCUMENTO_COMPLEMENTAR"
+    else:
+        resultado = db_inserir("documentos", {
+            "id_candidato": id_candidato,
+            "tipo": "complementar",
+            "nome_arquivo": nome_arquivo,
+            "caminho_disco": caminho_destino,
+            "descricao": descricao.strip() or nome_arquivo,
+            "conteudo_extraido": texto_extraido,
+        })
+        acao_auditoria = "ENVIOU_DOCUMENTO_COMPLEMENTAR"
 
     if resultado["status"] == "erro":
         raise HTTPException(400, resultado["mensagem"])
+
+    registrar_auditoria(acao_auditoria, json.dumps({"nome_arquivo": nome_arquivo}, ensure_ascii=False), id_candidato=id_candidato)
 
     return {"ok": True, "dados": resultado, "texto_extraido": texto_extraido}
 
@@ -985,8 +1005,14 @@ async def importar_curriculo(
     if not texto.strip():
         raise HTTPException(422, "Não foi possível extrair texto do arquivo.")
 
+    # Perfil já cadastrado como contexto — permite a IA comparar semanticamente
+    # e retornar só o que é genuinamente novo (ver rotinas/importacao.py). Sem
+    # isso, o campo chega vazio e o fix fica inerte: tudo seria tratado como
+    # novo a cada reimportação, voltando a duplicar.
+    perfil_existente_texto = _montar_perfil_texto(id_candidato)
+
     try:
-        dados = processar_curriculo_com_ia(texto)
+        dados = processar_curriculo_com_ia(texto, perfil_existente_texto)
     except ValueError as e:
         raise HTTPException(503, str(e))
     except Exception as e:
@@ -1002,6 +1028,15 @@ async def importar_curriculo(
     caminho_destino = os.path.join(pasta_candidato, nome_arquivo)
     with open(caminho_destino, "wb") as f:
         f.write(conteudo)
+
+    # O currículo importado tem uma única versão vigente por candidato — reimportar
+    # substitui o registro do documento anterior, nunca acumula (achado real:
+    # reimportações sucessivas empilhavam documentos e dados sem nunca levar em
+    # conta qual foi a última importação de fato).
+    from rotinas.genericas import registrar_auditoria
+    anteriores = db_selecionar("documentos", condicao={"id_candidato": id_candidato, "tipo": "curriculo_importado"}) or []
+    for doc_antigo in anteriores:
+        db_excluir("documentos", {"id": doc_antigo["id"]})
 
     db_inserir("documentos", {
         "id_candidato": id_candidato,
