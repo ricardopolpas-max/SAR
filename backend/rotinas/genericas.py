@@ -199,6 +199,37 @@ HISTÓRICO DA ENTREVISTA (se houver):
 """
 
 
+_HISTORICO_MAX_MENSAGENS = 16
+_HISTORICO_MAX_CHARS = 12000
+_DOCUMENTO_COMPLEMENTAR_MAX_CHARS = 8000
+
+
+def montar_historico_texto(historico: list) -> str:
+    """Constrói o texto do histórico de conversa para enviar à IA, com limites de
+    tamanho — usada por toda rotina que precisa desse texto (entrevista, aderência).
+    Sem isso, uma conversa longa (ou um documento grande citado numa mensagem) faz o
+    prompt crescer sem controle a cada turno até estourar o limite do provedor
+    (erro real observado em produção: 'Request too large' / 'context_length_exceeded',
+    crescendo ~33K tokens por turno até travar a entrevista em loop de erro)."""
+    if not historico:
+        return ""
+    recentes = historico[-_HISTORICO_MAX_MENSAGENS:]
+    texto = "\n".join(f"{h['role'].upper()}: {h['conteudo']}" for h in recentes)
+    if len(texto) > _HISTORICO_MAX_CHARS:
+        texto = "[...histórico truncado, mensagens mais antigas omitidas...]\n" + texto[-_HISTORICO_MAX_CHARS:]
+    return texto
+
+
+def limitar_texto_documento(texto: str) -> str:
+    """Corta o conteúdo extraído de um documento complementar a um teto de tamanho
+    antes de persistir/injetar em qualquer prompt — mesma motivação de
+    montar_historico_texto(): documento grande sem corte estoura o limite do
+    provedor de IA."""
+    if texto and len(texto) > _DOCUMENTO_COMPLEMENTAR_MAX_CHARS:
+        return texto[:_DOCUMENTO_COMPLEMENTAR_MAX_CHARS] + "\n[...documento truncado — conteúdo muito extenso para análise integral...]"
+    return texto
+
+
 def calcular_aderencia(titulo: str, descricao: str, perfil: str, historico: str = "", score_anterior: int = 0) -> dict:
     """
     Função pública e agnóstica de cálculo de aderência candidato↔vaga.

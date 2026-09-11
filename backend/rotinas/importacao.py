@@ -1,7 +1,7 @@
 import io
 
 from rotinas.ia import gerar_conteudo
-from rotinas.genericas import extrair_json, calcular_aderencia
+from rotinas.genericas import extrair_json, calcular_aderencia, montar_historico_texto
 
 _PROMPT = """Você é um assistente especializado em análise de currículos profissionais brasileiros de qualquer área.
 Extraia as informações do currículo abaixo e retorne APENAS um JSON válido, sem markdown, sem explicações.
@@ -307,9 +307,7 @@ HISTÓRICO DA ENTREVISTA:
 
 
 def extrair_enriquecimento_entrevista(historico: list) -> dict:
-    hist_texto = "\n".join(
-        f"{h['role'].upper()}: {h['conteudo']}" for h in historico
-    )
+    hist_texto = montar_historico_texto(historico)
     prompt = _PROMPT_ENRIQUECIMENTO.replace("{historico}", hist_texto)
     try:
         resultado = extrair_json(gerar_conteudo(prompt))
@@ -323,9 +321,7 @@ def extrair_enriquecimento_entrevista(historico: list) -> dict:
 
 
 def conduzir_entrevista(titulo: str, descricao: str, perfil: str, historico: list, score_anterior: float = 0) -> dict:
-    hist_texto = "\n".join(
-        f"{h['role'].upper()}: {h['conteudo']}" for h in historico
-    ) if historico else "(nenhuma troca anterior — inicie a entrevista apresentando-se)"
+    hist_texto = montar_historico_texto(historico) or "(nenhuma troca anterior — inicie a entrevista apresentando-se)"
 
     # Aderência calculada pela régua única e agnóstica (rotinas/genericas.py) —
     # a mesma usada em "Ver aderência" na lista de vagas. Nunca regride abaixo

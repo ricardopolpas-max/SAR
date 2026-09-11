@@ -828,11 +828,16 @@ async def upload_documento_complementar(
     texto_extraido = None
     try:
         from rotinas.importacao import extrair_texto_pdf, extrair_texto_docx
+        from rotinas.genericas import limitar_texto_documento
         ext = nome_arquivo.lower().rsplit(".", 1)[-1]
         if ext == "pdf":
             texto_extraido = extrair_texto_pdf(conteudo)
         elif ext in ("docx", "doc"):
             texto_extraido = extrair_texto_docx(conteudo)
+        # Corta ANTES de persistir — documento grande sem limite estoura o prompt
+        # de qualquer chamada de IA que use este candidato dali em diante (achado
+        # real: histórico + documento sem corte cresceu até "context_length_exceeded").
+        texto_extraido = limitar_texto_documento(texto_extraido)
     except Exception:
         pass
 
@@ -1201,10 +1206,8 @@ async def carregar_conversa(id: int, id_candidato: int = Depends(autenticar)):
     if vaga:
         try:
             perfil_texto = _obter_base_perfil(id_candidato)
-            hist_texto = "\n".join(
-                f"{h['role'].upper()}: {h['conteudo']}" for h in historico
-            ) if historico else ""
-            from rotinas.genericas import calcular_aderencia
+            from rotinas.genericas import calcular_aderencia, montar_historico_texto
+            hist_texto = montar_historico_texto(historico)
             aderencia = calcular_aderencia(
                 titulo=vaga.get("titulo", ""),
                 descricao=vaga.get("descricao", ""),
@@ -1383,8 +1386,8 @@ async def calcular_score_vaga(id: int, id_candidato: int = Depends(autenticar)):
     score_anterior = float(conversa[1] or 0) if conversa else 0.0
     hist_texto = ""
     if conversa and conversa[0]:
-        historico = json.loads(conversa[0])
-        hist_texto = "\n".join(f"{h['role'].upper()}: {h['conteudo']}" for h in historico)
+        from rotinas.genericas import montar_historico_texto
+        hist_texto = montar_historico_texto(json.loads(conversa[0]))
 
     from rotinas.importacao import processar_score_com_ia
     try:
@@ -1483,10 +1486,10 @@ async def gerar_curriculo_vaga(id: int, id_candidato: int = Depends(autenticar))
     historico_entrevista = ""
     if row_conv:
         try:
+            from rotinas.genericas import montar_historico_texto
             msgs = json.loads(row_conv["historico"])
-            historico_entrevista = "\n".join(
-                f"{m['role'].upper()}: {m['conteudo']}"
-                for m in msgs if m.get("conteudo", "").strip()
+            historico_entrevista = montar_historico_texto(
+                [m for m in msgs if m.get("conteudo", "").strip()]
             )
         except Exception:
             pass
@@ -1586,10 +1589,10 @@ async def gerar_carta_vaga(id: int, id_candidato: int = Depends(autenticar)):
     historico_entrevista = ""
     if row_conv:
         try:
+            from rotinas.genericas import montar_historico_texto
             msgs = json.loads(row_conv["historico"])
-            historico_entrevista = "\n".join(
-                f"{m['role'].upper()}: {m['conteudo']}"
-                for m in msgs if m.get("conteudo", "").strip()
+            historico_entrevista = montar_historico_texto(
+                [m for m in msgs if m.get("conteudo", "").strip()]
             )
         except Exception:
             pass
