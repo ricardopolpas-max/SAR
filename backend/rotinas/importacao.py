@@ -289,6 +289,20 @@ def gerar_carta_com_ia(titulo: str, descricao: str, perfil: str, historico: str 
 _PROMPT_ENRIQUECIMENTO = """Você é um extrator de dados estruturados de entrevistas profissionais.
 Analise APENAS o histórico da conversa abaixo e extraia as habilidades e experiências profissionais que o candidato DECLAROU EXPLICITAMENTE durante a entrevista — não o que já estava no perfil base.
 
+REGRAS INVIOLÁVEIS:
+- Extraia o CARGO e a EMPRESA exatamente como o candidato os nomeou — PROIBIDO reformular, combinar
+  títulos ("CEO / Dono", "Servidor Público / Analista de Contratos") ou fazer o cargo soar mais
+  específico/técnico do que o candidato disse. Se ele disse "Funcionário Público", o cargo é
+  "Funcionário Público" — nunca "Analista de Contratos" ou qualquer variação.
+- Só extraia como experiência/habilidade algo que seja claramente o CANDIDATO descrevendo o próprio
+  trabalho, em suas próprias palavras. PROIBIDO extrair conteúdo de documentos colados/anexados no
+  chat (regulamentos, código-fonte, textos de terceiros, qualquer coisa que não seja a fala do
+  candidato sobre si mesmo) como se fosse uma experiência profissional dele.
+- Antes de incluir uma experiência, pergunte: "isso já não é claramente a MESMA experiência que uma
+  vaga/entrevista anterior já capturou, só com palavras diferentes?" Este extrator roda uma única vez
+  por conversa — não precisa (e não deve) tentar reformular ou detalhar mais uma experiência que já
+  apareceu antes no histórico com outras palavras.
+
 Retorne APENAS um JSON válido, sem markdown, sem explicações:
 {
   "habilidades": [

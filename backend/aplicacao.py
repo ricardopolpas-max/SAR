@@ -1280,7 +1280,7 @@ async def conversar(id: int, corpo: dict, id_candidato: int = Depends(autenticar
 
     with _obter_conexao() as conn:
         row = conn.execute(
-            "SELECT id, historico, score_estimado FROM conversas WHERE id_candidato = ? AND id_vaga = ?",
+            "SELECT id, historico, score_estimado, status FROM conversas WHERE id_candidato = ? AND id_vaga = ?",
             (id_candidato, id)
         ).fetchone()
 
@@ -1288,10 +1288,12 @@ async def conversar(id: int, corpo: dict, id_candidato: int = Depends(autenticar
         conv_id  = row[0]
         historico = json.loads(row[1])
         score_anterior = float(row[2] or 0)
+        status_anterior = row[3]
     else:
         conv_id  = None
         historico = []
         score_anterior = 0.0
+        status_anterior = "em_andamento"
 
     if mensagem:
         from rotinas.genericas import limitar_mensagem_chat
@@ -1348,7 +1350,15 @@ async def conversar(id: int, corpo: dict, id_candidato: int = Depends(autenticar
             )
         conn.commit()
 
-    if pronto:
+    # Enriquecimento roda SÓ na transição para "pronto" (não estava assim antes:
+    # rodava em TODO turno em que o score permanecesse >= 75, mesmo já tendo
+    # rodado antes). Achado real: cada execução é uma extração NOVA da IA sobre
+    # o mesmo histórico crescente — o mesmo cargo real saía com fraseado
+    # diferente a cada vez ("Estagiário" / "Estagiário (Prática Cível)"), e a
+    # deduplicação (mesmo normalizada) não pega textos genuinamente diferentes
+    # para a mesma experiência real. Rodar uma única vez elimina a causa raiz,
+    # em vez de tentar reconhecer duplicata depois que ela já foi gerada.
+    if pronto and status_anterior != "pronto":
         from rotinas.importacao import extrair_enriquecimento_entrevista
         novos = extrair_enriquecimento_entrevista(historico)
 
