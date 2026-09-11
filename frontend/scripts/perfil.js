@@ -15,7 +15,6 @@ const elPerfil = {
   formHabilidade:  document.getElementById("form-habilidade"),
   formIdioma:      document.getElementById("form-idioma"),
   formCertificacao: document.getElementById("form-certificacao"),
-  formDocumento:   document.getElementById("form-documento"),
 
   // Listas
   listaExperiencias:   document.getElementById("lista-experiencias"),
@@ -343,21 +342,9 @@ elPerfil.formCertificacao.addEventListener("submit", async (e) => {
   }
 });
 
-if (elPerfil.formDocumento) elPerfil.formDocumento.addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const dados = {
-    tipo: document.getElementById("doc-tipo").value,
-    nome_arquivo: document.getElementById("doc-nome").value.trim(),
-    caminho_disco: document.getElementById("doc-caminho").value.trim(),
-  };
-  const { ok, erro } = await SarAPI.perfil.documentos.criar(dados);
-  if (!ok) {
-    alert("Erro: " + erro);
-  } else {
-    elPerfil.formDocumento.reset();
-    await carregarPerfil();
-  }
-});
+// Documento complementar: único caminho é o upload real de arquivo (ver
+// listener de "doc-arquivo" mais abaixo, via SarAPI.perfil.documentos.uploadComplementar).
+// Não existe mais formulário manual de tipo/caminho — nem no HTML, nem na API.
 
 /* ----------------------------------------------------------
    EVENTOS — Remover itens (funções globais para onclick)

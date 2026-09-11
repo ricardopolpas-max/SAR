@@ -363,12 +363,10 @@ const SarAPI = (() => {
       async listar() {
         return _requisitar("GET", "/perfil-candidato/documentos");
       },
-      async criar(dados) {
-        return _requisitar("POST", "/perfil-candidato/documentos", dados);
-      },
-      async atualizar(id, dados) {
-        return _requisitar("PUT", `/perfil-candidato/documentos/${id}`, dados);
-      },
+      // Sem criar()/atualizar() manuais: o único caminho para adicionar um
+      // documento complementar é uploadComplementar(), abaixo — o backend
+      // não expõe mais rota para criar/editar documento por caminho/tipo
+      // arbitrário (removida na auditoria de segurança de 2026-09-11).
       async remover(id) {
         return _requisitar("DELETE", `/perfil-candidato/documentos/${id}`);
       },

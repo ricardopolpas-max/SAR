@@ -751,40 +751,17 @@ async def remover_certificacao(id: int, id_candidato: int = Depends(autenticar))
 # ─────────────────────────────────────────────────────────
 # DOCUMENTOS
 # ─────────────────────────────────────────────────────────
-# "caminho_disco" e "tipo" NUNCA vêm do cliente aqui — só os fluxos de upload
-# dedicados (upload_documento_complementar, importar_curriculo, gerar_curriculo)
-# podem gravar esses dois campos, calculando o caminho físico eles mesmos.
-# Achado real: o formulário genérico deixava o candidato digitar um caminho de
-# arquivo do servidor à mão e o tipo "curriculo_gerado" — combinação que faz o
-# sistema abrir e ler esse arquivo depois, em _obter_base_perfil() (leitura
-# arbitrária de arquivo do servidor, não só mass assignment).
-_CAMPOS_DOCUMENTO_MANUAL = {"nome_arquivo", "descricao"}
-
-@app.post("/perfil-candidato/documentos")
-async def criar_documento(dados: dict, id_candidato: int = Depends(autenticar)):
-    from rotinas.genericas import filtrar_campos_permitidos
-    dados = filtrar_campos_permitidos(dados, _CAMPOS_DOCUMENTO_MANUAL)
-    nome_arquivo = (dados.get("nome_arquivo") or "").strip()
-    if not nome_arquivo:
-        raise HTTPException(400, "nome_arquivo é obrigatório.")
-    dados["id_candidato"] = id_candidato
-    dados["tipo"] = "complementar"
-    resultado = db_inserir("documentos", dados)
-    if resultado["status"] == "erro":
-        raise HTTPException(400, resultado["mensagem"])
-    return resultado
-
-@app.put("/perfil-candidato/documentos/{id}")
-async def atualizar_documento(id: int, dados: dict, id_candidato: int = Depends(autenticar)):
-    doc = db_selecionar("documentos", condicao={"id": id, "id_candidato": id_candidato}, unico=True)
-    if not doc:
-        raise HTTPException(404, "Documento não encontrado.")
-    from rotinas.genericas import filtrar_campos_permitidos
-    dados = filtrar_campos_permitidos(dados, _CAMPOS_DOCUMENTO_MANUAL)
-    resultado = db_atualizar("documentos", dados, {"id": id})
-    if resultado["status"] == "erro":
-        raise HTTPException(400, resultado["mensagem"])
-    return resultado
+# Removidos: POST /perfil-candidato/documentos e PUT /perfil-candidato/documentos/{id}
+# (criar_documento, atualizar_documento) — formulário manual sem chamador no
+# frontend (confirmado: HTML não tem #form-documento, JS morto). Era a
+# origem do achado de leitura arbitrária de arquivo: deixava o candidato
+# digitar "caminho_disco" + tipo "curriculo_gerado" à mão, o que faz o
+# sistema reabrir e ler esse arquivo depois em _obter_base_perfil(). O único
+# caminho legítimo para documentos complementares é o upload real de arquivo
+# em upload_documento_complementar, que calcula tudo no servidor e nunca
+# aceita caminho/tipo do cliente. Currículos gerados (tipo=curriculo_gerado)
+# só são criados internamente por gerar_curriculo_com_ia, nunca por rota
+# exposta ao cliente.
 
 @app.delete("/perfil-candidato/documentos/{id}")
 async def remover_documento(id: int, id_candidato: int = Depends(autenticar)):
@@ -903,17 +880,17 @@ async def upload_documento_complementar(
     if len(conteudo) > 10 * 1024 * 1024:
         raise HTTPException(400, "Arquivo muito grande. Máximo 10MB.")
 
-    pasta_candidato = os.path.join(PASTA_UPLOADS, str(id_candidato))
-    os.makedirs(pasta_candidato, exist_ok=True)
-
     nome_arquivo = arquivo.filename.replace("/", "_").replace("\\", "_")
-    caminho_destino = os.path.join(pasta_candidato, nome_arquivo)
 
-    with open(caminho_destino, "wb") as f:
-        f.write(conteudo)
-
-    # Extrai ANTES de gravar — o conteúdo precisa ser persistido, não só
-    # devolvido na resposta, senão nenhum prompt de IA volta a enxergá-lo.
+    # O arquivo bruto do candidato NUNCA é gravado em disco no servidor — nem
+    # em pasta permanente, nem em temp. extrair_texto_pdf/extrair_texto_docx
+    # operam inteiramente em memória (io.BytesIO); só o TEXTO extraído é
+    # persistido (coluna documentos.conteudo_extraido). Isso evita o disco do
+    # servidor crescer indefinidamente com documentos de todos os candidatos
+    # (relevante sobretudo na VM Oracle compartilhada, com disco pequeno) e
+    # elimina qualquer manipulação de arquivo em disco além dos bytes já
+    # recebidos no corpo da requisição — o arquivo original do candidato, em
+    # disco dele, nunca é referenciado nem tocado por este fluxo.
     texto_extraido = None
     try:
         from rotinas.importacao import extrair_texto_pdf, extrair_texto_docx
@@ -923,12 +900,21 @@ async def upload_documento_complementar(
             texto_extraido = extrair_texto_pdf(conteudo)
         elif ext in ("docx", "doc"):
             texto_extraido = extrair_texto_docx(conteudo)
+        elif ext in ("txt", "md"):
+            texto_extraido = conteudo.decode("utf-8", errors="ignore")
         # Corta ANTES de persistir — documento grande sem limite estoura o prompt
         # de qualquer chamada de IA que use este candidato dali em diante (achado
         # real: histórico + documento sem corte cresceu até "context_length_exceeded").
         texto_extraido = limitar_texto_documento(texto_extraido)
     except Exception:
-        pass
+        texto_extraido = None
+
+    if not texto_extraido or not texto_extraido.strip():
+        raise HTTPException(
+            400,
+            "Não foi possível extrair texto deste arquivo (formatos aceitos: PDF, DOCX, TXT, MD). "
+            "Como o arquivo não fica salvo no servidor, sem texto extraído o documento não tem conteúdo útil a guardar."
+        )
 
     # Reenviar um arquivo com o mesmo nome atualiza o documento existente em vez
     # de duplicar — sem isso, cada novo upload do "mesmo" documento (ex.: versão
@@ -938,9 +924,13 @@ async def upload_documento_complementar(
     existentes = db_selecionar("documentos", condicao={"id_candidato": id_candidato, "tipo": "complementar"}) or []
     duplicata = next((d for d in existentes if _norm(d["nome_arquivo"]) == _norm(nome_arquivo)), None)
 
+    # "" em vez de um caminho real: nenhum arquivo é gravado em disco para
+    # documentos complementares (ver comentário acima). A coluna é NOT NULL
+    # por causa de curriculo_gerado, que é conteúdo gerado pelo próprio
+    # sistema e continua sendo persistido normalmente em disco.
     if duplicata:
         resultado = db_atualizar("documentos", {
-            "caminho_disco": caminho_destino,
+            "caminho_disco": "",
             "descricao": descricao.strip() or nome_arquivo,
             "conteudo_extraido": texto_extraido,
             "data_upload": datetime.now(timezone.utc).isoformat(),
@@ -951,7 +941,7 @@ async def upload_documento_complementar(
             "id_candidato": id_candidato,
             "tipo": "complementar",
             "nome_arquivo": nome_arquivo,
-            "caminho_disco": caminho_destino,
+            "caminho_disco": "",
             "descricao": descricao.strip() or nome_arquivo,
             "conteudo_extraido": texto_extraido,
         })
