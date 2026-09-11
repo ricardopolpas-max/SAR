@@ -331,6 +331,7 @@ def conduzir_entrevista(titulo: str, descricao: str, perfil: str, historico: lis
         score = aderencia.get("score", score_anterior)
     except Exception as e:
         print(f"[ERRO calcular_aderencia] {type(e).__name__}: {e}")
+        aderencia = {}
         score = score_anterior
 
     prompt = (
@@ -350,4 +351,11 @@ def conduzir_entrevista(titulo: str, descricao: str, perfil: str, historico: lis
 
     resultado["score_estimado"] = score
     resultado["pronto"] = score >= 75
+    # Propaga o detalhe da aderência (não só o número) para quem chamou poder
+    # persistir e reaproveitar — é o que permite "Ver aderência" mostrar
+    # exatamente o mesmo resumo/pontos fortes/lacunas da entrevista, em vez de
+    # ter que recalcular (e arriscar um resultado ligeiramente diferente).
+    resultado["resumo"] = aderencia.get("resumo")
+    resultado["pontos_fortes"] = aderencia.get("pontos_fortes", [])
+    resultado["lacunas"] = aderencia.get("lacunas", [])
     return resultado

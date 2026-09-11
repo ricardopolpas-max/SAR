@@ -261,6 +261,11 @@ def inicializar_banco():
         except Exception:
             pass
 
+        try:
+            cursor.execute("ALTER TABLE conversas ADD COLUMN aderencia_detalhe TEXT")
+        except Exception:
+            pass
+
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS contatos (
                 id               INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1228,10 +1233,15 @@ async def carregar_conversa(id: int, id_candidato: int = Depends(autenticar)):
                 )
                 novo_score = float(aderencia.get("score", score))
                 novo_status = "pronto" if novo_score >= 75 else status
+                novo_detalhe = json.dumps({
+                    "resumo": aderencia.get("resumo"),
+                    "pontos_fortes": aderencia.get("pontos_fortes", []),
+                    "lacunas": aderencia.get("lacunas", []),
+                }, ensure_ascii=False)
                 with _obter_conexao() as conn:
                     conn.execute(
-                        "UPDATE conversas SET score_estimado=?, status=?, perfil_hash=? WHERE id=?",
-                        (novo_score, novo_status, hash_atual, conv_id)
+                        "UPDATE conversas SET score_estimado=?, status=?, perfil_hash=?, aderencia_detalhe=? WHERE id=?",
+                        (novo_score, novo_status, hash_atual, novo_detalhe, conv_id)
                     )
                     conn.commit()
                 score, status = novo_score, novo_status
@@ -1311,17 +1321,25 @@ async def conversar(id: int, corpo: dict, id_candidato: int = Depends(autenticar
     import hashlib
     from rotinas.genericas import montar_historico_texto
     perfil_hash = hashlib.sha256((perfil_texto + montar_historico_texto(historico)).encode()).hexdigest()
+    # Detalhe completo (resumo/pontos fortes/lacunas) junto com o hash — é o que
+    # permite "Ver aderência" (calcular_score_vaga) mostrar exatamente o mesmo
+    # resultado desta entrevista quando nada mudou, sem chamar a IA de novo.
+    aderencia_detalhe = json.dumps({
+        "resumo": resultado.get("resumo"),
+        "pontos_fortes": resultado.get("pontos_fortes", []),
+        "lacunas": resultado.get("lacunas", []),
+    }, ensure_ascii=False)
 
     with _obter_conexao() as conn:
         if conv_id:
             conn.execute(
-                "UPDATE conversas SET historico=?, score_estimado=?, status=?, perfil_hash=?, atualizado_em=CURRENT_TIMESTAMP WHERE id=?",
-                (hist_json, score, status, perfil_hash, conv_id)
+                "UPDATE conversas SET historico=?, score_estimado=?, status=?, perfil_hash=?, aderencia_detalhe=?, atualizado_em=CURRENT_TIMESTAMP WHERE id=?",
+                (hist_json, score, status, perfil_hash, aderencia_detalhe, conv_id)
             )
         else:
             conn.execute(
-                "INSERT INTO conversas (id_candidato, id_vaga, historico, score_estimado, status, perfil_hash) VALUES (?,?,?,?,?,?)",
-                (id_candidato, id, hist_json, score, status, perfil_hash)
+                "INSERT INTO conversas (id_candidato, id_vaga, historico, score_estimado, status, perfil_hash, aderencia_detalhe) VALUES (?,?,?,?,?,?,?)",
+                (id_candidato, id, hist_json, score, status, perfil_hash, aderencia_detalhe)
             )
         conn.commit()
 
@@ -1394,19 +1412,34 @@ async def calcular_score_vaga(id: int, id_candidato: int = Depends(autenticar)):
 
     # Se já existe uma entrevista em andamento para esta vaga, a aderência
     # mostrada aqui não pode "esquecer" o que já foi apurado nela — usa o
-    # mesmo histórico e o score da conversa como piso, garantindo o mesmo
-    # número em qualquer lugar do sistema que pergunte pela aderência desta
-    # vaga (lista de vagas e tela de entrevista nunca mais divergem).
+    # mesmo histórico e o score da conversa como piso. E, se nada mudou desde
+    # o último cálculo salvo (mesmo hash usado por carregar_conversa), devolve
+    # o resultado já salvo em vez de chamar a IA de novo — é o que garante o
+    # MESMO número e o mesmo resumo/lacunas em "Ver aderência" e na entrevista,
+    # em vez de duas chamadas de IA independentes divergindo entre si.
     with _obter_conexao() as conn:
         conversa = conn.execute(
-            "SELECT historico, score_estimado FROM conversas WHERE id_candidato = ? AND id_vaga = ?",
+            "SELECT id, historico, score_estimado, status, perfil_hash, aderencia_detalhe "
+            "FROM conversas WHERE id_candidato = ? AND id_vaga = ?",
             (id_candidato, id)
         ).fetchone()
-    score_anterior = float(conversa[1] or 0) if conversa else 0.0
+
+    score_anterior = float(conversa[2] or 0) if conversa else 0.0
     hist_texto = ""
-    if conversa and conversa[0]:
+    if conversa and conversa[1]:
         from rotinas.genericas import montar_historico_texto
-        hist_texto = montar_historico_texto(json.loads(conversa[0]))
+        hist_texto = montar_historico_texto(json.loads(conversa[1]))
+
+    if conversa:
+        import hashlib
+        hash_atual = hashlib.sha256((perfil_texto + hist_texto).encode()).hexdigest()
+        if hash_atual == conversa[4]:
+            # Hash bate = nada mudou desde o último cálculo salvo: NUNCA chama a
+            # IA de novo, mesmo que o detalhe (resumo/lacunas) ainda não exista
+            # (linha antiga, anterior a esta coluna) — consistência do número
+            # vale mais que ter o resumo; ele se preenche no próximo turno real.
+            detalhe = json.loads(conversa[5]) if conversa[5] else {"resumo": None, "pontos_fortes": [], "lacunas": []}
+            return {"score": score_anterior, **detalhe}
 
     from rotinas.importacao import processar_score_com_ia
     try:
@@ -1422,6 +1455,23 @@ async def calcular_score_vaga(id: int, id_candidato: int = Depends(autenticar)):
         if "quota" in msg or "insufficient" in msg or "429" in msg or "rate" in msg:
             raise HTTPException(503, "Cota de IA esgotada em todos os provedores. Tente novamente mais tarde ou adicione créditos em platform.openai.com.")
         raise HTTPException(500, f"Erro ao processar com IA: {str(e)}")
+
+    # Se já existe conversa, persiste o resultado (mesmo hash/detalhe que a
+    # entrevista usaria) — mantém os dois pontos sincronizados dali em diante.
+    if conversa:
+        conv_id = conversa[0]
+        novo_status = "pronto" if resultado.get("score", score_anterior) >= 75 else conversa[3]
+        novo_detalhe = json.dumps({
+            "resumo": resultado.get("resumo"),
+            "pontos_fortes": resultado.get("pontos_fortes", []),
+            "lacunas": resultado.get("lacunas", []),
+        }, ensure_ascii=False)
+        with _obter_conexao() as conn:
+            conn.execute(
+                "UPDATE conversas SET score_estimado=?, status=?, perfil_hash=?, aderencia_detalhe=? WHERE id=?",
+                (resultado.get("score", score_anterior), novo_status, hash_atual, novo_detalhe, conv_id)
+            )
+            conn.commit()
 
     return resultado
 
