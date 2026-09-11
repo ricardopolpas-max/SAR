@@ -14,8 +14,8 @@ O SAR automatiza o processo operacional de candidatura para que o profissional f
 **Fluxo completo:**
 
 1. **Cadastro e perfil** — o candidato registra resumo profissional, experiências, habilidades com nível de proficiência e links (GitHub, portfólio)
-2. **Importação de vagas** — 850+ vagas da plataforma Peixe 30 com filtros por tipo de contrato (CLT, PJ, Estágio, Autônomo) e modalidade (Presencial, Remoto, Híbrido)
-3. **Entrevista conduzida por agente LLM** — o Recrutador SAR lê o perfil do candidato, cruza com os requisitos da vaga e conduz entrevista personalizada em tempo real via WebSocket
+2. **Importação de vagas** — 1.300+ vagas sincronizadas com a API pública da Peixe 30, com filtros por tipo de contrato (CLT, PJ, Estágio, Autônomo) e modalidade (Presencial, Remoto, Híbrido)
+3. **Entrevista conduzida por agente LLM** — o Recrutador SAR lê o perfil do candidato, cruza com os requisitos da vaga e conduz entrevista personalizada
 4. **Dosimetria de aderência** — barra de progresso visual com meta em 75%; o currículo só é gerado ao atingir a meta
 5. **Geração de currículo premium** — documento personalizado para cada vaga, produzido com base nos dados apurados pelo agente durante a entrevista
 
@@ -29,8 +29,8 @@ O SAR automatiza o processo operacional de candidatura para que o profissional f
 | Frontend | JavaScript Vanilla · HTML/CSS |
 | Banco de dados | SQLite |
 | IA / LLMs | Google Gemini 2.5 Flash · Groq API (fallback) |
-| Comunicação | WebSocket (protocolo próprio — Ukiceker Conecta) |
-| Segurança | JWT · bcrypt · SSL/HTTPS |
+| Comunicação | REST/HTTP — camada única em `integracao/rotas/api.js` |
+| Segurança | Token de sessão (UUID, expiração 24h) · bcrypt · SSL/HTTPS |
 | Infraestrutura | Oracle Cloud Ubuntu · Certbot/Let's Encrypt · Domínio próprio |
 
 ---
@@ -52,11 +52,11 @@ Diário de bordo completo disponível no repositório.
 O sistema opera com quatro motores independentes:
 
 - **Motor de vagas** — captura, normalização e filtragem de oportunidades do Peixe 30
-- **Motor de identidade e acesso** — autenticação JWT, registro e gerenciamento de sessão
+- **Motor de identidade e acesso** — autenticação por token de sessão, registro e gerenciamento de sessão
 - **Motor de perfil** — cadastro estruturado do candidato com habilidades categorizadas e níveis de proficiência
 - **Motor de geração** — agente LLM recrutador + dosimetria de aderência + produção do currículo premium
 
-Comunicação entre frontend e backend via protocolo WebSocket desenvolvido internamente (Ukiceker Conecta), sem dependência de bibliotecas externas de integração.
+Comunicação entre frontend e backend via REST/HTTP, centralizada em `integracao/rotas/api.js` — única camada que sabe como os dados trafegam, sem dependência de bibliotecas externas de integração.
 
 ---
 
