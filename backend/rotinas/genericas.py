@@ -103,6 +103,19 @@ def db_excluir(tabela: str, condicao: Dict[str, Any]) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "erro", "mensagem": str(e)}
 
+def filtrar_campos_permitidos(dados: dict, permitidos: set) -> dict:
+    """Filtra um dict de entrada (corpo de requisição) para conter APENAS as
+    chaves explicitamente permitidas. Toda rota que passa `dict` cru do
+    cliente para db_inserir()/db_atualizar() deve filtrar por aqui antes —
+    essas funções constroem a coluna do SQL a partir da CHAVE do dict, sem
+    nenhum filtro próprio (`f"{k} = ?"`). Sem esse filtro, qualquer campo que
+    o cliente incluir no corpo — inclusive campos de posse como id_candidato,
+    ou nomes de coluna arbitrários — vai direto pra query. Nunca inclua
+    "id_candidato" na lista de permitidos: esse valor só pode vir do token de
+    sessão autenticado, nunca do corpo da requisição."""
+    return {k: v for k, v in dados.items() if k in permitidos}
+
+
 def registrar_auditoria(acao: str, detalhes: str, id_candidato: int = None) -> None:
     """Grava um registro em logs_sistema. Toda inserção de dado de carreira do
     candidato (habilidade, experiência, formação, idioma, certificação) via

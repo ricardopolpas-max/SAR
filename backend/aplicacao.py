@@ -535,8 +535,12 @@ async def carregar_perfil_completo(id_candidato: int = Depends(autenticar)):
 # ─────────────────────────────────────────────────────────
 # EXPERIÊNCIAS
 # ─────────────────────────────────────────────────────────
+_CAMPOS_EXPERIENCIA = {"cargo", "empresa", "data_inicio", "data_fim", "em_atual", "descricao"}
+
 @app.post("/perfil-candidato/experiencias")
 async def criar_experiencia(dados: dict, id_candidato: int = Depends(autenticar)):
+    from rotinas.genericas import filtrar_campos_permitidos, registrar_auditoria
+    dados = filtrar_campos_permitidos(dados, _CAMPOS_EXPERIENCIA)
     cargo = (dados.get("cargo") or "").strip()
     empresa = (dados.get("empresa") or "").strip()
     if not cargo or not empresa:
@@ -546,7 +550,6 @@ async def criar_experiencia(dados: dict, id_candidato: int = Depends(autenticar)
     resultado = db_inserir("experiencias", dados)
     if resultado["status"] == "erro":
         raise HTTPException(400, resultado["mensagem"])
-    from rotinas.genericas import registrar_auditoria
     registrar_auditoria("CRIOU_EXPERIENCIA", json.dumps({"cargo": cargo, "empresa": empresa}, ensure_ascii=False), id_candidato=id_candidato)
     return resultado
 
@@ -555,6 +558,8 @@ async def atualizar_experiencia(id: int, dados: dict, id_candidato: int = Depend
     exp = db_selecionar("experiencias", condicao={"id": id, "id_candidato": id_candidato}, unico=True)
     if not exp:
         raise HTTPException(404, "Experiência não encontrada.")
+    from rotinas.genericas import filtrar_campos_permitidos
+    dados = filtrar_campos_permitidos(dados, _CAMPOS_EXPERIENCIA)
     resultado = db_atualizar("experiencias", dados, {"id": id})
     if resultado["status"] == "erro":
         raise HTTPException(400, resultado["mensagem"])
@@ -573,8 +578,12 @@ async def remover_experiencia(id: int, id_candidato: int = Depends(autenticar)):
 # ─────────────────────────────────────────────────────────
 # FORMAÇÕES
 # ─────────────────────────────────────────────────────────
+_CAMPOS_FORMACAO = {"instituicao", "curso", "nivel", "data_inicio", "data_conclusao", "em_progresso"}
+
 @app.post("/perfil-candidato/formacoes")
 async def criar_formacao(dados: dict, id_candidato: int = Depends(autenticar)):
+    from rotinas.genericas import filtrar_campos_permitidos, registrar_auditoria
+    dados = filtrar_campos_permitidos(dados, _CAMPOS_FORMACAO)
     instituicao = (dados.get("instituicao") or "").strip()
     curso = (dados.get("curso") or "").strip()
     nivel = (dados.get("nivel") or "").strip()
@@ -585,7 +594,6 @@ async def criar_formacao(dados: dict, id_candidato: int = Depends(autenticar)):
     resultado = db_inserir("formacoes", dados)
     if resultado["status"] == "erro":
         raise HTTPException(400, resultado["mensagem"])
-    from rotinas.genericas import registrar_auditoria
     registrar_auditoria("CRIOU_FORMACAO", json.dumps({"curso": curso, "instituicao": instituicao}, ensure_ascii=False), id_candidato=id_candidato)
     return resultado
 
@@ -594,6 +602,8 @@ async def atualizar_formacao(id: int, dados: dict, id_candidato: int = Depends(a
     form = db_selecionar("formacoes", condicao={"id": id, "id_candidato": id_candidato}, unico=True)
     if not form:
         raise HTTPException(404, "Formação não encontrada.")
+    from rotinas.genericas import filtrar_campos_permitidos
+    dados = filtrar_campos_permitidos(dados, _CAMPOS_FORMACAO)
     resultado = db_atualizar("formacoes", dados, {"id": id})
     if resultado["status"] == "erro":
         raise HTTPException(400, resultado["mensagem"])
@@ -612,8 +622,12 @@ async def remover_formacao(id: int, id_candidato: int = Depends(autenticar)):
 # ─────────────────────────────────────────────────────────
 # HABILIDADES
 # ─────────────────────────────────────────────────────────
+_CAMPOS_HABILIDADE = {"nome", "proficiencia", "categoria"}
+
 @app.post("/perfil-candidato/habilidades")
 async def criar_habilidade(dados: dict, id_candidato: int = Depends(autenticar)):
+    from rotinas.genericas import filtrar_campos_permitidos, registrar_auditoria
+    dados = filtrar_campos_permitidos(dados, _CAMPOS_HABILIDADE)
     nome = (dados.get("nome") or "").strip()
     proficiencia = (dados.get("proficiencia") or "").strip()
     if not nome or not proficiencia:
@@ -623,7 +637,6 @@ async def criar_habilidade(dados: dict, id_candidato: int = Depends(autenticar))
     resultado = db_inserir("habilidades", dados)
     if resultado["status"] == "erro":
         raise HTTPException(400, resultado["mensagem"])
-    from rotinas.genericas import registrar_auditoria
     registrar_auditoria("CRIOU_HABILIDADE", json.dumps({"nome": nome}, ensure_ascii=False), id_candidato=id_candidato)
     return resultado
 
@@ -632,6 +645,8 @@ async def atualizar_habilidade(id: int, dados: dict, id_candidato: int = Depends
     hab = db_selecionar("habilidades", condicao={"id": id, "id_candidato": id_candidato}, unico=True)
     if not hab:
         raise HTTPException(404, "Habilidade não encontrada.")
+    from rotinas.genericas import filtrar_campos_permitidos
+    dados = filtrar_campos_permitidos(dados, _CAMPOS_HABILIDADE)
     resultado = db_atualizar("habilidades", dados, {"id": id})
     if resultado["status"] == "erro":
         raise HTTPException(400, resultado["mensagem"])
@@ -650,8 +665,12 @@ async def remover_habilidade(id: int, id_candidato: int = Depends(autenticar)):
 # ─────────────────────────────────────────────────────────
 # IDIOMAS
 # ─────────────────────────────────────────────────────────
+_CAMPOS_IDIOMA = {"nome", "proficiencia"}
+
 @app.post("/perfil-candidato/idiomas")
 async def criar_idioma(dados: dict, id_candidato: int = Depends(autenticar)):
+    from rotinas.genericas import filtrar_campos_permitidos, registrar_auditoria
+    dados = filtrar_campos_permitidos(dados, _CAMPOS_IDIOMA)
     nome = (dados.get("nome") or "").strip()
     proficiencia = (dados.get("proficiencia") or "").strip()
     if not nome or not proficiencia:
@@ -661,7 +680,6 @@ async def criar_idioma(dados: dict, id_candidato: int = Depends(autenticar)):
     resultado = db_inserir("idiomas", dados)
     if resultado["status"] == "erro":
         raise HTTPException(400, resultado["mensagem"])
-    from rotinas.genericas import registrar_auditoria
     registrar_auditoria("CRIOU_IDIOMA", json.dumps({"nome": nome}, ensure_ascii=False), id_candidato=id_candidato)
     return resultado
 
@@ -670,6 +688,8 @@ async def atualizar_idioma(id: int, dados: dict, id_candidato: int = Depends(aut
     idm = db_selecionar("idiomas", condicao={"id": id, "id_candidato": id_candidato}, unico=True)
     if not idm:
         raise HTTPException(404, "Idioma não encontrado.")
+    from rotinas.genericas import filtrar_campos_permitidos
+    dados = filtrar_campos_permitidos(dados, _CAMPOS_IDIOMA)
     resultado = db_atualizar("idiomas", dados, {"id": id})
     if resultado["status"] == "erro":
         raise HTTPException(400, resultado["mensagem"])
@@ -688,8 +708,12 @@ async def remover_idioma(id: int, id_candidato: int = Depends(autenticar)):
 # ─────────────────────────────────────────────────────────
 # CERTIFICAÇÕES
 # ─────────────────────────────────────────────────────────
+_CAMPOS_CERTIFICACAO = {"nome", "emissor", "data_emissao", "data_expiracao", "url"}
+
 @app.post("/perfil-candidato/certificacoes")
 async def criar_certificacao(dados: dict, id_candidato: int = Depends(autenticar)):
+    from rotinas.genericas import filtrar_campos_permitidos, registrar_auditoria
+    dados = filtrar_campos_permitidos(dados, _CAMPOS_CERTIFICACAO)
     nome = (dados.get("nome") or "").strip()
     emissor = (dados.get("emissor") or "").strip()
     if not nome or not emissor:
@@ -699,7 +723,6 @@ async def criar_certificacao(dados: dict, id_candidato: int = Depends(autenticar
     resultado = db_inserir("certificacoes", dados)
     if resultado["status"] == "erro":
         raise HTTPException(400, resultado["mensagem"])
-    from rotinas.genericas import registrar_auditoria
     registrar_auditoria("CRIOU_CERTIFICACAO", json.dumps({"nome": nome, "emissor": emissor}, ensure_ascii=False), id_candidato=id_candidato)
     return resultado
 
@@ -708,6 +731,8 @@ async def atualizar_certificacao(id: int, dados: dict, id_candidato: int = Depen
     cert = db_selecionar("certificacoes", condicao={"id": id, "id_candidato": id_candidato}, unico=True)
     if not cert:
         raise HTTPException(404, "Certificação não encontrada.")
+    from rotinas.genericas import filtrar_campos_permitidos
+    dados = filtrar_campos_permitidos(dados, _CAMPOS_CERTIFICACAO)
     resultado = db_atualizar("certificacoes", dados, {"id": id})
     if resultado["status"] == "erro":
         raise HTTPException(400, resultado["mensagem"])
@@ -726,14 +751,24 @@ async def remover_certificacao(id: int, id_candidato: int = Depends(autenticar))
 # ─────────────────────────────────────────────────────────
 # DOCUMENTOS
 # ─────────────────────────────────────────────────────────
+# "caminho_disco" e "tipo" NUNCA vêm do cliente aqui — só os fluxos de upload
+# dedicados (upload_documento_complementar, importar_curriculo, gerar_curriculo)
+# podem gravar esses dois campos, calculando o caminho físico eles mesmos.
+# Achado real: o formulário genérico deixava o candidato digitar um caminho de
+# arquivo do servidor à mão e o tipo "curriculo_gerado" — combinação que faz o
+# sistema abrir e ler esse arquivo depois, em _obter_base_perfil() (leitura
+# arbitrária de arquivo do servidor, não só mass assignment).
+_CAMPOS_DOCUMENTO_MANUAL = {"nome_arquivo", "descricao"}
+
 @app.post("/perfil-candidato/documentos")
 async def criar_documento(dados: dict, id_candidato: int = Depends(autenticar)):
-    tipo = (dados.get("tipo") or "").strip()
+    from rotinas.genericas import filtrar_campos_permitidos
+    dados = filtrar_campos_permitidos(dados, _CAMPOS_DOCUMENTO_MANUAL)
     nome_arquivo = (dados.get("nome_arquivo") or "").strip()
-    caminho_disco = (dados.get("caminho_disco") or "").strip()
-    if not tipo or not nome_arquivo or not caminho_disco:
-        raise HTTPException(400, "Tipo, nome_arquivo e caminho_disco são obrigatórios.")
+    if not nome_arquivo:
+        raise HTTPException(400, "nome_arquivo é obrigatório.")
     dados["id_candidato"] = id_candidato
+    dados["tipo"] = "complementar"
     resultado = db_inserir("documentos", dados)
     if resultado["status"] == "erro":
         raise HTTPException(400, resultado["mensagem"])
@@ -744,6 +779,8 @@ async def atualizar_documento(id: int, dados: dict, id_candidato: int = Depends(
     doc = db_selecionar("documentos", condicao={"id": id, "id_candidato": id_candidato}, unico=True)
     if not doc:
         raise HTTPException(404, "Documento não encontrado.")
+    from rotinas.genericas import filtrar_campos_permitidos
+    dados = filtrar_campos_permitidos(dados, _CAMPOS_DOCUMENTO_MANUAL)
     resultado = db_atualizar("documentos", dados, {"id": id})
     if resultado["status"] == "erro":
         raise HTTPException(400, resultado["mensagem"])
@@ -762,8 +799,12 @@ async def remover_documento(id: int, id_candidato: int = Depends(autenticar)):
 # ─────────────────────────────────────────────────────────
 # CONTATOS
 # ─────────────────────────────────────────────────────────
+_CAMPOS_CONTATO = {"telefone", "linkedin", "github", "website"}
+
 @app.put("/perfil-candidato/contatos")
 async def atualizar_contatos(dados: dict, id_candidato: int = Depends(autenticar)):
+    from rotinas.genericas import filtrar_campos_permitidos
+    dados = filtrar_campos_permitidos(dados, _CAMPOS_CONTATO)
     contato = db_selecionar("contatos", condicao={"id_candidato": id_candidato}, unico=True)
     if contato:
         resultado = db_atualizar("contatos", dados, {"id_candidato": id_candidato})
@@ -777,8 +818,12 @@ async def atualizar_contatos(dados: dict, id_candidato: int = Depends(autenticar
 # ─────────────────────────────────────────────────────────
 # PERFIL — atualizar e validar
 # ─────────────────────────────────────────────────────────
+_CAMPOS_PERFIL = {"resumo_profissional", "localizacao", "disponibilidade", "pretensao_salarial"}
+
 @app.put("/perfil-candidato")
 async def atualizar_perfil(dados: dict, id_candidato: int = Depends(autenticar)):
+    from rotinas.genericas import filtrar_campos_permitidos
+    dados = filtrar_campos_permitidos(dados, _CAMPOS_PERFIL)
     perfil = db_selecionar("perfil_candidato", condicao={"id_candidato": id_candidato}, unico=True)
     if perfil:
         resultado = db_atualizar("perfil_candidato", dados, {"id_candidato": id_candidato})
@@ -791,6 +836,8 @@ async def atualizar_perfil(dados: dict, id_candidato: int = Depends(autenticar))
 
 @app.post("/perfil-candidato/novo-manual")
 async def criar_perfil_manual(dados: dict, id_candidato: int = Depends(autenticar)):
+    from rotinas.genericas import filtrar_campos_permitidos
+    dados = filtrar_campos_permitidos(dados, _CAMPOS_PERFIL)
     perfil_existente = db_selecionar("perfil_candidato", condicao={"id_candidato": id_candidato}, unico=True)
     if perfil_existente:
         raise HTTPException(409, "Perfil já existe. Use PUT para atualizar.")
@@ -1842,26 +1889,14 @@ async def listar_curriculos_gerados(id_candidato: int = Depends(autenticar)):
     return {"ok": True, "dados": resultado}
 
 
-@app.post("/vagas")
-async def criar_vaga(dados: dict, id_candidato: int = Depends(autenticar)):
-    resultado = db_inserir("vagas", dados)
-    if resultado["status"] == "erro":
-        raise HTTPException(400, resultado["mensagem"])
-    return resultado
-
-@app.put("/vagas/{id}")
-async def atualizar_vaga(id: int, dados: dict, id_candidato: int = Depends(autenticar)):
-    resultado = db_atualizar("vagas", dados, {"id": id})
-    if resultado["status"] == "erro":
-        raise HTTPException(400, resultado["mensagem"])
-    return resultado
-
-@app.delete("/vagas/{id}")
-async def remover_vaga(id: int, id_candidato: int = Depends(autenticar)):
-    resultado = db_excluir("vagas", {"id": id})
-    if resultado["status"] == "erro":
-        raise HTTPException(400, resultado["mensagem"])
-    return resultado
+# Removidos: POST/PUT/DELETE /vagas (criar_vaga, atualizar_vaga, remover_vaga).
+# Não existe papel de admin no sistema — essas rotas aceitavam escrita/exclusão
+# de QUALQUER vaga (não filtrado por id_candidato) de QUALQUER candidato
+# autenticado, sem filtro de campos (db_inserir/db_atualizar constroem a
+# coluna SQL a partir da chave do dict cru). Confirmado, antes da remoção,
+# que nenhuma tela do frontend chama SarAPI.vagas.criar/atualizar/remover —
+# vagas só são populadas pela sincronização (scraper). Auditoria de
+# segurança, 2026-09-11.
 
 # ------------------------------------------------------------
 # CONFIGURAÇÕES — protegidas
@@ -1877,15 +1912,12 @@ async def buscar_configuracao(chave: str, id_candidato: int = Depends(autenticar
         raise HTTPException(404, "Configuração não encontrada.")
     return cfg
 
-@app.post("/configuracoes")
-async def salvar_configuracao(dados: dict, id_candidato: int = Depends(autenticar)):
-    chave = dados.get("chave")
-    valor = dados.get("valor")
-    if not chave:
-        raise HTTPException(400, "Campo 'chave' obrigatório.")
-    if db_selecionar("configuracoes", condicao={"chave": chave}, unico=True):
-        return db_atualizar("configuracoes", {"valor": valor}, {"chave": chave})
-    return db_inserir("configuracoes", {"chave": chave, "valor": valor})
+# Removido: POST /configuracoes (salvar_configuracao). Escrevia em uma
+# tabela de configuração GLOBAL do sistema sem nenhum papel de admin —
+# qualquer candidato autenticado podia alterar configurações que afetam
+# todos os usuários. Confirmado, antes da remoção, que nenhuma tela do
+# frontend chama SarAPI.configuracoes.salvar. Auditoria de segurança,
+# 2026-09-11.
 
 # ------------------------------------------------------------
 # REGISTROS DO SISTEMA — protegidos
