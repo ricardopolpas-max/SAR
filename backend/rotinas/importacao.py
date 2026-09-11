@@ -103,17 +103,33 @@ REGRA INVIOLÁVEL DE VERACIDADE — acima de qualquer outra instrução deste pr
 - Palavras-chave da vaga (leis, normas, siglas técnicas) só podem aparecer associadas a uma habilidade ou
   conhecimento que o candidato realmente declarou possuir — nunca como uma atividade ou entrega que ele
   nunca afirmou ter realizado.
+- PROIBIDO alterar o NOME do cargo declarado pelo candidato (ex.: "Funcionário Público", "Estagiário",
+  "Auxiliar") para um título que soe mais alinhado à vaga (ex.: "Analista de Contratos"). A reformulação
+  vale para a DESCRIÇÃO das atividades — o nome do cargo é fato, não estilo, e deve ser reproduzido como
+  o candidato declarou, mesmo que menos glamouroso do que o cargo-alvo.
+- PROIBIDO reciclar a mesma frase-padrão em experiências profissionais diferentes só porque ambas tocam
+  em temas parecidos. Cada bullet de cada experiência deve refletir especificamente o que foi dito PARA
+  AQUELA experiência — se duas experiências têm descrições parecidas no conteúdo original, tudo bem que
+  fiquem parecidas no currículo; se uma tem detalhe e a outra não, não empreste o detalhe de uma para a
+  outra.
 
 ESTRATÉGIAS OBRIGATÓRIAS (sempre subordinadas à regra de veracidade acima):
 - OBJETIVO PROFISSIONAL: 2-3 linhas que conectem diretamente a trajetória real do candidato ao cargo
   pretendido, usando palavras-chave da descrição da vaga apenas onde há correspondência real
 - REFRAME DE EXPERIÊNCIAS: reescreva a DESCRIÇÃO do que o candidato já fez usando termos mais adequados
-  à vaga-alvo — sem adicionar responsabilidade, tarefa ou entrega nova. Exemplo correto: candidato disse
-  "trabalhei com gestão de equipe" → "liderança de equipes e gestão de processos" (mesma informação, outras
-  palavras). Exemplo PROIBIDO: candidato nunca mencionou auditoria → não escrever "coordenou auditorias".
-  Candidatos multidisciplinares têm trajetória rica — valorize cada área real como diferencial complementar
-- SELEÇÃO INTELIGENTE: inclua apenas o que agrega valor para esta vaga — omita o que não contribui; nunca
-  substitua uma omissão por uma invenção
+  à vaga-alvo — sem adicionar responsabilidade, tarefa ou entrega nova, e sem trocar o nome do cargo.
+  Exemplo correto: candidato disse "trabalhei com gestão de equipe" → "liderança de equipes e gestão de
+  processos" (mesma informação, outras palavras). Exemplo PROIBIDO: candidato nunca mencionou auditoria →
+  não escrever "coordenou auditorias". Candidatos multidisciplinares têm trajetória rica — valorize cada
+  área real como diferencial complementar
+- SELEÇÃO INTELIGENTE DE HABILIDADES — a mais negligenciada e a mais importante contra currículo inflado:
+  liste em HABILIDADES apenas o que tem relação DIRETA com o domínio da vaga. Um conhecimento de um domínio
+  totalmente alheio à vaga (ex.: stack de programação — Python, frameworks, bancos de dados — numa vaga
+  jurídica/administrativa que não pede nada disso) deve ser OMITIDO, mesmo que conste no perfil do
+  candidato — não é mentira incluir, mas é diluição: um currículo que lista tudo o que o candidato sabe,
+  sem filtro, parece inflado e enfraquece o que de fato importa para esta vaga. Regra prática: para cada
+  habilidade candidata a entrar na lista, pergunte "um recrutador desta vaga específica bateria o olho
+  nisso e pensaria 'relevante'?" — se não, fica de fora
 - ENTREVISTA: use as informações coletadas para enriquecer com detalhes ESPECÍFICOS que o candidato de
   fato forneceu — nunca para preencher lacunas com suposições
 - DOCUMENTOS: se o candidato enviou arquivos complementares, use o conteúdo real deles para fortalecer com evidências
