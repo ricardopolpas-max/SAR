@@ -230,6 +230,19 @@ def limitar_texto_documento(texto: str) -> str:
     return texto
 
 
+def limitar_mensagem_chat(texto: str) -> str:
+    """Corta uma mensagem de chat ANTES de gravar no histórico da entrevista.
+    Achado real: um usuário colou o conteúdo inteiro de um documento (512 KB)
+    direto na caixa de mensagem, em vez de usar o botão de anexo — isso não
+    passa pelo corte de limitar_texto_documento() (exclusivo do upload de
+    arquivo) e ficou gravado por inteiro no histórico, estourando o prompt de
+    IA em todo turno seguinte da mesma conversa. Mesmo teto de
+    limitar_texto_documento() — o problema e a motivação são idênticos."""
+    if texto and len(texto) > _DOCUMENTO_COMPLEMENTAR_MAX_CHARS:
+        return texto[:_DOCUMENTO_COMPLEMENTAR_MAX_CHARS] + "\n[...mensagem truncada — muito extensa para processar...]"
+    return texto
+
+
 def calcular_aderencia(titulo: str, descricao: str, perfil: str, historico: str = "", score_anterior: int = 0) -> dict:
     """
     Função pública e agnóstica de cálculo de aderência candidato↔vaga.

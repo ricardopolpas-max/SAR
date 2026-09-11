@@ -256,6 +256,11 @@ def inicializar_banco():
         except Exception:
             pass
 
+        try:
+            cursor.execute("ALTER TABLE conversas ADD COLUMN perfil_hash TEXT")
+        except Exception:
+            pass
+
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS contatos (
                 id               INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1189,39 +1194,44 @@ def _obter_base_perfil(id_candidato: int) -> str:
 async def carregar_conversa(id: int, id_candidato: int = Depends(autenticar)):
     with _obter_conexao() as conn:
         row = conn.execute(
-            "SELECT id, historico, score_estimado, status FROM conversas WHERE id_candidato = ? AND id_vaga = ?",
+            "SELECT id, historico, score_estimado, status, perfil_hash FROM conversas WHERE id_candidato = ? AND id_vaga = ?",
             (id_candidato, id)
         ).fetchone()
     if not row:
         return {"ok": True, "dados": None}
 
-    conv_id, historico_json, score, status = row[0], row[1], float(row[2] or 0), row[3]
+    conv_id, historico_json, score, status, hash_anterior = row[0], row[1], float(row[2] or 0), row[3], row[4]
     historico = json.loads(historico_json)
 
-    # Recálculo automático ao reabrir a entrevista: o perfil pode ter mudado
-    # desde a última resposta (documento complementar novo, habilidade
-    # adicionada etc.) — sem isso, o número mostrado aqui fica congelado no
-    # que valia na última interação, dessincronizado do resto do sistema.
+    # Recálculo ao reabrir a entrevista — SÓ quando algo mudou de fato (novo
+    # documento complementar, habilidade adicionada etc.), nunca "porque sim".
+    # Comparamos um hash do que seria usado no cálculo com o hash já salvo da
+    # última vez: se bater, a IA nem é chamada. Sem isso, o score "balançava" a
+    # cada abertura de tela — a IA não é perfeitamente determinística mesmo com
+    # o mesmo conteúdo, então recalcular sempre gera ruído sem necessidade real.
     vaga = db_selecionar("vagas", condicao={"id": id}, unico=True)
     if vaga:
         try:
-            perfil_texto = _obter_base_perfil(id_candidato)
+            import hashlib
             from rotinas.genericas import calcular_aderencia, montar_historico_texto
+            perfil_texto = _obter_base_perfil(id_candidato)
             hist_texto = montar_historico_texto(historico)
-            aderencia = calcular_aderencia(
-                titulo=vaga.get("titulo", ""),
-                descricao=vaga.get("descricao", ""),
-                perfil=perfil_texto,
-                historico=hist_texto,
-                score_anterior=score,
-            )
-            novo_score = float(aderencia.get("score", score))
-            novo_status = "pronto" if novo_score >= 75 else status
-            if novo_score != score or novo_status != status:
+            hash_atual = hashlib.sha256((perfil_texto + hist_texto).encode()).hexdigest()
+
+            if hash_atual != hash_anterior:
+                aderencia = calcular_aderencia(
+                    titulo=vaga.get("titulo", ""),
+                    descricao=vaga.get("descricao", ""),
+                    perfil=perfil_texto,
+                    historico=hist_texto,
+                    score_anterior=score,
+                )
+                novo_score = float(aderencia.get("score", score))
+                novo_status = "pronto" if novo_score >= 75 else status
                 with _obter_conexao() as conn:
                     conn.execute(
-                        "UPDATE conversas SET score_estimado=?, status=? WHERE id=?",
-                        (novo_score, novo_status, conv_id)
+                        "UPDATE conversas SET score_estimado=?, status=?, perfil_hash=? WHERE id=?",
+                        (novo_score, novo_status, hash_atual, conv_id)
                     )
                     conn.commit()
                 score, status = novo_score, novo_status
@@ -1269,7 +1279,8 @@ async def conversar(id: int, corpo: dict, id_candidato: int = Depends(autenticar
         score_anterior = 0.0
 
     if mensagem:
-        historico.append({"role": "candidato", "conteudo": mensagem})
+        from rotinas.genericas import limitar_mensagem_chat
+        historico.append({"role": "candidato", "conteudo": limitar_mensagem_chat(mensagem)})
 
     from rotinas.importacao import conduzir_entrevista
     try:
@@ -1293,16 +1304,24 @@ async def conversar(id: int, corpo: dict, id_candidato: int = Depends(autenticar
     status = "pronto" if pronto else "em_andamento"
     hist_json = json.dumps(historico, ensure_ascii=False)
 
+    # Hash do que foi de fato usado neste cálculo (perfil + histórico já limitado).
+    # Permite que a reabertura da entrevista (carregar_conversa) só chame a IA de
+    # novo quando algo realmente mudou — sem isso, o score "balança" a cada
+    # abertura mesmo sem nada novo, porque a IA não é perfeitamente determinística.
+    import hashlib
+    from rotinas.genericas import montar_historico_texto
+    perfil_hash = hashlib.sha256((perfil_texto + montar_historico_texto(historico)).encode()).hexdigest()
+
     with _obter_conexao() as conn:
         if conv_id:
             conn.execute(
-                "UPDATE conversas SET historico=?, score_estimado=?, status=?, atualizado_em=CURRENT_TIMESTAMP WHERE id=?",
-                (hist_json, score, status, conv_id)
+                "UPDATE conversas SET historico=?, score_estimado=?, status=?, perfil_hash=?, atualizado_em=CURRENT_TIMESTAMP WHERE id=?",
+                (hist_json, score, status, perfil_hash, conv_id)
             )
         else:
             conn.execute(
-                "INSERT INTO conversas (id_candidato, id_vaga, historico, score_estimado, status) VALUES (?,?,?,?,?)",
-                (id_candidato, id, hist_json, score, status)
+                "INSERT INTO conversas (id_candidato, id_vaga, historico, score_estimado, status, perfil_hash) VALUES (?,?,?,?,?,?)",
+                (id_candidato, id, hist_json, score, status, perfil_hash)
             )
         conn.commit()
 
