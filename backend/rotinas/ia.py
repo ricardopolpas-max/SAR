@@ -1,4 +1,5 @@
 import os
+import time
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -12,10 +13,79 @@ def _cota_esgotada(msg: str) -> bool:
     return any(p in msg.lower() for p in _ERROS_COTA)
 
 
+# ------------------------------------------------------------
+# RESOLUÇÃO INTELIGENTE DE MODELO
+# ------------------------------------------------------------
+# O provedor pode descontinuar um modelo a qualquer momento (foi o que a Groq
+# fez com os Llama). Em vez de confiar cegamente no nome fixo do .env, a rotina
+# consulta a lista de modelos que a chave realmente enxerga e escolhe um válido.
+# O valor do .env vira PREFERÊNCIA, não obrigação.
+
+# Ordem de preferência quando o modelo do .env não está disponível
+_PREF_MODELO = {
+    "gemini": ["gemini-2.5-flash", "gemini-flash-latest", "gemini-2.5-flash-lite",
+               "gemini-2.0-flash", "gemini-pro-latest"],
+    "groq":   ["openai/gpt-oss-120b", "openai/gpt-oss-20b", "qwen/qwen3.8-27b",
+               "qwen/qwen3.6-27b", "groq/compound"],
+}
+
+# Palavras que denunciam modelos não-conversacionais (áudio, imagem, guarda…)
+_MODELO_NAO_CHAT = ("whisper", "orpheus", "-tts", "guard", "embed", "lyria",
+                    "image", "transcribe", "computer-use", "robotics", "deep-research")
+
+_MODELO_TTL = 3600  # 1h
+_modelo_cache: dict[str, tuple[str, float]] = {}  # tipo -> (modelo, timestamp)
+
+
+def _modelos_disponiveis(tipo: str, api_key: str) -> set[str]:
+    if tipo == "gemini":
+        from google import genai
+        client = genai.Client(api_key=api_key)   # manter referência: o GC fecha o HTTP client se for temporário
+        disp = set()
+        for m in client.models.list():
+            acoes = getattr(m, "supported_actions", None) or \
+                    getattr(m, "supported_generation_methods", []) or []
+            if "generateContent" in acoes:
+                disp.add(m.name.replace("models/", ""))
+        return disp
+    else:  # groq — via SDK openai (passa pela Cloudflare)
+        import openai
+        client = openai.OpenAI(api_key=api_key, base_url="https://api.groq.com/openai/v1")
+        return {m.id for m in client.models.list().data}
+
+
+def _resolver_modelo(tipo: str, api_key: str) -> str:
+    pref_env = os.getenv("GEMINI_MODEL" if tipo == "gemini" else "GROQ_MODEL", "").strip()
+
+    cached = _modelo_cache.get(tipo)
+    if cached and time.time() - cached[1] < _MODELO_TTL:
+        return cached[0]
+
+    try:
+        disp = _modelos_disponiveis(tipo, api_key)
+    except Exception as e:
+        # Sem lista → tenta o do .env; se vazio, o 1º da preferência
+        print(f"[IA] {tipo}: não consegui listar modelos ({type(e).__name__}) — usando '{pref_env or _PREF_MODELO[tipo][0]}'")
+        return pref_env or _PREF_MODELO[tipo][0]
+
+    if pref_env and pref_env in disp:
+        escolhido = pref_env
+    else:
+        escolhido = next((m for m in _PREF_MODELO[tipo] if m in disp), None)
+        if not escolhido:
+            chat = sorted(m for m in disp if not any(p in m.lower() for p in _MODELO_NAO_CHAT))
+            escolhido = chat[0] if chat else (pref_env or _PREF_MODELO[tipo][0])
+        if pref_env:
+            print(f"[IA] {tipo}: modelo '{pref_env}' indisponível → usando '{escolhido}'")
+
+    _modelo_cache[tipo] = (escolhido, time.time())
+    return escolhido
+
+
 def _gerar_gemini(api_key: str, prompt: str) -> str:
     from google import genai
     client = genai.Client(api_key=api_key)
-    modelo = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+    modelo = _resolver_modelo("gemini", api_key)
     response = client.models.generate_content(model=modelo, contents=prompt)
     return response.text.strip()
 
@@ -27,7 +97,7 @@ def _gerar_groq(api_key: str, prompt: str) -> str:
         base_url="https://api.groq.com/openai/v1",
     )
     resp = client.chat.completions.create(
-        model=os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile"),
+        model=_resolver_modelo("groq", api_key),
         messages=[{"role": "user", "content": prompt}],
     )
     return resp.choices[0].message.content.strip()

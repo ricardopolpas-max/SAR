@@ -3,7 +3,7 @@
 Plataforma web com IA generativa integrada para automatizar a jornada de recolocação profissional no mercado jurídico. Desenvolvida como projeto acadêmico da disciplina de Desenvolvimento Pessoal e Trabalhabilidade (DPT) — Área: Direito — UNINASSAU Campina Grande.
 
 **Ao vivo:** https://sar.ukiceker.com.br/login
-**Infraestrutura:** EC2 Ubuntu (AWS) · HTTPS via Certbot/Let's Encrypt · Domínio próprio
+**Infraestrutura:** Oracle Cloud (Ubuntu) · HTTPS via Certbot/Let's Encrypt · Domínio próprio
 
 ---
 
@@ -31,7 +31,7 @@ O SAR automatiza o processo operacional de candidatura para que o profissional f
 | IA / LLMs | Google Gemini 2.5 Flash · Groq API (fallback) |
 | Comunicação | WebSocket (protocolo próprio — Ukiceker Conecta) |
 | Segurança | JWT · bcrypt · SSL/HTTPS |
-| Infraestrutura | AWS EC2 Ubuntu · Certbot/Let's Encrypt · Domínio próprio |
+| Infraestrutura | Oracle Cloud Ubuntu · Certbot/Let's Encrypt · Domínio próprio |
 
 ---
 

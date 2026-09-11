@@ -172,3 +172,64 @@ Fluxo obrigatório para toda e qualquer entrega. Nenhuma etapa pode ser pulada.
 - Nunca presumir contexto — perguntar se necessário.
 - Sugerir melhorias, mas só implementar com autorização.
 - Nunca considerar uma tarefa concluída sem validação real do usuário.
+
+---
+
+## 7. Implantação em Nuvem e Migração de Infraestrutura
+
+### 7.1 Modelo de implantação vigente
+
+O SAR é desenvolvido localmente (Windows) e implantado numa **VM Linux única** como serviço. A nuvem fornece apenas a máquina — o sistema **não depende de nenhuma API do provedor** para operar. Trocar de provedor = recriar a VM, levar os dados e repontar o DNS.
+
+**Componentes da VM (documentados em `instalacao/setup_vm.sh`):**
+
+| Item | Localização na VM |
+|---|---|
+| Código | `/home/<usuario>/SAR` (clone do git) |
+| Ambiente Python | `venv/` dentro do app dir |
+| Serviço | `systemd` — unit `sar.service`, `Restart=always`, executa `venv/bin/python servidor.py` a partir de `backend/` |
+| Banco SQLite | `~/.local/share/SAR/sar_repositorio.db` (equivalente Linux de `%APPDATA%\SAR`) |
+| Segredos | `~/SAR/.env` e `~/SAR/certificado/privado/sar.key` — criados manualmente, nunca no git |
+| Uploads | `~/SAR/apoio/uploads/` e `~/SAR/apoio/Imagens/` — nunca no git |
+| Porta | redirecionamento `iptables` 443 → 1024 (processo não-root) |
+| TLS | Let's Encrypt via `certbot certonly --standalone` |
+
+### 7.2 Ativos insubstituíveis — únicos que migram entre provedores
+
+Só estes três não são recriados pelo `setup_vm.sh` e precisam ser copiados da VM antiga:
+
+1. `~/.local/share/SAR/sar_repositorio.db` — a Verdade Absoluta (candidatos reais).
+2. `~/SAR/.env` — configuração de produção + chaves de IA.
+3. `~/SAR/apoio/uploads/` e `~/SAR/apoio/Imagens/` — arquivos enviados por candidatos.
+
+O certificado **não migra** — é reemitido no destino (IP novo).
+
+### 7.3 Migração AWS → Oracle Cloud — CONCLUÍDA (10/09/2026)
+
+**Motivo:** o período gratuito da conta AWS expirava em 19/09/2026. **Destino final:** Oracle Cloud Always Free, região Sudeste do Brasil (Vinhedo), instância `sar-prod`.
+
+**Desvios do plano original**, registrados para histórico:
+- Shape planejado era `VM.Standard.A1.Flex` (ARM) — **capacidade esgotada** em Vinhedo no momento da criação. Usado **`VM.Standard.E2.1.Micro`** (AMD, 1 OCPU / 1 GB, Always Free) + swapfile de 2 GB.
+- O certificado **foi migrado** (copiado de `/etc/letsencrypt` da AWS), não reemitido do zero — evitou depender de propagação de DNS antes do cutover.
+- Antes do cutover, foi preciso resolver uma **divergência de git** entre o `main` local e o `origin/main` (histórico havia se separado) e corrigir a **trava de expiração** do `servidor.py`, que estava vencida (30/06/2026 → 30/06/2027).
+
+**Execução (todos os 9 passos do plano original concluídos).** Cutover: DNS `sar.ukiceker.com.br` A-record apontado para o IP reservado da Oracle via registro.br; propagação confirmada em <5 min nos principais resolvedores. Validado com login real, import de currículo e geração de currículo tailored. AWS mantida no ar como rollback por alguns dias após o cutover, depois desligada (ver §7.5 e histórico no `diario_de_bordo.md`).
+
+**Alterações de código efetivamente feitas nesta migração:** `instalacao/setup_vm.sh` (adaptado para Oracle/Ubuntu — fora do git, `.gitignore`), `dependencias.txt` e `backend/servidor.py` e `backend/rotinas/ia.py` (ver §7.5 — correções descobertas durante o review pós-cutover, não previstas no plano original).
+
+### 7.4 Certificação SSL — §5.5 corrigida
+
+A §5.5 desta governança estava desatualizada, descrevendo renovação via `mkcert` (válido só para o ambiente de desenvolvimento local). **Em produção o certificado é Let's Encrypt/`certbot`**, com renovação automática via `certbot.timer` + `deploy-hook` em `/etc/letsencrypt/renewal-hooks/deploy/` que copia o certificado renovado para `certificado/` e reinicia o serviço (ver §7.5, item B1). Sem o deploy-hook, o serviço continuaria servindo o certificado antigo após a renovação — foi exatamente essa falha, herdada da configuração da AWS, que este ajuste corrige.
+
+### 7.5 Correções pós-cutover (review de sistema, 10/09/2026)
+
+Um review completo pós-migração encontrou e corrigiu riscos que não eram do escopo da migração em si, mas que a exposição à produção real revelou:
+
+| # | Achado | Correção |
+|---|---|---|
+| A1 | `dependencias.txt` citava `sqlalchemy` (0 usos no código) e `google-generativeai` (pacote errado — o código usa `from google import genai`) | Removido `sqlalchemy`; trocado para `google-genai` |
+| A2 | `servidor.py`: seleção de porta sem `SO_REUSEADDR` — após restart, TIME_WAIT fazia o processo subir na porta errada e o redirecionamento `iptables 443→1024` deixava de funcionar | Adicionado `SO_REUSEADDR` em `_porta_livre()` |
+| A3 | Groq descontinuou os modelos Llama nas chaves em uso — IA falhando em produção | `backend/rotinas/ia.py`: nova `_resolver_modelo()` consulta os modelos disponíveis via API e escolhe automaticamente, com o `.env` como preferência (não obrigação) — ver `feedback_filosofia_autocura` na memória do projeto |
+| B1 | certbot sem deploy-hook — cert renovaria mas o serviço continuaria servindo o antigo | Deploy-hook criado (ver §7.4) |
+| B2 | Nenhum backup do banco SQLite | Cron diário de backup local (retenção de 5 dias) — fallback de falha operacional, não substitui a Verdade Absoluta nem é disaster recovery |
+| B3 | `vm.swappiness` no padrão (60) num host de 1 GB de RAM | Ajustado para 10 |

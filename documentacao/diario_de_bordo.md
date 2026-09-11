@@ -951,4 +951,39 @@ Endpoints `GET /dev/foto` e `POST /dev/foto` — públicos, sem autenticação. 
 
 ---
 
+## 2026-09-10 — Migração de Infraestrutura: AWS → Oracle Cloud
+
+### Motivo
+
+Período gratuito da conta AWS expirava em 19/09/2026. Migração antecipada para Oracle Cloud Always Free (região Sudeste do Brasil / Vinhedo), evitando perda de acesso à infraestrutura em produção.
+
+### Execução
+
+Instância `sar-prod` criada (Ubuntu 22.04, `VM.Standard.E2.1.Micro` — o shape planejado `A1.Flex`/ARM esgotou capacidade na região; usado AMD 1 OCPU/1 GB + swap de 2 GB). `instalacao/setup_vm.sh` adaptado para Oracle e executado. Os três ativos insubstituíveis (`sar_repositorio.db`, `.env`, `apoio/uploads`+`Imagens`) extraídos da AWS via SSH (chave autorizada manualmente, já que o Security Group da AWS liberava a porta 22) e restaurados na Oracle — íntegros, sha256 conferido (6 candidatos, 1372 vagas). Certificado Let's Encrypt migrado da AWS (não reemitido) para evitar depender de propagação de DNS antes do cutover.
+
+**Bloqueio encontrado e resolvido:** o `servidor.py` tinha uma trava de expiração vencida (30/06/2026) — a AWS só continuava no ar porque o processo estava de pé desde antes da data. Um `git pull` revelou que o `main` local e o `origin/main` haviam divergido (histórico separado desde `1efe959`); resolvido via rebase limpo (sem conflitos — mudanças em arquivos distintos). Trava estendida para 30/06/2027, commit único enviado ao GitHub, aplicado nas duas VMs.
+
+**Cutover:** DNS `sar.ukiceker.com.br` (gerenciado no registro.br) repontado para o IP reservado da Oracle. Propagação confirmada em minutos nos principais resolvedores públicos. AWS mantida no ar como rollback por alguns dias, depois desligada.
+
+**Validação real do usuário:** login, importação de currículo (extração por IA), CRUD de perfil e geração de currículo tailored testados de ponta a ponta em produção na Oracle.
+
+### Review de sistema pós-cutover — riscos encontrados e corrigidos
+
+Nenhum destes fazia parte do escopo original da migração; surgiram da exposição a produção real:
+
+- **`dependencias.txt`** citava `sqlalchemy` (nunca importado no código) e `google-generativeai` (pacote incompatível com `from google import genai`, usado de fato em `rotinas/ia.py`). Corrigido para `google-genai`, `sqlalchemy` removido.
+- **`servidor.py`** — `_porta_livre()` sem `SO_REUSEADDR`: após um restart, o socket anterior em TIME_WAIT fazia o processo subir numa porta diferente da esperada pelo redirecionamento `iptables`, derrubando o acesso externo silenciosamente. Aconteceu 2× durante a migração. Corrigido.
+- **Groq descontinuou os modelos Llama** nas chaves em uso (`llama-3.3-70b-versatile` retornando 404) — IA falhando em produção, mascarado anteriormente pelo fallback. `rotinas/ia.py` ganhou `_resolver_modelo()`: consulta os modelos que a chave realmente enxerga via API e escolhe automaticamente, com o valor do `.env` como preferência (não obrigação) — auto-cura sem precisar de deploy quando um provedor mudar de novo.
+- **certbot sem deploy-hook** — o mesmo problema que já afetava a AWS (certificado renovado mas nunca copiado para onde o serviço lê, servindo cert vencido). Deploy-hook criado em `/etc/letsencrypt/renewal-hooks/deploy/`.
+- **Backup do banco inexistente** — cron diário de backup local implantado (retenção de 5 dias, fallback de falha operacional).
+- **`vm.swappiness`** ajustado de 60 para 10 (host de 1 GB de RAM).
+
+### Decisões
+
+- Backup do banco fica **apenas local na VM**, como rede de segurança operacional — não é disaster recovery. Decisão do usuário: volume e frequência de alteração de dados não justificam mais que isso por ora.
+- Trabalho de monetização (créditos, Mercado Pago) em andamento em `fluxograma.md`/`plano_de_desenvolvimento.md` mantido fora deste commit — fica para entrega separada.
+- Visão de longo prazo registrada: o domínio/VM devem se tornar hub do ecossistema ukiceker (múltiplos projetos por subdomínio) — implica reverse proxy e backup off-box quando um segundo projeto entrar; tratado como projeto de infraestrutura à parte, não misturado a esta migração.
+
+---
+
 *Documento mantido pela equipe de desenvolvimento. Atualização obrigatória a cada turno de trabalho concluído.*

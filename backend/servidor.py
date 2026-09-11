@@ -101,6 +101,10 @@ SSL_KEYFILE   = _KEY_TEMP if _KEY_TEMP else os.path.join(RAIZ, os.getenv("SSL_KE
 # ------------------------------------------------------------
 def _porta_livre(porta: int) -> bool:
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        # SO_REUSEADDR: após um restart, o socket anterior fica em TIME_WAIT.
+        # Sem isto, o bind falha, o scan pula para a próxima porta e o
+        # redirecionamento iptables 443→PORTA_DEFAULT deixa de acertar o alvo.
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         try:
             s.bind((HOST, porta))
             return True
