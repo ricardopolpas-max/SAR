@@ -16,7 +16,6 @@ import urllib.request
 import uvicorn
 from datetime import date
 from dotenv import load_dotenv, set_key
-from aplicacao import app
 
 # ------------------------------------------------------------
 # 0. TRAVA DE EXPIRAÇÃO
@@ -89,6 +88,11 @@ def _pid_dir():
 PID_PATH = os.path.join(_pid_dir(), "sar.pid") if _FROZEN else os.path.join(RAIZ, "sar.pid")
 
 load_dotenv(ENV_PATH)
+
+# Import adiado para depois do load_dotenv: aplicacao.py lê DOMINIO/HOST do
+# ambiente no import (para restringir CORS à origem real) — importar antes
+# do .env carregado faria esses valores chegarem sempre vazios.
+from aplicacao import app
 
 HOST          = os.getenv("HOST", "127.0.0.1")
 DOMINIO       = os.getenv("DOMINIO", "")

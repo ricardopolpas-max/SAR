@@ -32,9 +32,21 @@ TELA_CADASTRO_HTML = os.path.join(PASTA_FRONTEND, "telas", "cadastro.html")
 
 app = FastAPI(title="SAR - Sistema de Automação de Recolocação")
 
+# O próprio app serve o frontend (mounts abaixo) — em produção (Oracle) e no
+# modo desktop (servidor.py abre o navegador local), a chamada da tela para
+# a API é SEMPRE same-origin; CORS nunca precisa liberar outra origem para o
+# uso real. "*" liberava qualquer site do mundo a chamar a API com um token
+# Bearer obtido por qualquer outro meio. DOMINIO vem do .env (lido por
+# servidor.py antes de importar este módulo); sem DOMINIO (modo local/dev
+# sem domínio configurado), cai em localhost/127.0.0.1 — nunca wildcard.
+_DOMINIO_CORS = os.getenv("DOMINIO", "").strip()
+_ORIGENS_PERMITIDAS = [f"https://{_DOMINIO_CORS}"] if _DOMINIO_CORS else [
+    "https://127.0.0.1", "https://localhost",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=_ORIGENS_PERMITIDAS,
     allow_methods=["*"],
     allow_headers=["*"],
 )
