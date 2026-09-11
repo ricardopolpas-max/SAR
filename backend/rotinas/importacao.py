@@ -6,6 +6,21 @@ from rotinas.genericas import extrair_json, calcular_aderencia, montar_historico
 _PROMPT = """Você é um assistente especializado em análise de currículos profissionais brasileiros de qualquer área.
 Extraia as informações do currículo abaixo e retorne APENAS um JSON válido, sem markdown, sem explicações.
 
+REGRAS DE COMPARAÇÃO COM O PERFIL JÁ CADASTRADO (informado ao final, pode vir vazio):
+- Antes de incluir qualquer item (experiência, formação, habilidade, idioma, certificação) na saída, verifique
+  se ele já está representado no PERFIL JÁ CADASTRADO — não por texto idêntico, mas pelo mesmo FATO real (mesmo
+  cargo na mesma empresa, mesma formação na mesma instituição, mesma habilidade), mesmo que o currículo atual
+  descreva isso com palavras diferentes ou em mais detalhe. Se já está representado, NÃO o inclua de novo —
+  incluí-lo criaria uma duplicata.
+- PROIBIDO presumir que uma formação ou experiência em área diferente das já cadastradas é irrelevante ou deve
+  ser descartada. Um candidato pode legitimamente ter mais de uma formação — inclusive em áreas completamente
+  distintas (ex.: Direito e Engenharia, Administração e Tecnologia). Cada uma é um fato independente do perfil.
+  Se o currículo atual traz uma formação/experiência/habilidade que o perfil já cadastrado não tinha, ela entra
+  na saída como item novo, mesmo que pareça não ter relação com o restante do perfil.
+- Só retorne como item da lista o que o currículo atual efetivamente ACRESCENTA — nunca repita o que já consta
+  no PERFIL JÁ CADASTRADO.
+- Se o campo PERFIL JÁ CADASTRADO vier vazio, trate todo o conteúdo do currículo como novo (primeira importação).
+
 Estrutura esperada:
 {
   "resumo_profissional": "string ou null",
@@ -60,6 +75,9 @@ Estrutura esperada:
     }
   ]
 }
+
+PERFIL JÁ CADASTRADO:
+{perfil_existente}
 
 Currículo:
 """
@@ -199,8 +217,13 @@ def processar_score_com_ia(titulo: str, descricao: str, perfil: str, historico: 
     return calcular_aderencia(titulo, descricao, perfil, historico=historico, score_anterior=score_anterior)
 
 
-def processar_curriculo_com_ia(texto: str) -> dict:
-    return extrair_json(gerar_conteudo(_PROMPT + texto))
+def processar_curriculo_com_ia(texto: str, perfil_existente: str = "") -> dict:
+    """perfil_existente: resumo do que já está cadastrado (experiências, formações,
+    habilidades, idiomas, certificações) — permite a IA comparar semanticamente e
+    devolver só o que é genuinamente novo, sem nunca descartar formação/experiência
+    real em área diferente das já cadastradas."""
+    prompt = _PROMPT.replace("{perfil_existente}", perfil_existente or "(vazio — primeira importação)")
+    return extrair_json(gerar_conteudo(prompt + texto))
 
 
 def gerar_curriculo_com_ia(titulo: str, descricao: str, perfil: str, historico: str = "") -> str:
