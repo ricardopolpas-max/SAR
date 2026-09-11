@@ -103,6 +103,17 @@ def db_excluir(tabela: str, condicao: Dict[str, Any]) -> Dict[str, Any]:
     except Exception as e:
         return {"status": "erro", "mensagem": str(e)}
 
+def normalizar_para_comparacao(texto) -> str:
+    """Normaliza uma string para comparação de duplicidade — minúsculas, sem
+    espaços nas pontas, espaços internos colapsados. Usar SEMPRE que comparar
+    "isso já existe?" contra dado extraído por IA: a mesma informação pode
+    sair com maiúscula/minúscula ou espaçamento levemente diferente a cada
+    execução, mesmo para o mesmo currículo de origem — comparar string crua
+    deixa passar duplicata quase-idêntica como se fosse registro novo (achado
+    real: importação de currículo duplicando experiências já cadastradas)."""
+    return " ".join(str(texto or "").strip().lower().split())
+
+
 def extrair_json(texto: str) -> dict:
     """Extrai o primeiro objeto JSON válido de uma resposta de LLM (pode vir
     com cercas de código ```json ... ``` ou texto antes/depois)."""

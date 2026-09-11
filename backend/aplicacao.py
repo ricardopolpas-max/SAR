@@ -1000,35 +1000,40 @@ async def importar_curriculo(
         perfil_dados.setdefault("pretensao_salarial", 0)
         db_inserir("perfil_candidato", perfil_dados)
 
-    # Merge incremental — insere apenas registros novos, preserva os existentes
-    existentes_exp  = {(r["cargo"], r["empresa"]) for r in db_selecionar("experiencias",  condicao={"id_candidato": id_candidato}) or []}
-    existentes_form = {(r["curso"], r["instituicao"]) for r in db_selecionar("formacoes",  condicao={"id_candidato": id_candidato}) or []}
-    existentes_hab  = {r["nome"] for r in db_selecionar("habilidades",   condicao={"id_candidato": id_candidato}) or []}
-    existentes_idm  = {r["nome"] for r in db_selecionar("idiomas",       condicao={"id_candidato": id_candidato}) or []}
-    existentes_cert = {r["nome"] for r in db_selecionar("certificacoes", condicao={"id_candidato": id_candidato}) or []}
+    # Merge incremental — insere apenas registros novos, preserva os existentes.
+    # Comparação normalizada (rotinas/genericas.py): a extração por IA não
+    # garante o mesmo texto byte-a-byte a cada execução (maiúscula/minúscula,
+    # espaço a mais) — comparar string crua deixava passar duplicata
+    # quase-idêntica como se fosse registro novo (achado real em produção).
+    from rotinas.genericas import normalizar_para_comparacao as _norm
+    existentes_exp  = {(_norm(r["cargo"]), _norm(r["empresa"])) for r in db_selecionar("experiencias",  condicao={"id_candidato": id_candidato}) or []}
+    existentes_form = {(_norm(r["curso"]), _norm(r["instituicao"])) for r in db_selecionar("formacoes",  condicao={"id_candidato": id_candidato}) or []}
+    existentes_hab  = {_norm(r["nome"]) for r in db_selecionar("habilidades",   condicao={"id_candidato": id_candidato}) or []}
+    existentes_idm  = {_norm(r["nome"]) for r in db_selecionar("idiomas",       condicao={"id_candidato": id_candidato}) or []}
+    existentes_cert = {_norm(r["nome"]) for r in db_selecionar("certificacoes", condicao={"id_candidato": id_candidato}) or []}
 
     for exp in dados.get("experiencias") or []:
-        if (exp.get("cargo"), exp.get("empresa")) not in existentes_exp:
+        if (_norm(exp.get("cargo")), _norm(exp.get("empresa"))) not in existentes_exp:
             exp["id_candidato"] = id_candidato
             db_inserir("experiencias", exp)
 
     for form in dados.get("formacoes") or []:
-        if (form.get("curso"), form.get("instituicao")) not in existentes_form:
+        if (_norm(form.get("curso")), _norm(form.get("instituicao"))) not in existentes_form:
             form["id_candidato"] = id_candidato
             db_inserir("formacoes", form)
 
     for hab in dados.get("habilidades") or []:
-        if hab.get("nome") not in existentes_hab:
+        if _norm(hab.get("nome")) not in existentes_hab:
             hab["id_candidato"] = id_candidato
             db_inserir("habilidades", hab)
 
     for idm in dados.get("idiomas") or []:
-        if idm.get("nome") not in existentes_idm:
+        if _norm(idm.get("nome")) not in existentes_idm:
             idm["id_candidato"] = id_candidato
             db_inserir("idiomas", idm)
 
     for cert in dados.get("certificacoes") or []:
-        if cert.get("nome") not in existentes_cert:
+        if _norm(cert.get("nome")) not in existentes_cert:
             cert["id_candidato"] = id_candidato
             db_inserir("certificacoes", cert)
 
@@ -1347,29 +1352,31 @@ async def conversar(id: int, corpo: dict, id_candidato: int = Depends(autenticar
         from rotinas.importacao import extrair_enriquecimento_entrevista
         novos = extrair_enriquecimento_entrevista(historico)
 
+        # Mesma normalização de importar_curriculo() — evita duplicar
+        # habilidade/experiência já cadastrada por variação trivial de
+        # maiúscula/minúscula ou espaçamento na extração da IA. Também evita
+        # crash quando "empresa" vem NULL do banco (r["empresa"].lower() antes).
+        from rotinas.genericas import normalizar_para_comparacao as _norm
         hab_existentes = {
-            h["nome"].lower()
+            _norm(h["nome"])
             for h in (db_selecionar("habilidades", condicao={"id_candidato": id_candidato}) or [])
         }
         for hab in novos.get("habilidades", []):
-            if hab.get("nome") and hab["nome"].lower() not in hab_existentes:
+            if hab.get("nome") and _norm(hab["nome"]) not in hab_existentes:
                 db_inserir("habilidades", {
                     "id_candidato": id_candidato,
                     "nome": hab["nome"],
                     "proficiencia": hab.get("proficiencia") or "intermediario",
                     "categoria": hab.get("categoria"),
                 })
-                hab_existentes.add(hab["nome"].lower())
+                hab_existentes.add(_norm(hab["nome"]))
 
         exp_existentes = {
-            (e["cargo"].lower(), e["empresa"].lower())
+            (_norm(e["cargo"]), _norm(e["empresa"]))
             for e in (db_selecionar("experiencias", condicao={"id_candidato": id_candidato}) or [])
         }
         for exp in novos.get("experiencias", []):
-            chave = (
-                (exp.get("cargo") or "").lower(),
-                (exp.get("empresa") or "").lower(),
-            )
+            chave = (_norm(exp.get("cargo")), _norm(exp.get("empresa")))
             if chave[0] and chave not in exp_existentes:
                 db_inserir("experiencias", {
                     "id_candidato": id_candidato,
