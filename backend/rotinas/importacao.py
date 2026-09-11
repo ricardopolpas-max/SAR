@@ -175,11 +175,14 @@ INFORMAÇÕES ADICIONAIS DA ENTREVISTA (use se disponíveis):
 {historico}
 """
 
-def processar_score_com_ia(titulo: str, descricao: str, perfil: str) -> dict:
+def processar_score_com_ia(titulo: str, descricao: str, perfil: str, historico: str = "", score_anterior: float = 0) -> dict:
     """Wrapper de compatibilidade — a régua de aderência agora é agnóstica
     e vive em rotinas/genericas.py (calcular_aderencia), reutilizada aqui
-    e na entrevista (conduzir_entrevista)."""
-    return calcular_aderencia(titulo, descricao, perfil)
+    e na entrevista (conduzir_entrevista). historico e score_anterior (quando
+    já existe uma conversa para a vaga) garantem que "Ver aderência" mostre
+    exatamente o mesmo número da tela de entrevista — nunca um valor
+    dessincronizado, congelado ou menor do que o já apurado."""
+    return calcular_aderencia(titulo, descricao, perfil, historico=historico, score_anterior=score_anterior)
 
 
 def processar_curriculo_com_ia(texto: str) -> dict:

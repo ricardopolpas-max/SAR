@@ -1189,13 +1189,49 @@ async def carregar_conversa(id: int, id_candidato: int = Depends(autenticar)):
         ).fetchone()
     if not row:
         return {"ok": True, "dados": None}
+
+    conv_id, historico_json, score, status = row[0], row[1], float(row[2] or 0), row[3]
+    historico = json.loads(historico_json)
+
+    # Recálculo automático ao reabrir a entrevista: o perfil pode ter mudado
+    # desde a última resposta (documento complementar novo, habilidade
+    # adicionada etc.) — sem isso, o número mostrado aqui fica congelado no
+    # que valia na última interação, dessincronizado do resto do sistema.
+    vaga = db_selecionar("vagas", condicao={"id": id}, unico=True)
+    if vaga:
+        try:
+            perfil_texto = _obter_base_perfil(id_candidato)
+            hist_texto = "\n".join(
+                f"{h['role'].upper()}: {h['conteudo']}" for h in historico
+            ) if historico else ""
+            from rotinas.genericas import calcular_aderencia
+            aderencia = calcular_aderencia(
+                titulo=vaga.get("titulo", ""),
+                descricao=vaga.get("descricao", ""),
+                perfil=perfil_texto,
+                historico=hist_texto,
+                score_anterior=score,
+            )
+            novo_score = float(aderencia.get("score", score))
+            novo_status = "pronto" if novo_score >= 75 else status
+            if novo_score != score or novo_status != status:
+                with _obter_conexao() as conn:
+                    conn.execute(
+                        "UPDATE conversas SET score_estimado=?, status=? WHERE id=?",
+                        (novo_score, novo_status, conv_id)
+                    )
+                    conn.commit()
+                score, status = novo_score, novo_status
+        except Exception as e:
+            print(f"[ERRO recálculo ao abrir conversa] {type(e).__name__}: {e}")
+
     return {
         "ok": True,
         "dados": {
-            "id": row[0],
-            "historico": json.loads(row[1]),
-            "score_estimado": row[2],
-            "status": row[3],
+            "id": conv_id,
+            "historico": historico,
+            "score_estimado": score,
+            "status": status,
         },
     }
 
@@ -1334,12 +1370,30 @@ async def calcular_score_vaga(id: int, id_candidato: int = Depends(autenticar)):
 
     perfil_texto = _obter_base_perfil(id_candidato)
 
+    # Se já existe uma entrevista em andamento para esta vaga, a aderência
+    # mostrada aqui não pode "esquecer" o que já foi apurado nela — usa o
+    # mesmo histórico e o score da conversa como piso, garantindo o mesmo
+    # número em qualquer lugar do sistema que pergunte pela aderência desta
+    # vaga (lista de vagas e tela de entrevista nunca mais divergem).
+    with _obter_conexao() as conn:
+        conversa = conn.execute(
+            "SELECT historico, score_estimado FROM conversas WHERE id_candidato = ? AND id_vaga = ?",
+            (id_candidato, id)
+        ).fetchone()
+    score_anterior = float(conversa[1] or 0) if conversa else 0.0
+    hist_texto = ""
+    if conversa and conversa[0]:
+        historico = json.loads(conversa[0])
+        hist_texto = "\n".join(f"{h['role'].upper()}: {h['conteudo']}" for h in historico)
+
     from rotinas.importacao import processar_score_com_ia
     try:
         resultado = processar_score_com_ia(
             titulo=vaga.get("titulo", ""),
             descricao=vaga.get("descricao", ""),
             perfil=perfil_texto,
+            historico=hist_texto,
+            score_anterior=score_anterior,
         )
     except Exception as e:
         msg = str(e).lower()
