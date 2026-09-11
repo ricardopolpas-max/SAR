@@ -26,7 +26,7 @@ O SAR automatiza o processo operacional de candidatura para que o profissional f
 | Camada | Tecnologias |
 |---|---|
 | Backend | Python 3.12 · FastAPI · Uvicorn (assíncrono) |
-| Frontend | Vue 3 · Vite · JavaScript Vanilla · HTML/CSS |
+| Frontend | JavaScript Vanilla · HTML/CSS |
 | Banco de dados | SQLite |
 | IA / LLMs | Google Gemini 2.5 Flash · Groq API (fallback) |
 | Comunicação | WebSocket (protocolo próprio — Ukiceker Conecta) |
