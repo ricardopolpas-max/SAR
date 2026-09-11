@@ -1200,9 +1200,11 @@ async def conversar(id: int, corpo: dict, id_candidato: int = Depends(autenticar
     if row:
         conv_id  = row[0]
         historico = json.loads(row[1])
+        score_anterior = float(row[2] or 0)
     else:
         conv_id  = None
         historico = []
+        score_anterior = 0.0
 
     if mensagem:
         historico.append({"role": "candidato", "conteudo": mensagem})
@@ -1214,6 +1216,7 @@ async def conversar(id: int, corpo: dict, id_candidato: int = Depends(autenticar
             descricao=vaga.get("descricao", ""),
             perfil=perfil_texto,
             historico=historico,
+            score_anterior=score_anterior,
         )
     except Exception as e:
         msg = str(e).lower()

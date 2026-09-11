@@ -1,8 +1,7 @@
 import io
-import re
-import json
 
 from rotinas.ia import gerar_conteudo
+from rotinas.genericas import extrair_json, calcular_aderencia
 
 _PROMPT = """Você é um assistente especializado em análise de currículos profissionais brasileiros de qualquer área.
 Extraia as informações do currículo abaixo e retorne APENAS um JSON válido, sem markdown, sem explicações.
@@ -139,88 +138,15 @@ INFORMAÇÕES ADICIONAIS DA ENTREVISTA (use se disponíveis):
 {historico}
 """
 
-_PROMPT_SCORE = """Você é um especialista sênior em recrutamento brasileiro, com domínio em todas as áreas de atuação profissional.
-
-INSTRUÇÕES OBRIGATÓRIAS — siga na ordem exata:
-1. Leia integralmente TODO o conteúdo do candidato fornecido abaixo — perfil estruturado E currículo premium, se presente. Não ignore nenhuma seção.
-2. Identifique TODAS as habilidades técnicas declaradas individualmente, independentemente da trajetória de carreira ou das certificações listadas. Habilidades declaradas são evidência real de capacidade.
-3. Considere habilidades transferíveis: HTML, CSS e JavaScript são diretamente relevantes para vagas Front-End, mesmo que o candidato tenha experiência em outras áreas.
-4. Lacunas aparentes podem ser ausência de informação no texto, não ausência de capacidade real.
-5. NUNCA atribua score zero se houver habilidades técnicas relevantes à vaga declaradas em qualquer parte do conteúdo.
-6. Somente após percorrer todo o conteúdo, calcule o score de 0 a 100.
-
-Retorne APENAS um JSON válido, sem markdown, sem explicações.
-
-Estrutura esperada:
-{
-  "score": <inteiro 0 a 100>,
-  "resumo": "<1 frase explicando o nível de compatibilidade>",
-  "pontos_fortes": ["<item>", "<item>"],
-  "lacunas": ["<item>", "<item>"]
-}
-
-VAGA:
-Título: {titulo}
-Descrição: {descricao}
-
-CANDIDATO:
-{perfil}
-"""
-
-
-def _extrair_json(texto: str) -> dict:
-    # Remove bloco markdown ```json ... ``` ou ``` ... ```
-    texto = re.sub(r'^```[^\n]*\n', '', texto.strip())
-    texto = re.sub(r'\n```$', '', texto.strip())
-
-    # Tenta parse direto primeiro (caminho feliz)
-    try:
-        return json.loads(texto)
-    except json.JSONDecodeError:
-        pass
-
-    # Extrai o primeiro objeto JSON balanceado
-    inicio = texto.find('{')
-    if inicio == -1:
-        raise ValueError(f"Nenhum objeto JSON encontrado na resposta: {texto[:200]!r}")
-
-    depth = 0
-    in_string = False
-    escape = False
-    for i, ch in enumerate(texto[inicio:], start=inicio):
-        if escape:
-            escape = False
-            continue
-        if ch == '\\' and in_string:
-            escape = True
-            continue
-        if ch == '"':
-            in_string = not in_string
-            continue
-        if in_string:
-            continue
-        if ch == '{':
-            depth += 1
-        elif ch == '}':
-            depth -= 1
-            if depth == 0:
-                return json.loads(texto[inicio:i + 1])
-
-    raise ValueError(f"JSON mal-formado na resposta: {texto[:200]!r}")
-
-
 def processar_score_com_ia(titulo: str, descricao: str, perfil: str) -> dict:
-    prompt = (
-        _PROMPT_SCORE
-        .replace("{titulo}", titulo)
-        .replace("{descricao}", descricao or "Não informada")
-        .replace("{perfil}", perfil)
-    )
-    return _extrair_json(gerar_conteudo(prompt))
+    """Wrapper de compatibilidade — a régua de aderência agora é agnóstica
+    e vive em rotinas/genericas.py (calcular_aderencia), reutilizada aqui
+    e na entrevista (conduzir_entrevista)."""
+    return calcular_aderencia(titulo, descricao, perfil)
 
 
 def processar_curriculo_com_ia(texto: str) -> dict:
-    return _extrair_json(gerar_conteudo(_PROMPT + texto))
+    return extrair_json(gerar_conteudo(_PROMPT + texto))
 
 
 def gerar_curriculo_com_ia(titulo: str, descricao: str, perfil: str, historico: str = "") -> str:
@@ -234,17 +160,17 @@ def gerar_curriculo_com_ia(titulo: str, descricao: str, perfil: str, historico: 
     return gerar_conteudo(prompt)
 
 
-_PROMPT_RECRUTADOR = """Você é um recrutador sênior brasileiro, especialista na área exigida pela vaga abaixo, conduzindo uma entrevista estruturada.
-Seu objetivo é avaliar com precisão a aderência do candidato à vaga, aprofundando especificamente nos requisitos que o currículo atual aponta como lacunas — orientando o candidato a esclarecer se possui elementos adicionais pertinentes (competências técnicas, experiências relevantes, arquivos complementares ou diferenciais competitivos) que ainda não constam no perfil. A premissa é que uma lacuna pode ser ausência de informação, não de capacidade. Preencha apenas o que impacta diretamente essa candidatura.
+_PROMPT_RECRUTADOR = """Você é um recrutador sênior brasileiro conduzindo uma entrevista estruturada para a vaga abaixo.
+A aderência do candidato à vaga já foi calculada por outra rotina — você NÃO deve recalculá-la nem estimar um número próprio. Use o valor informado em ADERÊNCIA ATUAL apenas para decidir o andamento da conversa.
+
+Seu objetivo é aprofundar especificamente nos requisitos que a vaga exige e que ainda não constam no perfil do candidato — orientando-o a esclarecer se possui elementos adicionais pertinentes (competências técnicas, experiências relevantes, arquivos complementares ou diferenciais competitivos). A premissa é que uma lacuna pode ser ausência de informação, não de capacidade.
 
 INSTRUÇÕES:
 - Observe PRIMEIRO a existência de contexto no histórico da conversa: caso não exista, apresente-se apenas como "Recrutador SAR" sem inventar nome próprio ou empresa, e conduza a entrevista na premissa de início de avaliação — PROIBIDO referenciar conversas, trocas ou informações que não constem explicitamente no histórico, nunca use expressões como "conforme conversamos" ou "como discutimos"
 - Faça APENAS UMA pergunta por vez — seja objetivo, profissional e cordial
-- Analise TODO o conteúdo do candidato abaixo — perfil estruturado E currículo premium se presente — contra os requisitos da vaga, e calcule o score de aderência (0 a 100) — da mesma forma que um especialista faria numa triagem técnica
-- O score parte do perfil atual e só sobe conforme o candidato esclarece lacunas durante a entrevista
 - Foque nas lacunas entre o perfil do candidato e os requisitos da vaga
 - Leve em conta tudo que o candidato já respondeu no histórico da conversa
-- Quando o score atingir 75 ou mais, defina "pronto": true, informe o candidato que atingiu a aderência mínima e pergunte sutilmente se deseja acrescentar alguma informação relevante antes de encerrar — se o candidato acrescentar algo pertinente à vaga, incorpore ao score e encerre cordialmente; se não acrescentar nada novo, encerre cordialmente sem fazer mais perguntas
+- Se ADERÊNCIA ATUAL for 75 ou mais, informe o candidato que atingiu a aderência mínima e pergunte sutilmente se deseja acrescentar alguma informação relevante antes de encerrar; se ele não acrescentar nada novo, encerre cordialmente sem fazer mais perguntas
 - Em momento oportuno da entrevista (após cobrir experiência e formação, antes de encerrar),
   pergunte ao candidato se ele possui documentos complementares que gostaria de compartilhar —
   como certificados, declarações, portfólio ou comprovantes de cursos. Deixe claro que é opcional
@@ -257,14 +183,14 @@ Descrição: {descricao}
 PERFIL ATUAL DO CANDIDATO:
 {perfil}
 
+ADERÊNCIA ATUAL (0-100, já calculada — não recalcule): {aderencia}
+
 HISTÓRICO DA CONVERSA:
 {historico}
 
 Retorne APENAS um JSON válido, sem markdown, sem explicações:
 {
-  "mensagem": "sua mensagem para o candidato",
-  "pronto": false,
-  "score_estimado": 0
+  "mensagem": "sua mensagem para o candidato"
 }
 """
 
@@ -332,7 +258,7 @@ def extrair_enriquecimento_entrevista(historico: list) -> dict:
     )
     prompt = _PROMPT_ENRIQUECIMENTO.replace("{historico}", hist_texto)
     try:
-        resultado = _extrair_json(gerar_conteudo(prompt))
+        resultado = extrair_json(gerar_conteudo(prompt))
         return {
             "habilidades": resultado.get("habilidades") or [],
             "experiencias": resultado.get("experiencias") or [],
@@ -342,25 +268,36 @@ def extrair_enriquecimento_entrevista(historico: list) -> dict:
         return {"habilidades": [], "experiencias": []}
 
 
-def conduzir_entrevista(titulo: str, descricao: str, perfil: str, historico: list) -> dict:
+def conduzir_entrevista(titulo: str, descricao: str, perfil: str, historico: list, score_anterior: float = 0) -> dict:
     hist_texto = "\n".join(
         f"{h['role'].upper()}: {h['conteudo']}" for h in historico
     ) if historico else "(nenhuma troca anterior — inicie a entrevista apresentando-se)"
+
+    # Aderência calculada pela régua única e agnóstica (rotinas/genericas.py) —
+    # a mesma usada em "Ver aderência" na lista de vagas. Nunca regride abaixo
+    # de score_anterior, e o prompt do recrutador não tem permissão de recalculá-la.
+    try:
+        aderencia = calcular_aderencia(titulo, descricao, perfil, historico=hist_texto, score_anterior=score_anterior)
+        score = aderencia.get("score", score_anterior)
+    except Exception as e:
+        print(f"[ERRO calcular_aderencia] {type(e).__name__}: {e}")
+        score = score_anterior
 
     prompt = (
         _PROMPT_RECRUTADOR
         .replace("{titulo}",   titulo)
         .replace("{descricao}", descricao or "Não informada")
         .replace("{perfil}",   perfil)
+        .replace("{aderencia}", str(int(score)))
         .replace("{historico}", hist_texto)
     )
 
     try:
-        return _extrair_json(gerar_conteudo(prompt))
+        resultado = extrair_json(gerar_conteudo(prompt))
     except Exception as e:
         print(f"[ERRO conduzir_entrevista] {type(e).__name__}: {e}")
-        return {
-            "mensagem": "Desculpe, tive um problema ao processar. Pode repetir sua resposta?",
-            "pronto": False,
-            "score_estimado": 0,
-        }
+        resultado = {"mensagem": "Desculpe, tive um problema ao processar. Pode repetir sua resposta?"}
+
+    resultado["score_estimado"] = score
+    resultado["pronto"] = score >= 75
+    return resultado
