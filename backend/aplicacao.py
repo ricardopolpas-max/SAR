@@ -966,63 +966,14 @@ async def upload_documento_complementar(
 
     return {"ok": True, "dados": resultado, "texto_extraido": texto_extraido}
 
-@app.post("/perfil-candidato/upload-arquivo")
-async def upload_arquivo(
-    arquivo: UploadFile = File(...),
-    id_candidato: int = Depends(autenticar)
-):
-    """
-    Upload de arquivo de currículo ou documento.
-    Motor 4 usará esse endpoint para processar com IA.
-    Salva em apoio/uploads/{id_candidato}/{nome_arquivo}
-    """
-    # Valida tipo de arquivo
-    tipos_permitidos = {"application/pdf", "application/msword",
-                       "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                       "text/plain"}
-    if arquivo.content_type not in tipos_permitidos:
-        raise HTTPException(400, "Tipo de arquivo não permitido. Use PDF, DOC, DOCX ou TXT.")
-
-    # Valida tamanho (máx 10MB)
-    conteudo = await arquivo.read()
-    if len(conteudo) > 10 * 1024 * 1024:
-        raise HTTPException(400, "Arquivo muito grande. Máximo 10MB.")
-
-    # Cria pasta de destino
-    pasta_candidato = os.path.join(PASTA_UPLOADS, str(id_candidato))
-    os.makedirs(pasta_candidato, exist_ok=True)
-
-    # Sanitiza nome do arquivo
-    nome_arquivo = arquivo.filename.replace("/", "_").replace("\\", "_")
-    caminho_destino = os.path.join(pasta_candidato, nome_arquivo)
-
-    # Salva arquivo
-    try:
-        with open(caminho_destino, "wb") as f:
-            f.write(conteudo)
-    except Exception as e:
-        raise HTTPException(500, f"Erro ao salvar arquivo: {str(e)}")
-
-    # Registra no banco de dados
-    resultado = db_inserir("documentos", {
-        "id_candidato": id_candidato,
-        "tipo": "arquivo_importacao",
-        "nome_arquivo": nome_arquivo,
-        "caminho_disco": caminho_destino,
-    })
-
-    if resultado["status"] == "erro":
-        raise HTTPException(400, resultado["mensagem"])
-
-    return {
-        "ok": True,
-        "dados": {
-            "id": resultado.get("id"),
-            "nome_arquivo": nome_arquivo,
-            "caminho_disco": caminho_destino,
-            "mensagem": "Arquivo salvo com sucesso. Motor 4 processará em breve."
-        }
-    }
+# Removido: POST /perfil-candidato/upload-arquivo (upload_arquivo) — stub
+# anterior ao Motor 4 real ("Motor 4 processará em breve"), nunca finalizado.
+# Salvava o arquivo bruto do candidato pra sempre em apoio/uploads/ e criava
+# um registro tipo="arquivo_importacao" que nenhuma rotina lê de volta —
+# nem uma linha do sistema consulta esse tipo. Sem chamador no frontend
+# (wrapper uploadArquivo em api.js existia, mas nenhuma tela o invoca). O
+# Motor 4 de importação real e funcional é /perfil-candidato/importar
+# (importar_curriculo, logo abaixo), que já processa com IA de fato.
 
 # ─────────────────────────────────────────────────────────
 # IMPORTAÇÃO DE CURRÍCULO — Motor 4

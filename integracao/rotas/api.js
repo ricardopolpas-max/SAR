@@ -404,45 +404,11 @@ const SarAPI = (() => {
       },
     },
 
-    // Upload de arquivo (Motor 4)
-    async uploadArquivo(arquivo) {
-      const formData = new FormData();
-      formData.append("arquivo", arquivo);
-
-      const token = _obterToken();
-      const cabecalhos = { "Accept": "application/json" };
-      if (token) {
-        cabecalhos["Authorization"] = `Bearer ${token}`;
-      }
-
-      try {
-        const resposta = await fetch(`${BASE_URL}/perfil-candidato/upload-arquivo`, {
-          method: "POST",
-          headers: cabecalhos,
-          body: formData,
-        });
-
-        if (!resposta.ok) {
-          const detalhe = await resposta.text();
-          return {
-            ok: false,
-            status: resposta.status,
-            erro: detalhe || `Erro HTTP ${resposta.status}`,
-            dados: null,
-          };
-        }
-
-        const dados = await resposta.json();
-        return { ok: true, status: resposta.status, dados, erro: null };
-      } catch (e) {
-        return {
-          ok: false,
-          status: 0,
-          erro: "Erro ao fazer upload do arquivo.",
-          dados: null,
-        };
-      }
-    },
+    // uploadArquivo removido: chamava /perfil-candidato/upload-arquivo, rota
+    // removida no backend por ser stub morto do Motor 4, nunca finalizado e
+    // sem chamador real. Upload de currículo real usa perfil.importar()
+    // (/perfil-candidato/importar); documento complementar usa
+    // perfil.documentos.uploadComplementar().
 
     // Importação via IA — Motor 4
     async importar(arquivo) {
