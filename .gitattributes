@@ -1,0 +1,5 @@
+# Normaliza toda a árvore para LF no repositório, independente do SO de
+# quem commita (Windows/autocrlf ou Linux). Reduz "conflitos" de stash/pull
+# na VM que eram só CRLF-vs-LF, não conteúdo divergente de verdade — ver
+# feedback_deploy_servidor_py (memória) pra histórico.
+* text=auto eol=lf
