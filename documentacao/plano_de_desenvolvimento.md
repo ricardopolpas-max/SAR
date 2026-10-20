@@ -19,7 +19,7 @@
 
 | Camada | Tecnologia |
 |---|---|
-| Backend | Python 3.12+, FastAPI, Uvicorn |
+| Backend | Python 3.12 (local 3.12.10, VM 3.12.15), FastAPI 0.110.0, Uvicorn 0.27.1 — todas as versões fixadas em `dependencias.txt` |
 | Frontend | HTML5, CSS3, JavaScript Vanilla |
 | Banco de Dados | SQLite (chaves estrangeiras ativas) |
 | SSL | mkcert — CA local, cert válido até 27/07/2028 |
@@ -432,6 +432,10 @@ Itens identificados para completar antes da certificação final:
 
 - Auditoria de performance e limpeza de código
 - Teste de Usuário Final (UAT) e congelamento de versão
+- ✅ 20/10/2026 — VM migrada para Python 3.12 com versões de bibliotecas idênticas às do ambiente local (ver diário de bordo)
+- ✅ 20/10/2026 — Registro de mudanças compartilhadas da VM com o Audita Voto (governança §7.6) + aviso automático no deploy e no início de sessão
+- ⏳ Validar no 3.12 a importação de currículo e o Currículo Premium; depois remover `venv_310_bkp`, `~/sar_wheels` e `~/sar_venv_teste` da VM
+- ⏳ Investigar a demora de 90 s no `systemctl stop sar` (tratamento de SIGTERM no `servidor.py`)
 
 ---
 

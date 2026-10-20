@@ -42,6 +42,9 @@ instalacao/instalacao.dat
 instalacao/setup_vm.sh
 instalacao/atualizar_vm.sh
 
+# Hooks locais do Claude Code — contêm IP da VM e caminho da chave ssh, nunca no repositório
+.claude/hooks/
+
 # PyInstaller — artefatos de build
 build/
 dist/

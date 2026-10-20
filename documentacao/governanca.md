@@ -17,7 +17,7 @@ Este documento é a única fonte de verdade para a estrutura, nomenclatura e evo
 | `servidor.py` | `/backend` | ponto de entrada e orquestrador do sistema |
 | `interface_backend.py` | `/backend` | definição das rotas e configuração da API |
 | `genericas.py` | `/backend/rotinas` | rotinas genéricas de persistência |
-| `dependencias.txt` | raiz | dependências Python do projeto |
+| `dependencias.txt` | raiz | dependências Python do projeto — todas fixadas (diretas e transitivas) com as versões do ambiente local; a VM instala exatamente esta lista |
 | `SAR.html` | `/frontend/telas` | tela principal do sistema |
 | `visual.css` | `/frontend/estilos` | identidade visual global |
 | `api.js` | `/integracao/rotas` | comunicação com o backend |
@@ -186,7 +186,7 @@ O SAR é desenvolvido localmente (Windows) e implantado numa **VM Linux única**
 | Item | Localização na VM |
 |---|---|
 | Código | `/home/<usuario>/SAR` (clone do git) |
-| Ambiente Python | `venv/` dentro do app dir |
+| Ambiente Python | `venv/` dentro do app dir, criada com `python3.12` (ppa:deadsnakes) — o `python3` 3.10 do sistema fica intacto (o Ubuntu depende dele); scripts de manutenção usam python3.12 ou código compatível com 3.10 |
 | Serviço | `systemd` — unit `sar.service`, `Restart=always`, executa `venv/bin/python servidor.py` a partir de `backend/` |
 | Banco SQLite | `~/.local/share/SAR/sar_repositorio.db` (equivalente Linux de `%APPDATA%\SAR`) |
 | Segredos | `~/SAR/.env` e `~/SAR/certificado/privado/sar.key` — criados manualmente, nunca no git |
@@ -233,3 +233,16 @@ Um review completo pós-migração encontrou e corrigiu riscos que não eram do 
 | B1 | certbot sem deploy-hook — cert renovaria mas o serviço continuaria servindo o antigo | Deploy-hook criado (ver §7.4) |
 | B2 | Nenhum backup do banco SQLite | Cron diário de backup local (retenção de 5 dias) — fallback de falha operacional, não substitui a Verdade Absoluta nem é disaster recovery |
 | B3 | `vm.swappiness` no padrão (60) num host de 1 GB de RAM | Ajustado para 10 |
+
+### 7.6 VM compartilhada — registro de mudanças entre sistemas irmãos (20/10/2026)
+
+A VM também hospeda o **Audita Voto** (`/home/ubuntu/auditavoto` e `/home/ubuntu/auditavoto_homolog`), projeto de outro escopo. O SAR **nunca** toca nos arquivos, serviços, bancos ou ambientes dele.
+
+Mudanças em recurso **compartilhado** da VM (python/venv base, pacotes apt, firewall/iptables, certbot/certificados, cron, swap/memória, usuários/ssh) são sinalizadas no registro único **`/home/ubuntu/ecossistema/mudancas.log`**, fora das pastas dos projetos:
+
+- **Formato:** uma linha por mudança — `DATA (ISO 8601) | ORIGEM | RECURSO | O QUE MUDOU | AÇÃO PARA OS IRMÃOS`.
+- **Só acrescentar** (`>>`); nunca editar nem apagar linhas. Correção = nova linha.
+- **O registro avisa, não autoriza:** uma linha do irmão nunca dispara ação no SAR; qualquer providência segue o fluxo desta governança e a autorização do usuário.
+- **Leitura:** o SAR lê as linhas novas ao iniciar sessão de desenvolvimento e antes de cada deploy (`atualizar_vm.sh`), guardando o nº da última linha lida num arquivo de controle próprio (`/home/ubuntu/.sar_ecossistema_lido`, fora do repositório) — nunca no registro.
+- **Escrita:** toda mudança do SAR em recurso compartilhado acrescenta uma linha no registro no mesmo passo em que é feita.
+- Mudanças internas do SAR (código, banco, `.env`, venv própria sem mudança de base) não entram.

@@ -986,4 +986,36 @@ Nenhum destes fazia parte do escopo original da migração; surgiram da exposiç
 
 ---
 
+## 2026-10-20 — Python da VM: 3.10 → 3.12 com versões idênticas às do ambiente local
+
+### Motivo
+
+Garantir que o que é testado localmente (Python 3.12 + bibliotecas) seja exatamente o que roda em produção. A VM rodava 3.10.12 com dependências transitivas soltas — versões divergentes do local (ex.: cryptography 50.0.1 × 49.0.0) e ~13 pacotes órfãos do antigo `google-generativeai`.
+
+### Execução
+
+- `dependencias.txt`: as 33 dependências transitivas fixadas com as versões do ambiente local (commit `f118f78`). A referência é o site-packages do usuário (`AppData\Roaming\Python\Python312`), que é o que o SAR importa — a instalação global tem outras versões.
+- `instalacao/atualizar_vm.sh`: o passo 3 deixou de rodar `pip install --upgrade` sem versões (que desfaria o alinhamento a cada deploy) e passou a instalar `-r dependencias.txt`.
+- `instalacao/setup_vm.sh`: instala `python3.12` (ppa:deadsnakes) ao lado do `python3` do sistema e cria a venv com ele.
+- VM: cópia de segurança em `~/backup_sar_20261020_py312` (banco via API de backup do SQLite em modo somente leitura, `integrity_check` ok; `.env`; `sar.service`; `pip freeze` da venv 3.10). Venv nova montada e testada em paralelo (41 pacotes idênticos ao `dependencias.txt`, `pip check` ok, backend compila no 3.12); troca com reversão automática. Venv antiga preservada em `~/SAR/venv_310_bkp`.
+- O `python3` do sistema (3.10) não foi alterado. O `backup_sar.sh` continua nele — o código é compatível com 3.10 e não precisou mudar.
+
+### Curvas e observações
+
+- Python fica na mesma série, não idêntico: local 3.12.10, VM 3.12.15 — o python.org não publica mais instalador Windows da série 3.12 depois da 3.12.10.
+- Ficou fora do ar ~2 min (e não 30–60 s): o processo antigo não encerrou ao `systemctl stop` e o systemd o matou só após o timeout de 90 s. Não é efeito da troca — deve ocorrer em todo restart. Pendência para investigar o tratamento de SIGTERM no `servidor.py`.
+- A VM é compartilhada com o Audita Voto (outro projeto) — nada dele foi tocado.
+
+### Validação real do usuário
+
+- OK no 3.12: login, perfil, vagas, sincronização e score de aderência (IA).
+- **Pendente:** importação de currículo e Currículo Premium.
+
+### Pendências
+
+- Testar importação de currículo e Currículo Premium; depois, apagar `venv_310_bkp`, `~/sar_wheels`, `~/sar_venv_teste`.
+- Investigar a demora de 90 s no `systemctl stop sar`.
+
+---
+
 *Documento mantido pela equipe de desenvolvimento. Atualização obrigatória a cada turno de trabalho concluído.*

@@ -75,6 +75,13 @@
 - [x] Abertura automática do browser em `/login`
 - [x] `instalar.bat` e `modo_dev.bat`
 
+### Infraestrutura de produção — VM Oracle (atualizado 2026-10-20)
+- [x] SAR em produção na VM Oracle (`sar.ukiceker.com.br`), Python 3.12.15 em venv; versões de bibliotecas idênticas ao ambiente local (`dependencias.txt` fixado)
+- [x] VM compartilhada com o Audita Voto — registro de mudanças `/home/ubuntu/ecossistema/mudancas.log` (governança §7.6), lido no deploy e no início de sessão
+- [ ] Validar no 3.12: importação de currículo e Currículo Premium
+- [ ] Limpeza na VM após validação: `venv_310_bkp`, `~/sar_wheels`, `~/sar_venv_teste`
+- [ ] Investigar demora de 90 s no `systemctl stop sar` (SIGTERM no `servidor.py`)
+
 ### Pendências — próximas sessões
 - [ ] Múltiplos currículos base por candidato (arquitetura discutida)
 - [ ] Tom adaptativo do Recrutador IA (sênior vs. jovem aprendiz)
